@@ -1,0 +1,14 @@
+# Force LF line endings for all shell scripts.
+# Prevents CRLF corruption when files round-trip through Windows/WSL.
+*.sh text eol=lf
+*.zsh text eol=lf
+
+# Keep PowerShell scripts with CRLF (native Windows convention)
+*.ps1 text eol=crlf
+
+# Markdown and config files — LF for consistency
+*.md text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf

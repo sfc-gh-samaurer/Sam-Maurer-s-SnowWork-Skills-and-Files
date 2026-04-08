@@ -1,0 +1,22 @@
+[project]
+name = "cx-project-tracking"
+version = "1.8.2"
+description = "Session tracking for Cortex Code CLI and SnowWork"
+requires-python = ">=3.10"
+
+[project.optional-dependencies]
+dashboard = [
+    "streamlit>=1.35",
+    "pandas>=2.0",
+    "snowflake-snowpark-python>=1.14",
+]
+dev = [
+    "pre-commit>=3.0",
+    "shellcheck-py>=0.9",
+]
+
+[tool.uv]
+dev-dependencies = [
+    "cx-project-tracking[dashboard]",
+    "cx-project-tracking[dev]",
+]

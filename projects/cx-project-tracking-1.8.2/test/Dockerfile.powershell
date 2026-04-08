@@ -1,0 +1,22 @@
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip jq curl git wget ca-certificates libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -sSL -o /tmp/pwsh.tar.gz "https://github.com/PowerShell/PowerShell/releases/download/v7.4.7/powershell-7.4.7-linux-arm64.tar.gz" \
+    && mkdir -p /opt/microsoft/powershell/7 \
+    && tar -xzf /tmp/pwsh.tar.gz -C /opt/microsoft/powershell/7 \
+    && chmod +x /opt/microsoft/powershell/7/pwsh \
+    && ln -s /opt/microsoft/powershell/7/pwsh /usr/local/bin/pwsh \
+    && rm /tmp/pwsh.tar.gz
+
+WORKDIR /project
+COPY . /project/
+
+RUN mkdir -p /root/.snowflake
+RUN mkdir -p /root/.snow
+
+ENTRYPOINT ["pwsh", "-File", "/project/test/test-install-ps1.ps1"]

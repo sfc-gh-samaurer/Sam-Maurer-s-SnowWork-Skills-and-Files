@@ -1,0 +1,39 @@
+name: Query Tag Schema Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate-query-tag:
+    name: Validate QUERY_TAG Structure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Validate QUERY_TAG JSON keys
+        run: |
+          REQUIRED_KEYS="app customer project_id project milestone_id milestone email session_id"
+          ERRORS=0
+
+          while IFS= read -r file; do
+            while IFS= read -r line; do
+              for key in $REQUIRED_KEYS; do
+                if ! echo "$line" | grep -q "\"${key}\""; then
+                  echo "::error file=${file}::Missing required key '${key}' in QUERY_TAG"
+                  ERRORS=$((ERRORS + 1))
+                fi
+              done
+            done < <(grep -n 'QUERY_TAG=.*{.*\"app\"' "$file" | grep -v '^\s*#' || true)
+          done < <(grep -rl 'QUERY_TAG=.*{.*\"app\"' cli/ snowwork/ skills/ --include='*.sh' 2>/dev/null || true)
+
+          if [ "$ERRORS" -gt 0 ]; then
+            echo "::error::Found $ERRORS missing key(s) in QUERY_TAG definitions"
+            exit 1
+          fi
+          echo "All QUERY_TAG definitions contain required keys: $REQUIRED_KEYS"

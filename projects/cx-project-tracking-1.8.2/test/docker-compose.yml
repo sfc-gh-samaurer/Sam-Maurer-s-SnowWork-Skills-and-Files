@@ -1,0 +1,18 @@
+services:
+  test-bash:
+    build:
+      context: ..
+      dockerfile: test/Dockerfile.bash
+    container_name: cx-test-bash
+
+  test-crlf:
+    build:
+      context: ..
+      dockerfile: test/Dockerfile.crlf
+    container_name: cx-test-crlf
+
+  test-powershell:
+    build:
+      context: ..
+      dockerfile: test/Dockerfile.powershell
+    container_name: cx-test-powershell
