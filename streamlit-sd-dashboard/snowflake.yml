@@ -1,0 +1,22 @@
+definition_version: 2
+entities:
+  sd_account_dashboard:
+    type: streamlit
+    identifier:
+      name: SD_ACCOUNT_DASHBOARD
+      database: TEMP
+      schema: SAMAURER
+    query_warehouse: SNOWADHOC
+    compute_pool: STREAMLIT_DEDICATED_POOL
+    runtime_name: SYSTEM$ST_CONTAINER_RUNTIME_PY3_11
+    external_access_integrations:
+      - PYPI_ACCESS_INTEGRATION
+    main_file: streamlit_app.py
+    artifacts:
+      - streamlit_app.py
+      - data.py
+      - pyproject.toml
+      - app_pages/capacity_renewals.py
+      - app_pages/use_cases_tab.py
+      - app_pages/pst_tab.py
+      - app_pages/sd_opp_generator.py

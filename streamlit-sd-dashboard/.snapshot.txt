@@ -1,0 +1,20 @@
+# Page Snapshot - Enterprise Expansion, Northwest - SD Dashboard
+# URL: http://localhost:8501/
+# Elements: 12 | Timestamp: 2026-03-17T16:51:27.300Z
+#
+# Usage: Use uid="<element_ref>" in browser_click, browser_type, etc.
+#
+
+- RootWebArea "Enterprise Expansion, Northwest - SD Dashboard":
+  - banner "StopDeploy"
+  - button "Stop" [ref=stBaseButton-header]
+  - button "Deploy" [ref=stBaseButton-header_1]
+  - button [ref=stBaseButton-headerNoPadding]
+  - region "[data-testid=\"stAppViewContainer\"] { background-color: #f8fafc; }
+    [data-test..." [100 chars]
+  - heading "dashboard Enterprise Expansion, Northwest - SD Dashboard" [ref=dashboard-enterprise-expansion-northwest-sd-dashboard, level=2]
+  - button "refresh Refresh" [ref=stBaseButton-primary]
+  - tab "trending_up Capacity & Renewals" [ref=tabs-bui2-tab-0]
+  - tab "rocket_launch Use Cases" [ref=tabs-bui2-tab-1]
+  - tab "support_agent SD Projects" [ref=tabs-bui2-tab-2, selected]
+  - tab "military_tech SD Opp Generator" [ref=tabs-bui2-tab-3]
