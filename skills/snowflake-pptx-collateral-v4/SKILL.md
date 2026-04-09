@@ -1,5 +1,5 @@
 ---
-name: snowflake-pptx-collateral
+name: snowflake-pptx-collateral-v4
 description: "Create professional Snowflake-branded PowerPoint (PPTX) decks. Designs slides in HTML/CSS first (world-class visual quality), then converts to PPTX in one of two modes: (1) Image Mode — pixel-perfect PNG slides, not editable; (2) Editable Mode — native python-pptx shapes and text boxes, fully editable in PowerPoint. Use for: presentations, business reviews, district reviews, customer decks, summary slides, status updates, executive presentations. Triggers: PPTX, PowerPoint, deck, slides, presentation, create deck, build slides, business review deck, summary slide."
 ---
 
