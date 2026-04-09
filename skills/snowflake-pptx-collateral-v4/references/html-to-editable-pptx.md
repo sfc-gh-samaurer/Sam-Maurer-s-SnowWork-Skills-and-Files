@@ -20,6 +20,29 @@ The design intent and Snowflake branding are fully preserved. Slides are fully e
 
 ---
 
+## Core Rule: Text Lives Inside Shapes
+
+**ALWAYS place text directly in a shape's `.text_frame` — never add a floating `add_textbox()` on top of a shape.**
+
+```
+❌ WRONG — floating text box layered over a shape:
+    add_rect(slide, x, y, w, h, fill=SF_MID_BLUE)
+    add_text(slide, x+pad, y+pad, w, h, "Label")   ← separate shape, z-order issues
+
+✅ CORRECT — text set directly in the shape's text frame:
+    shape = add_rect(slide, x, y, w, h, fill=SF_MID_BLUE)
+    set_shape_text(shape, "Label")
+```
+
+**Rule:** `add_text()` (standalone textbox) is only for elements that have **no background shape** — slide titles, subtitles, footers, body paragraphs, and bullet lists. For any element that has a colored fill (card header, KPI box, badge, phase bar, milestone bar, button, etc.), always use `set_shape_text()` on the shape returned by `add_rect()`.
+
+This ensures:
+- Moving a shape in PowerPoint moves its label with it
+- No invisible floating text boxes cluttering the slide layer panel
+- Clean, editable object hierarchy
+
+---
+
 ## Dependencies
 
 ```python
@@ -28,7 +51,6 @@ from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 from pptx.enum.shapes import MSO_SHAPE_TYPE
-from pptx.oxml.ns import qn
 from io import BytesIO
 ```
 
@@ -110,8 +132,7 @@ def set_solid_bg(slide, color):
     bg.fill.fore_color.rgb = color
 
 def add_rect(slide, left, top, width, height, fill=None, line=None, line_width=Pt(0)):
-    """Add a filled rectangle. fill=None → transparent. line=None → no border."""
-    from pptx.util import Emu
+    """Add a rectangle and return the shape. Text belongs in shape.text_frame — use set_shape_text()."""
     from pptx.enum.shapes import MSO_SHAPE
     shape = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, left, top, width, height)
     if fill:
@@ -126,29 +147,68 @@ def add_rect(slide, left, top, width, height, fill=None, line=None, line_width=P
         shape.line.fill.background()
     return shape
 
-def add_text(slide, left, top, width, height, text, size=10, bold=False,
-             color=SF_DARK_TEXT, align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.TOP,
-             wrap=True, italic=False):
-    """Add a text box. Returns the shape."""
-    tb = slide.shapes.add_textbox(left, top, width, height)
-    tf = tb.text_frame
+def set_shape_text(shape, text, size=10, bold=False, color=SF_WHITE,
+                   align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE, wrap=True):
+    """
+    Set text DIRECTLY in a shape's text frame.
+    Use this for any element that has a colored fill: card headers, KPI boxes,
+    badges, phase bars, milestone bars, buttons, RACI cells, etc.
+    NEVER use add_text() on top of a filled shape.
+    """
+    tf = shape.text_frame
     tf.word_wrap = wrap
-    tf.auto_size = None
+    tf.vertical_anchor = valign
     p = tf.paragraphs[0]
+    p.alignment = align
     run = p.add_run()
     run.text = text
     run.font.size = Pt(size)
     run.font.bold = bold
-    run.font.italic = italic
     run.font.color.rgb = color
     run.font.name = "Arial"
+    return shape
+
+def add_shape_para(shape, text, size=9, bold=False, color=SF_WHITE,
+                   align=PP_ALIGN.CENTER, space_before=Pt(0), space_after=Pt(2)):
+    """Append an additional paragraph to an existing shape's text frame."""
+    tf = shape.text_frame
+    p = tf.add_paragraph()
     p.alignment = align
+    p.space_before = space_before
+    p.space_after = space_after
+    run = p.add_run()
+    run.text = text
+    run.font.size = Pt(size)
+    run.font.bold = bold
+    run.font.color.rgb = color
+    run.font.name = "Arial"
+    return p
+
+def add_text(slide, left, top, width, height, text, size=10, bold=False,
+             color=SF_DARK_TEXT, align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.TOP,
+             wrap=True):
+    """
+    Add a STANDALONE text box — use ONLY for elements with no background fill:
+    slide titles, subtitles, footers, body paragraphs, bullet lists.
+    For any element with a colored shape behind it, use add_rect() + set_shape_text() instead.
+    """
+    tb = slide.shapes.add_textbox(left, top, width, height)
+    tf = tb.text_frame
+    tf.word_wrap = wrap
     tf.vertical_anchor = valign
+    p = tf.paragraphs[0]
+    p.alignment = align
+    run = p.add_run()
+    run.text = text
+    run.font.size = Pt(size)
+    run.font.bold = bold
+    run.font.color.rgb = color
+    run.font.name = "Arial"
     return tb
 
 def add_para(tf, text, size=9, bold=False, color=SF_DARK_TEXT,
              align=PP_ALIGN.LEFT, space_before=Pt(0), space_after=Pt(3)):
-    """Append a paragraph to an existing text frame."""
+    """Append a paragraph to an existing standalone text frame (titles, body, bullets)."""
     p = tf.add_paragraph()
     run = p.add_run()
     run.text = text
@@ -211,35 +271,30 @@ def add_dark_slide_frame(prs):
 ```python
 def build_cover(prs, title, subtitle, date_line, team_meta, customer_name=""):
     slide = add_dark_slide_frame(prs)
-    # Header bar (logo area)
-    add_rect(slide, 0, 0, SLIDE_W, Inches(0.42), RGBColor(0x0a, 0x2c, 0x45))
-    add_text(slide, PAD_LEFT, Inches(0.09), Inches(4), Inches(0.25),
-             "✦  SNOWFLAKE PROFESSIONAL SERVICES",
-             size=8, bold=True, color=SF_WHITE)
-    # Customer badge (top right)
+    # Header bar — text lives INSIDE the shape
+    hbar = add_rect(slide, 0, 0, SLIDE_W, Inches(0.42), RGBColor(0x0a, 0x2c, 0x45))
+    set_shape_text(hbar, "    ✦  SNOWFLAKE PROFESSIONAL SERVICES",
+                   size=8, bold=True, color=SF_WHITE, align=PP_ALIGN.LEFT,
+                   valign=MSO_ANCHOR.MIDDLE)
+    # Customer badge — multi-line, text lives INSIDE the shape
     if customer_name:
-        add_rect(slide, Inches(8.6), Inches(0.52), Inches(1.3), Inches(0.7),
-                 RGBColor(0x15, 0x45, 0x68))
-        add_text(slide, Inches(8.6), Inches(0.55), Inches(1.3), Inches(0.22),
-                 "PREPARED FOR", size=6, color=RGBColor(0x88, 0xbb, 0xcc),
-                 align=PP_ALIGN.CENTER)
-        add_text(slide, Inches(8.6), Inches(0.76), Inches(1.3), Inches(0.38),
-                 customer_name, size=14, bold=True, color=SF_WHITE,
-                 align=PP_ALIGN.CENTER)
-    # Right accent bar
+        badge = add_rect(slide, Inches(8.6), Inches(0.52), Inches(1.3), Inches(0.7),
+                         RGBColor(0x15, 0x45, 0x68))
+        set_shape_text(badge, "PREPARED FOR", size=6,
+                       color=RGBColor(0x88, 0xbb, 0xcc), align=PP_ALIGN.CENTER,
+                       valign=MSO_ANCHOR.TOP)
+        add_shape_para(badge, customer_name, size=14, bold=True,
+                       color=SF_WHITE, align=PP_ALIGN.CENTER)
+    # Right accent bar (no text)
     add_rect(slide, Inches(9.7), Inches(1.1), Inches(0.03), Inches(2.6), SF_TEAL)
-    # Title
+    # Title, subtitle, date, meta — standalone text on dark bg (no fill shape behind them)
     add_text(slide, PAD_LEFT, Inches(1.48), Inches(6.8), Inches(2.1),
              title.upper(), size=36, bold=True, color=SF_WHITE, wrap=True)
-    # Teal rule
     add_rect(slide, PAD_LEFT, Inches(3.15), Inches(1.25), Inches(0.03), SF_TEAL)
-    # Subtitle
     add_text(slide, PAD_LEFT, Inches(3.27), Inches(6.5), Inches(0.4),
              subtitle, size=14, bold=True, color=SF_WHITE)
-    # Date line
     add_text(slide, PAD_LEFT, Inches(3.72), Inches(6.5), Inches(0.3),
              date_line, size=11, color=RGBColor(0xaa, 0xaa, 0xaa))
-    # Team meta (footer area)
     add_text(slide, PAD_LEFT, Inches(5.35), CONTENT_W, Inches(0.2),
              team_meta, size=9, color=RGBColor(0x88, 0x88, 0x88))
     return slide
@@ -250,20 +305,15 @@ def build_cover(prs, title, subtitle, date_line, team_meta, customer_name=""):
 ```python
 def build_chapter(prs, chapter_num, title, subtitle=""):
     slide = add_dark_slide_frame(prs)
-    # Ghost chapter number (very light, large)
+    # All elements are standalone text on dark bg — no fill shapes hold text here
     add_text(slide, Inches(5.5), Inches(-0.5), Inches(5), Inches(4.5),
              str(chapter_num).zfill(2),
              size=200, bold=True, color=RGBColor(0x0f, 0x3a, 0x56))
-    # Left accent bar
     add_rect(slide, PAD_LEFT, Inches(1.7), Inches(0.042), Inches(1.45), SF_TEAL)
-    # Chapter label
     add_text(slide, Inches(0.55), Inches(1.75), Inches(5), Inches(0.25),
-             f"CHAPTER {str(chapter_num).zfill(2)}",
-             size=10, bold=True, color=SF_TEAL)
-    # Title (2 lines)
+             f"CHAPTER {str(chapter_num).zfill(2)}", size=10, bold=True, color=SF_TEAL)
     add_text(slide, Inches(0.55), Inches(2.07), Inches(7.5), Inches(1.8),
              title.upper(), size=48, bold=True, color=SF_WHITE, wrap=True)
-    # Subtitle
     if subtitle:
         add_text(slide, Inches(0.55), Inches(3.42), Inches(6.5), Inches(0.5),
                  subtitle, size=14, color=RGBColor(0x88, 0xaa, 0xbb))
@@ -275,10 +325,7 @@ def build_chapter(prs, chapter_num, title, subtitle=""):
 ```python
 def build_agenda(prs, items):
     """
-    items: list of dicts with keys: num, sublabel, label, desc, time
-    Example: {"num":"01","sublabel":"Welcome","label":"About Our Team",
-              "desc":"Who we are...", "time":"9:00 – 9:20"}
-    Max 5 items (one per column).
+    items: list of dicts — num, sublabel, label, desc, time. Max 5.
     """
     slide = add_content_slide_frame(prs, "Agenda",
                                     "Today's kickoff — what we'll cover and when")
@@ -286,29 +333,31 @@ def build_agenda(prs, items):
     col_w = CONTENT_W / n
     gap = Inches(0.1)
     for i, item in enumerate(items):
-        x = PAD_LEFT + i * (col_w)
+        x = PAD_LEFT + i * col_w
         item_w = col_w - gap
-        # Header (dark blue)
-        add_rect(slide, x, CONTENT_TOP, item_w, Inches(0.78), SF_MID_BLUE)
-        add_text(slide, x + Inches(0.14), CONTENT_TOP + Inches(0.1), item_w, Inches(0.5),
-                 item["num"], size=26, bold=True, color=SF_WHITE)
-        add_text(slide, x + Inches(0.14), CONTENT_TOP + Inches(0.54), item_w, Inches(0.2),
-                 item.get("sublabel","").upper(), size=7, color=RGBColor(0xaa,0xcc,0xdd))
-        # Body (light bg)
+
+        # Header shape — num + sublabel live INSIDE the shape
+        hdr = add_rect(slide, x, CONTENT_TOP, item_w, Inches(0.78), SF_MID_BLUE)
+        set_shape_text(hdr, item["num"], size=26, bold=True,
+                       color=SF_WHITE, align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.TOP)
+        add_shape_para(hdr, item.get("sublabel", "").upper(), size=7,
+                       color=RGBColor(0xaa, 0xcc, 0xdd), align=PP_ALIGN.LEFT)
+
+        # Body panel — light bg; label + desc are flowing content (standalone text ok over panel)
         body_top = CONTENT_TOP + Inches(0.78)
         body_h = SAFE_BOTTOM - body_top - Inches(0.35)
         add_rect(slide, x, body_top, item_w, body_h, SF_LIGHT_BG)
         add_text(slide, x + Inches(0.12), body_top + Inches(0.1), item_w - Inches(0.2),
-                 Inches(0.3), item["label"].upper(),
-                 size=9, bold=True, color=SF_DARK_TEXT)
+                 Inches(0.28), item["label"].upper(), size=9, bold=True, color=SF_DARK_TEXT)
         add_text(slide, x + Inches(0.12), body_top + Inches(0.42), item_w - Inches(0.2),
-                 body_h - Inches(0.6), item["desc"], size=8, color=SF_BODY_GREY, wrap=True)
-        # Time badge
+                 body_h - Inches(0.58), item["desc"], size=8, color=SF_BODY_GREY, wrap=True)
+
+        # Time badge — label lives INSIDE the shape
         badge_top = SAFE_BOTTOM - Inches(0.28)
-        add_rect(slide, x + Inches(0.12), badge_top, item_w - Inches(0.24), Inches(0.22), SF_BLUE)
-        add_text(slide, x + Inches(0.12), badge_top, item_w - Inches(0.24), Inches(0.22),
-                 item["time"], size=7, bold=True, color=SF_WHITE, align=PP_ALIGN.CENTER,
-                 valign=MSO_ANCHOR.MIDDLE)
+        badge = add_rect(slide, x + Inches(0.12), badge_top,
+                         item_w - Inches(0.24), Inches(0.22), SF_BLUE)
+        set_shape_text(badge, item["time"], size=7, bold=True,
+                       color=SF_WHITE, align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
     return slide
 ```
 
@@ -325,11 +374,14 @@ def build_two_column(prs, title, subtitle, left_header, left_label,
     right_x = PAD_LEFT + col_w + Inches(0.14)
 
     def draw_column(x, header_bg, header_label, header_title, sections):
-        add_rect(slide, x, CONTENT_TOP, col_w, Inches(0.55), header_bg)
-        add_text(slide, x + Inches(0.16), CONTENT_TOP + Inches(0.06), col_w, Inches(0.2),
-                 header_label.upper(), size=8, color=RGBColor(0xaa,0xcc,0xdd))
-        add_text(slide, x + Inches(0.16), CONTENT_TOP + Inches(0.24), col_w, Inches(0.28),
-                 header_title, size=12, bold=True, color=SF_WHITE)
+        # Column header — label + title live INSIDE the shape
+        hdr = add_rect(slide, x, CONTENT_TOP, col_w, Inches(0.55), header_bg)
+        set_shape_text(hdr, header_label.upper(), size=8,
+                       color=RGBColor(0xaa, 0xcc, 0xdd),
+                       align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.TOP)
+        add_shape_para(hdr, header_title, size=12, bold=True,
+                       color=SF_WHITE, align=PP_ALIGN.LEFT)
+        # Body panel — background only; flowing content uses standalone text
         body_top = CONTENT_TOP + Inches(0.55)
         body_h = SAFE_BOTTOM - body_top
         add_rect(slide, x, body_top, col_w, body_h, SF_LIGHT_BG)
@@ -339,15 +391,8 @@ def build_two_column(prs, title, subtitle, left_header, left_label,
                      sec["head"].upper(), size=8, bold=True, color=SF_MID_BLUE)
             y += Inches(0.24)
             for bullet in sec["bullets"]:
-                tb = slide.shapes.add_textbox(x + Inches(0.26), y, col_w - Inches(0.35), Inches(0.18))
-                tf = tb.text_frame
-                tf.word_wrap = True
-                p = tf.paragraphs[0]
-                run = p.add_run()
-                run.text = "•  " + bullet
-                run.font.size = Pt(8.5)
-                run.font.color.rgb = SF_DARK_TEXT
-                run.font.name = "Arial"
+                add_text(slide, x + Inches(0.26), y, col_w - Inches(0.35), Inches(0.18),
+                         "•  " + bullet, size=8.5, color=SF_DARK_TEXT, wrap=True)
                 y += Inches(0.19)
             y += Inches(0.08)
 
@@ -362,30 +407,24 @@ def build_two_column(prs, title, subtitle, left_header, left_label,
 def build_kpi_table(prs, title, subtitle, kpis, table_headers, table_rows):
     """
     kpis: list of {"value":str, "label":str} — 4 items
-    table_headers: list of str
-    table_rows: list of lists of str
     """
     slide = add_content_slide_frame(prs, title, subtitle)
-    # KPI row
     kpi_w = CONTENT_W / len(kpis)
     kpi_h = Inches(1.04)
     for i, kpi in enumerate(kpis):
         x = PAD_LEFT + i * kpi_w
         bg = SF_BLUE if i % 2 == 0 else SF_MID_BLUE
-        add_rect(slide, x, CONTENT_TOP, kpi_w - Inches(0.1), kpi_h, bg)
-        add_text(slide, x, CONTENT_TOP + Inches(0.17), kpi_w - Inches(0.1), Inches(0.5),
-                 kpi["value"], size=32, bold=True, color=SF_WHITE,
-                 align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
-        add_text(slide, x, CONTENT_TOP + Inches(0.67), kpi_w - Inches(0.1), Inches(0.3),
-                 kpi["label"], size=8, color=SF_TEAL,
-                 align=PP_ALIGN.CENTER)
-    # Table
+        # KPI box — value + label live INSIDE the shape
+        box = add_rect(slide, x, CONTENT_TOP, kpi_w - Inches(0.1), kpi_h, bg)
+        set_shape_text(box, kpi["value"], size=32, bold=True,
+                       color=SF_WHITE, align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
+        add_shape_para(box, kpi["label"], size=8, color=SF_TEAL, align=PP_ALIGN.CENTER)
+    # Table (cells already own their text — no floating text boxes needed)
     tbl_top = CONTENT_TOP + kpi_h + Inches(0.12)
     tbl_h = SAFE_BOTTOM - tbl_top
-    n_rows = len(table_rows) + 1
-    n_cols = len(table_headers)
-    tbl = slide.shapes.add_table(n_rows, n_cols, PAD_LEFT, tbl_top, CONTENT_W, tbl_h).table
-    # Header
+    tbl = slide.shapes.add_table(
+        len(table_rows) + 1, len(table_headers), PAD_LEFT, tbl_top, CONTENT_W, tbl_h
+    ).table
     for c, hdr in enumerate(table_headers):
         cell = tbl.cell(0, c)
         cell.text = hdr
@@ -395,12 +434,11 @@ def build_kpi_table(prs, title, subtitle, kpis, table_headers, table_rows):
         p.font.color.rgb = SF_WHITE; p.font.name = "Arial"
         p.alignment = PP_ALIGN.LEFT
         cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-    # Data rows
     for r, row in enumerate(table_rows):
         bg = SF_LIGHT_ROW if r % 2 == 0 else SF_WHITE
         for c, val in enumerate(row):
             cell = tbl.cell(r + 1, c)
-            cell.text = val
+            cell.text = str(val)
             cell.fill.solid(); cell.fill.fore_color.rgb = bg
             p = cell.text_frame.paragraphs[0]
             p.font.size = Pt(9)
@@ -418,7 +456,6 @@ def build_kpi_table(prs, title, subtitle, kpis, table_headers, table_rows):
 def build_card_grid(prs, title, subtitle, cards, cols=3):
     """
     cards: list of {"header_color": RGBColor, "icon": str, "title": str, "body": str}
-    cols: 3 or 4
     """
     slide = add_content_slide_frame(prs, title, subtitle)
     rows = (len(cards) + cols - 1) // cols
@@ -430,17 +467,16 @@ def build_card_grid(prs, title, subtitle, cards, cols=3):
         x = PAD_LEFT + col * (card_w + Inches(0.1))
         y = CONTENT_TOP + row * (card_h + Inches(0.1))
         hc = card.get("header_color", SF_MID_BLUE)
-        # Header
-        add_rect(slide, x, y, card_w, head_h, hc)
-        add_text(slide, x + Inches(0.14), y + Inches(0.07), card_w - Inches(0.18),
-                 Inches(0.2), card.get("icon",""), size=13, color=SF_WHITE)
-        add_text(slide, x + Inches(0.14), y + Inches(0.27), card_w - Inches(0.18),
-                 Inches(0.24), card["title"].upper(), size=9, bold=True, color=SF_WHITE)
-        # Body
-        add_rect(slide, x, y + head_h, card_w, card_h - head_h, SF_LIGHT_BG)
-        add_text(slide, x + Inches(0.13), y + head_h + Inches(0.1),
-                 card_w - Inches(0.2), card_h - head_h - Inches(0.15),
-                 card["body"], size=8.5, color=SF_DARK_TEXT, wrap=True)
+        # Card header — icon + title live INSIDE the shape
+        hdr = add_rect(slide, x, y, card_w, head_h, hc)
+        set_shape_text(hdr, card.get("icon", ""), size=13,
+                       color=SF_WHITE, align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.TOP)
+        add_shape_para(hdr, card["title"].upper(), size=9, bold=True,
+                       color=SF_WHITE, align=PP_ALIGN.LEFT)
+        # Card body — body text lives INSIDE the shape
+        body = add_rect(slide, x, y + head_h, card_w, card_h - head_h, SF_LIGHT_BG)
+        set_shape_text(body, card["body"], size=8.5, color=SF_DARK_TEXT,
+                       align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.TOP, wrap=True)
     return slide
 ```
 
@@ -449,53 +485,47 @@ def build_card_grid(prs, title, subtitle, cards, cols=3):
 ```python
 def build_timeline(prs, title, subtitle, phase1, phase2):
     """
-    phase1/phase2: {
-      "label": str, "title": str, "date": str,
-      "tracks": [{"num":str, "label":str, "text":str}, ...],
-      "milestone": str
-    }
+    phase1/phase2: {"label":str, "title":str, "date":str,
+                    "tracks":[{"num":str,"label":str,"text":str},...], "milestone":str}
     """
     slide = add_content_slide_frame(prs, title, subtitle)
     phase_h = Inches(0.58)
-    phase_y = CONTENT_TOP
     col_w = CONTENT_W / 2
 
     for i, (phase, bg) in enumerate([(phase1, SF_MID_BLUE), (phase2, SF_BLUE)]):
         x = PAD_LEFT + i * col_w
-        # Phase header
-        add_rect(slide, x, phase_y, col_w - Inches(0.05), phase_h, bg)
-        add_text(slide, x + Inches(0.18), phase_y + Inches(0.06), col_w, Inches(0.18),
-                 phase["label"].upper(), size=8, color=RGBColor(0xaa,0xcc,0xdd))
-        add_text(slide, x + Inches(0.18), phase_y + Inches(0.22), col_w, Inches(0.25),
-                 phase["title"], size=13, bold=True, color=SF_WHITE)
-        add_text(slide, x + Inches(0.18), phase_y + Inches(0.44), col_w, Inches(0.18),
-                 phase["date"], size=8, color=RGBColor(0x99,0xbb,0xcc))
-        # Track body
-        track_top = phase_y + phase_h
+        # Phase header bar — label + title + date live INSIDE the shape
+        ph = add_rect(slide, x, CONTENT_TOP, col_w - Inches(0.05), phase_h, bg)
+        set_shape_text(ph, phase["label"].upper(), size=8,
+                       color=RGBColor(0xaa, 0xcc, 0xdd),
+                       align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.TOP)
+        add_shape_para(ph, phase["title"], size=13, bold=True,
+                       color=SF_WHITE, align=PP_ALIGN.LEFT)
+        add_shape_para(ph, phase["date"], size=8,
+                       color=RGBColor(0x99, 0xbb, 0xcc), align=PP_ALIGN.LEFT)
+        # Track panel — background only; track items use standalone text
+        track_top = CONTENT_TOP + phase_h
         track_h = SAFE_BOTTOM - track_top
         track_bg = RGBColor(0xee, 0xf4, 0xf8) if i == 0 else RGBColor(0xe8, 0xf4, 0xfc)
         add_rect(slide, x, track_top, col_w - Inches(0.05), track_h, track_bg)
         y = track_top + Inches(0.12)
         for t in phase["tracks"]:
-            # Number badge
-            add_rect(slide, x + Inches(0.14), y, Inches(0.2), Inches(0.2), bg)
-            add_text(slide, x + Inches(0.14), y, Inches(0.2), Inches(0.2),
-                     t["num"], size=8, bold=True, color=SF_WHITE,
-                     align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
+            # Number badge — label lives INSIDE the shape
+            nbadge = add_rect(slide, x + Inches(0.14), y, Inches(0.2), Inches(0.2), bg)
+            set_shape_text(nbadge, t["num"], size=8, bold=True, color=SF_WHITE,
+                           align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
             add_text(slide, x + Inches(0.4), y, col_w - Inches(0.55), Inches(0.18),
                      t["label"].upper(), size=8, bold=True, color=SF_DARK_TEXT)
             add_text(slide, x + Inches(0.4), y + Inches(0.19), col_w - Inches(0.55),
                      Inches(0.28), t["text"], size=8, color=SF_BODY_GREY, wrap=True)
-            # Divider
-            add_rect(slide, x + Inches(0.14), y + Inches(0.5), col_w - Inches(0.28),
-                     Inches(0.01), SF_GRID)
+            add_rect(slide, x + Inches(0.14), y + Inches(0.5),
+                     col_w - Inches(0.28), Inches(0.01), SF_GRID)
             y += Inches(0.55)
-        # Milestone bar (pinned to bottom)
+        # Milestone bar — text lives INSIDE the shape
         ms_top = SAFE_BOTTOM - Inches(0.32)
-        add_rect(slide, x + Inches(0.1), ms_top, col_w - Inches(0.2), Inches(0.28), bg)
-        add_text(slide, x + Inches(0.2), ms_top, col_w - Inches(0.25), Inches(0.28),
-                 phase.get("milestone",""), size=8, bold=True, color=SF_WHITE,
-                 valign=MSO_ANCHOR.MIDDLE)
+        ms = add_rect(slide, x + Inches(0.1), ms_top, col_w - Inches(0.2), Inches(0.28), bg)
+        set_shape_text(ms, phase.get("milestone", ""), size=8, bold=True,
+                       color=SF_WHITE, align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.MIDDLE)
     return slide
 ```
 
@@ -504,20 +534,16 @@ def build_timeline(prs, title, subtitle, phase1, phase2):
 ```python
 def build_table_slide(prs, title, subtitle, headers, rows,
                       first_col_bold=True, col_widths=None):
-    """
-    col_widths: optional list of Inches values that sum to CONTENT_W
-    """
     slide = add_content_slide_frame(prs, title, subtitle)
     tbl_top = CONTENT_TOP
     tbl_h = SAFE_BOTTOM - tbl_top
-    n_rows = len(rows) + 1
-    n_cols = len(headers)
-    shape = slide.shapes.add_table(n_rows, n_cols, PAD_LEFT, tbl_top, CONTENT_W, tbl_h)
+    shape = slide.shapes.add_table(
+        len(rows) + 1, len(headers), PAD_LEFT, tbl_top, CONTENT_W, tbl_h
+    )
     tbl = shape.table
     if col_widths:
         for c, w in enumerate(col_widths):
             tbl.columns[c].width = w
-    # Header row
     for c, hdr in enumerate(headers):
         cell = tbl.cell(0, c)
         cell.text = hdr
@@ -527,7 +553,6 @@ def build_table_slide(prs, title, subtitle, headers, rows,
         p.font.color.rgb = SF_WHITE; p.font.name = "Arial"
         p.alignment = PP_ALIGN.LEFT
         cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-    # Data rows
     for r, row in enumerate(rows):
         bg = SF_LIGHT_ROW if r % 2 == 0 else SF_WHITE
         for c, val in enumerate(row):
@@ -560,33 +585,31 @@ def build_team_slide(prs, title, subtitle, sf_team, client_team, client_label="C
         for i, m in enumerate(members):
             x = PAD_LEFT + i * (card_w + Inches(0.1))
             if is_snowflake:
-                add_rect(slide, x, y, Inches(0.52), card_h, SF_MID_BLUE)
-                add_text(slide, x, y + Inches(0.55), Inches(0.52), Inches(0.3),
-                         "✦", size=16, color=SF_TEAL, align=PP_ALIGN.CENTER)
-                add_rect(slide, x + Inches(0.52), y, card_w - Inches(0.52), card_h,
-                         RGBColor(0x0d, 0x3f, 0x5e))
-                name_color = SF_WHITE
-                role_color = SF_TEAL
-                bio_color = RGBColor(0xaa, 0xcc, 0xdd)
+                # Avatar shape — icon lives INSIDE the shape
+                av = add_rect(slide, x, y, Inches(0.52), card_h, SF_MID_BLUE)
+                set_shape_text(av, "✦", size=16, color=SF_TEAL,
+                               align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
+                # Info panel — name + role + bio live INSIDE the shape
+                info = add_rect(slide, x + Inches(0.52), y, card_w - Inches(0.52),
+                                card_h, RGBColor(0x0d, 0x3f, 0x5e))
+                set_shape_text(info, m["name"], size=11, bold=True,
+                               color=SF_WHITE, align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.TOP)
+                add_shape_para(info, m["role"], size=8, color=SF_TEAL, align=PP_ALIGN.LEFT)
+                add_shape_para(info, m["bio"], size=8,
+                               color=RGBColor(0xaa, 0xcc, 0xdd), align=PP_ALIGN.LEFT)
             else:
-                add_rect(slide, x, y, Inches(0.52), card_h, SF_LIGHT_BG)
-                add_rect(slide, x + Inches(0.52), y, card_w - Inches(0.52), card_h,
-                         SF_LIGHT_BG)
-                add_text(slide, x, y + Inches(0.55), Inches(0.52), Inches(0.3),
-                         "●", size=14, color=SF_BODY_GREY, align=PP_ALIGN.CENTER)
-                name_color = SF_DARK_TEXT
-                role_color = SF_BODY_GREY
-                bio_color = SF_BODY_GREY
-            tx = x + Inches(0.65)
-            tw = card_w - Inches(0.75)
-            add_text(slide, tx, y + Inches(0.1), tw, Inches(0.28),
-                     m["name"], size=11, bold=True, color=name_color)
-            add_text(slide, tx, y + Inches(0.36), tw, Inches(0.22),
-                     m["role"], size=8, color=role_color)
-            add_text(slide, tx, y + Inches(0.6), tw, Inches(0.65),
-                     m["bio"], size=8, color=bio_color, wrap=True)
+                av = add_rect(slide, x, y, Inches(0.52), card_h, SF_LIGHT_BG)
+                set_shape_text(av, "●", size=14, color=SF_BODY_GREY,
+                               align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
+                info = add_rect(slide, x + Inches(0.52), y, card_w - Inches(0.52),
+                                card_h, SF_LIGHT_BG)
+                set_shape_text(info, m["name"], size=11, bold=True,
+                               color=SF_DARK_TEXT, align=PP_ALIGN.LEFT, valign=MSO_ANCHOR.TOP)
+                add_shape_para(info, m["role"], size=8,
+                               color=SF_BODY_GREY, align=PP_ALIGN.LEFT)
+                add_shape_para(info, m["bio"], size=8,
+                               color=SF_BODY_GREY, align=PP_ALIGN.LEFT)
 
-    # Section labels
     y = CONTENT_TOP
     add_rect(slide, PAD_LEFT, y, CONTENT_W, Inches(0.02), SF_BLUE)
     add_text(slide, PAD_LEFT, y + Inches(0.05), CONTENT_W, Inches(0.22),
@@ -606,26 +629,18 @@ def build_team_slide(prs, title, subtitle, sf_team, client_team, client_label="C
 
 ```python
 def build_raci(prs, title, subtitle, headers, rows, legend=True):
-    """
-    headers: ["Activity", "Name1\nRole1", ...]
-    rows: [["Activity name", "R", "A", "I", "C", "I", "R"], ...]
-    RACI values: R / A / C / I
-    """
     RACI_COLORS = {
-        "R": (SF_MID_BLUE,    SF_WHITE),
-        "A": (RGBColor(0xdd,0xee,0xf8), SF_BLUE),
-        "C": (RGBColor(0xdd,0xee,0xf8), SF_BLUE),
-        "I": (SF_LIGHT_BG,   SF_BODY_GREY),
+        "R": (SF_MID_BLUE,                       SF_WHITE),
+        "A": (RGBColor(0xdd, 0xee, 0xf8),        SF_BLUE),
+        "C": (RGBColor(0xdd, 0xee, 0xf8),        SF_BLUE),
+        "I": (SF_LIGHT_BG,                        SF_BODY_GREY),
     }
     slide = add_content_slide_frame(prs, title, subtitle)
-    tbl_top = CONTENT_TOP
     legend_h = Inches(0.28) if legend else Inches(0)
-    tbl_h = SAFE_BOTTOM - tbl_top - legend_h - Inches(0.06)
-    n_rows = len(rows) + 1
-    n_cols = len(headers)
-    shape = slide.shapes.add_table(n_rows, n_cols, PAD_LEFT, tbl_top, CONTENT_W, tbl_h)
-    tbl = shape.table
-    # Header
+    tbl_h = SAFE_BOTTOM - CONTENT_TOP - legend_h - Inches(0.06)
+    tbl = slide.shapes.add_table(
+        len(rows) + 1, len(headers), PAD_LEFT, CONTENT_TOP, CONTENT_W, tbl_h
+    ).table
     for c, hdr in enumerate(headers):
         cell = tbl.cell(0, c)
         cell.text = hdr
@@ -635,7 +650,6 @@ def build_raci(prs, title, subtitle, headers, rows, legend=True):
         p.font.color.rgb = SF_WHITE; p.font.name = "Arial"
         p.alignment = PP_ALIGN.LEFT if c == 0 else PP_ALIGN.CENTER
         cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-    # Data rows
     for r, row in enumerate(rows):
         bg_base = SF_LIGHT_ROW if r % 2 == 0 else SF_WHITE
         for c, val in enumerate(row):
@@ -660,17 +674,16 @@ def build_raci(prs, title, subtitle, headers, rows, legend=True):
                 p.font.size = Pt(8.5); p.font.name = "Arial"
                 p.alignment = PP_ALIGN.CENTER
             cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-    # Legend
     if legend:
         legend_y = SAFE_BOTTOM - legend_h + Inches(0.04)
-        items = [("R", "Responsible"), ("A", "Accountable"), ("C", "Consulted"), ("I", "Informed")]
+        items = [("R","Responsible"),("A","Accountable"),("C","Consulted"),("I","Informed")]
         lx = PAD_LEFT
         for code, label in items:
             bg, fg = RACI_COLORS[code]
-            add_rect(slide, lx, legend_y, Inches(0.22), Inches(0.2), bg)
-            add_text(slide, lx, legend_y, Inches(0.22), Inches(0.2),
-                     code, size=8, bold=True, color=fg,
-                     align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
+            # Legend badge — code lives INSIDE the shape
+            b = add_rect(slide, lx, legend_y, Inches(0.22), Inches(0.2), bg)
+            set_shape_text(b, code, size=8, bold=True, color=fg,
+                           align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
             add_text(slide, lx + Inches(0.25), legend_y, Inches(1.0), Inches(0.2),
                      f"— {label}", size=7, color=SF_BODY_GREY)
             lx += Inches(1.4)
@@ -681,12 +694,10 @@ def build_raci(prs, title, subtitle, headers, rows, legend=True):
 
 ```python
 def build_wow(prs, title, subtitle, columns):
-    """
-    columns: list of {"header_color": RGBColor, "icon": str, "title": str,
-                       "items": [str, ...]}  — 4 items
-    """
+    """columns: list of {"header_color":RGBColor,"icon":str,"title":str,"items":[str,...]}"""
     return build_card_grid(prs, title, subtitle,
-        [{"header_color": c["header_color"], "icon": c["icon"],
+        [{"header_color": c["header_color"],
+          "icon": c["icon"],
           "title": c["title"],
           "body": "\n".join(f"–  {it}" for it in c["items"])}
          for c in columns],
@@ -702,32 +713,31 @@ def build_thank_you(prs, next_steps, team_contacts):
     team_contacts: list of {"name":str, "role":str, "email":str}
     """
     slide = add_dark_slide_frame(prs)
-    # Left accent bar
     add_rect(slide, PAD_LEFT, Inches(1.7), Inches(0.042), Inches(1.8), SF_TEAL)
-    # SF Icon + heading
-    add_text(slide, Inches(0.55), Inches(1.7), Inches(5), Inches(0.42),
-             "✦", size=30, color=SF_TEAL)
+    add_text(slide, Inches(0.55), Inches(1.7), Inches(5), Inches(0.42), "✦",
+             size=30, color=SF_TEAL)
     add_text(slide, Inches(0.55), Inches(2.12), Inches(6.5), Inches(0.9),
              "THANK YOU", size=48, bold=True, color=SF_WHITE)
     add_text(slide, Inches(0.55), Inches(3.05), Inches(6.5), Inches(0.35),
              "We're excited to get started. Here's what happens next.",
-             size=14, color=RGBColor(0xaa,0xaa,0xaa))
-    # Next steps
+             size=14, color=RGBColor(0xaa, 0xaa, 0xaa))
+
     y = Inches(3.55)
     for step in next_steps:
-        add_rect(slide, Inches(0.55), y, Inches(0.22), Inches(0.22), SF_TEAL)
-        add_text(slide, Inches(0.55), y, Inches(0.22), Inches(0.22),
-                 step["num"], size=8, bold=True, color=SF_MID_BLUE,
-                 align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
+        # Step number badge — num lives INSIDE the shape
+        nb = add_rect(slide, Inches(0.55), y, Inches(0.22), Inches(0.22), SF_TEAL)
+        set_shape_text(nb, step["num"], size=8, bold=True, color=SF_MID_BLUE,
+                       align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
         add_text(slide, Inches(0.85), y, Inches(6), Inches(0.22),
                  step["text"], size=10, color=SF_WHITE)
         y += Inches(0.3)
-    # Contact card (right panel)
+
+    # Contact card — background panel
     card_x = Inches(7.8)
     add_rect(slide, card_x, Inches(0.9), Inches(2.1), Inches(3.7),
              RGBColor(0x15, 0x45, 0x68))
     add_text(slide, card_x + Inches(0.18), Inches(1.0), Inches(1.8), Inches(0.22),
-             "YOUR SNOWFLAKE TEAM", size=7, color=RGBColor(0x88,0xaa,0xcc))
+             "YOUR SNOWFLAKE TEAM", size=7, color=RGBColor(0x88, 0xaa, 0xcc))
     cy = Inches(1.28)
     for contact in team_contacts:
         add_text(slide, card_x + Inches(0.18), cy, Inches(1.8), Inches(0.22),
@@ -735,53 +745,9 @@ def build_thank_you(prs, next_steps, team_contacts):
         add_text(slide, card_x + Inches(0.18), cy + Inches(0.22), Inches(1.8), Inches(0.18),
                  contact["role"], size=8, color=SF_TEAL)
         add_text(slide, card_x + Inches(0.18), cy + Inches(0.4), Inches(1.8), Inches(0.18),
-                 contact["email"], size=7.5, color=RGBColor(0x88,0xaa,0xcc))
-        # Divider
+                 contact["email"], size=7.5, color=RGBColor(0x88, 0xaa, 0xcc))
         add_rect(slide, card_x + Inches(0.18), cy + Inches(0.62), Inches(1.7),
-                 Inches(0.01), RGBColor(0x22,0x55,0x77))
+                 Inches(0.01), RGBColor(0x22, 0x55, 0x77))
         cy += Inches(0.75)
     return slide
 ```
-
----
-
-## Putting It Together
-
-```python
-def build_deck(output_path):
-    prs = new_deck()
-
-    build_cover(prs,
-        title="Data Platform Architecture Modernization",
-        subtitle="Project Kickoff — April 2026",
-        date_line="180-Day Engagement  ·  April 2026 – October 2026",
-        team_meta="Keith Hoyle · SA   |   Sam Maurer · PrM   |   TBD · SDM",
-        customer_name="Okta D&I")
-
-    build_agenda(prs, [
-        {"num":"01","sublabel":"Welcome","label":"About Our Team","desc":"Who we are...","time":"9:00–9:20"},
-        # ...
-    ])
-
-    # ... add all other slides ...
-
-    prs.save(output_path)
-    print(f"Saved: {output_path}")
-```
-
----
-
-## Approximation Reference
-
-| HTML/CSS feature | python-pptx approximation |
-|---|---|
-| `border-radius: 8px` | Square corners (no native support) |
-| `linear-gradient(...)` bg | Solid fill with dominant/start color |
-| `clip-path` wave | Omitted — replaced with solid rect or nothing |
-| `overflow: hidden` clipping | Not needed (content is manually positioned) |
-| `box-shadow` | Omitted |
-| `::before/::after` decoration | Omitted or replaced with a simple `add_rect` |
-| Ghost number (opacity ~3%) | Very light text color approximation |
-| CSS `opacity` on elements | Not supported natively; use lighter color values |
-| Flexbox/grid auto-layout | Manual position calculation with Inches() math |
-| `text-transform: uppercase` | Apply `.upper()` in Python before setting text |
