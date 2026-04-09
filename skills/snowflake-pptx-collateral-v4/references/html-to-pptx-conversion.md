@@ -1,6 +1,6 @@
 ---
 name: pptx-html-to-pptx-conversion
-description: Python Playwright conversion pipeline — screenshots HTML slides at 960×540 (2× retina) and assembles them into a PPTX file.
+description: Python Playwright conversion pipeline — screenshots HTML slides at 960×540 (2× retina) and assembles them as full-bleed images into a PPTX file. The PPTX contains no editable shapes or text — every slide is a PNG image.
 ---
 
 # HTML → PPTX Conversion Pipeline
@@ -8,6 +8,24 @@ description: Python Playwright conversion pipeline — screenshots HTML slides a
 ## Overview
 
 Each slide is a standalone `.html` file (960×540 CSS pixels). Playwright renders each file in a headless Chromium browser at 2× device pixel ratio (1920×1080 actual pixels), takes a full-viewport screenshot, and `python-pptx` assembles the PNGs into a 10"×5.625" PPTX slide deck. The result is pixel-perfect, design-first slides that look identical to the HTML originals.
+
+---
+
+## Conversion Rules (NON-NEGOTIABLE)
+
+These rules govern every PPTX produced by this skill. They must never be violated.
+
+1. **Image-only slides.** Every PPTX slide contains exactly one shape: a full-bleed PNG image that fills the entire 10"×5.625" slide area. `prs.slide_layouts[6]` (blank) is always used.
+
+2. **No python-pptx drawing on top of images.** After `slide.shapes.add_picture(...)`, nothing else is added to that slide — no text boxes, no shapes, no titles, no footers, no slide number placeholders.
+
+3. **HTML/CSS is the source of truth.** All design, layout, typography, color, and branding live in the `.html` source files. The PPTX assembly step is purely mechanical — screenshot → image → slide.
+
+4. **Never patch the PPTX to fix design issues.** If something looks wrong, fix the `.html` file and reconvert. Do not try to overlay corrections in python-pptx.
+
+5. **Exact slide dimensions.** PPTX deck must be set to exactly `Inches(10) × Inches(5.625)` — the standard Snowflake 16:9 template size. The PNG is inserted at `left=0, top=0, width=slide_width, height=slide_height`.
+
+6. **File order is deck order.** HTML files are sorted by filename before conversion. Always use zero-padded names (`slide_01_`, `slide_02_`, …) to guarantee correct sort order.
 
 ---
 
