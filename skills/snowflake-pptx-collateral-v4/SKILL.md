@@ -275,7 +275,7 @@ In both modes:
 
 | File | Purpose |
 |------|---------|
-| `references/html-slide-design.md` | **PRIMARY** — CSS design tokens, 12 full HTML slide templates, design tips |
+| `references/html-slide-design.md` | **PRIMARY** — CSS design tokens, official brand rules (typography, colors, logo, footer), 12 full HTML slide templates |
 | `references/html-to-pptx-conversion.md` | **Image mode** — Playwright conversion script, image-only PPTX rules, file naming |
 | `references/html-to-editable-pptx.md` | **Editable mode** — python-pptx builder patterns for all 12 slide types, CSS→pptx mapping |
 | `references/interaction-model.md` | Phases 0–5: requirements gathering, section menu, visual options, Content Blueprint |

@@ -9,11 +9,15 @@ description: HTML/CSS design system and full slide templates for Snowflake-brand
 
 Each slide is a **self-contained 960×540px HTML document** rendered by Playwright at 2× DPI. Because design happens in HTML/CSS rather than python-pptx shapes, you have access to gradients, modern layouts, shadows, and precise typography — producing slides that are indistinguishable from professionally designed decks.
 
-**Key rules:**
+**Snowflake brand principles (from official 2026 template):**
+- **Clean and airy** — embrace white space, avoid clutter. Less text, more visual.
+- **ALL CAPS only on cover and chapter titles** (44pt Arial Bold). Content slide titles and body copy are NOT all caps — title case only.
+- **Arial is the required font** — Snowflake's official fallback for PowerPoint/HTML. Do not use Montserrat, Roboto, or any other font.
+- **Use only theme colors** — never introduce off-brand colors. See color palette below.
+- **One idea per slide** — if you need three bullet points, ask whether those could be three cards or a visual layout instead.
 - Every element must fit within 960×540px with `overflow: hidden` — nothing can scroll or extend beyond the slide boundary
 - Use the CSS design tokens below for all colors, spacing, and typography — never invent colors
 - At least 50% of content slides must use a visual pattern beyond a simple bullet list
-- Titles in ALL CAPS; subtitles in sentence case
 
 ---
 
@@ -32,11 +36,14 @@ Paste this `<style>` block verbatim into every slide. Then add slide-specific CS
   --sf-body-grey:   #5B5B5B;
   --sf-light-bg:    #F5F5F5;
 
-  /* Accent palette */
-  --sf-teal:        #71D3DC;
-  --sf-orange:      #FF9F36;
-  --sf-violet:      #7D44CF;
-  --sf-pink:        #D45B90;
+  /* Accent palette — official 2026 brand names */
+  --sf-teal:        #75CDD7;   /* "Star Blue" */
+  --sf-orange:      #FF9F36;   /* "Valencia Orange" */
+  --sf-violet:      #7254A3;   /* "Purple Moon" */
+  --sf-pink:        #D45B90;   /* "First Light" */
+  --sf-midnight:    #000000;   /* "Midnight" — use very sparingly */
+  /* Note: Secondary colors (teal/orange/violet/pink) are for accents only.
+     Most slides should use only sf-blue, sf-mid-blue, sf-white, sf-dark-text, sf-body-grey. */
 
   /* Utility */
   --sf-border:      #C8C8C8;
@@ -65,8 +72,18 @@ Paste this `<style>` block verbatim into every slide. Then add slide-specific CS
   --safe-bottom:   490px;   /* 5.10" — max content bottom */
   --content-w:     876px;   /* 9.13" */
 
-  /* Typography */
+  /* Typography — Arial is the REQUIRED font (Snowflake official standard) */
   --font:  Arial, 'Helvetica Neue', Helvetica, sans-serif;
+  /* Font size scale:
+     Cover/Chapter title: 44px bold ALL CAPS
+     Content slide title: 18px bold (title case — NOT all caps)
+     Subtitle:            12px regular
+     Section head:        12px bold
+     Body copy:           10px regular
+     Small body:          9px regular
+     Caption/footnote:    6-7px regular
+     Big numbers (KPI):   28-44px bold
+  */
 
   /* Rounded corners */
   --radius-sm:   4px;
@@ -105,7 +122,9 @@ Add these classes to any slide's `<style>` block as needed.
 }
 .slide-title {
   font-size: 18px; font-weight: 700; color: var(--sf-dark-text);
-  text-transform: uppercase; letter-spacing: 0.04em;
+  /* Title case — do NOT use text-transform: uppercase here.
+     ALL CAPS is reserved for cover and chapter titles only (44pt). */
+  letter-spacing: 0.01em;
   line-height: 1.15;
 }
 .slide-subtitle {
@@ -124,16 +143,35 @@ Add these classes to any slide's `<style>` block as needed.
 }
 ```
 
-### Footer
+### Footer & Page Number
+
+All content slides must include the official Snowflake copyright footer and a page number.
+
 ```css
 .slide-footer {
   position: absolute;
   left: var(--pad-left); top: var(--footer-top);
   width: 500px;
-  font-size: 7px; color: var(--sf-body-grey);
+  font-size: 6px; color: #929292;
   letter-spacing: 0.01em;
+  font-family: Arial, sans-serif;
+}
+.slide-page-num {
+  position: absolute;
+  right: 20px; top: var(--footer-top);
+  width: 50px;
+  font-size: 6px; color: #919191;
+  text-align: right;
+  font-family: Arial, sans-serif;
 }
 ```
+
+**Footer text (use verbatim):**
+```
+© 2026 Snowflake Inc. All Rights Reserved
+```
+
+**Page number** — right side at `right: 20px`, same `top: var(--footer-top)` baseline. Use the actual slide number (passed as a parameter or hardcoded per slide).
 
 ### Card
 ```css
@@ -1046,7 +1084,109 @@ html,body{width:960px;height:540px;overflow:hidden;font-family:var(--font);-webk
 
 ---
 
-## 4. Design Tips
+## 4. Snowflake Brand Rules
+
+### Logo Usage
+
+The Snowflake logo appears on **cover slides** and optionally on chapter dividers. Rules from the official 2026 brand guide:
+
+- **Blue logo** (`snowflake-logo-blue.svg`) on white or light/dotted backgrounds
+- **White logo** (`snowflake-logo-white.svg`) on Snowflake Blue, dark backgrounds, or image overlays
+- **Minimum clear space**: equal to the x-height of the logo on all four sides — never crowd the logo
+- **Resize proportionally** only — never stretch or distort
+- Never recolor the logo or use off-brand logo versions
+- The "bug" (snowflake icon only, no wordmark) may be used in tight spaces or as a decorative accent
+
+**HTML implementation** — include as an `<img>` tag referencing the CDN or a local asset path:
+```html
+<!-- Blue wordmark — use on white/light slides -->
+<img src="snowflake-logo-blue.png" style="height:28px; display:block;">
+
+<!-- White wordmark — use on dark/blue slides -->
+<img src="snowflake-logo-white.png" style="height:28px; display:block;">
+```
+
+When a logo file is not available, represent with the styled text mark:
+```html
+<div class="sf-wordmark">SNOWFLAKE</div>
+```
+```css
+.sf-wordmark {
+  font-family: Arial, sans-serif; font-size: 13px; font-weight: 700;
+  color: var(--sf-blue); letter-spacing: 0.15em;
+}
+```
+
+---
+
+### Typography Rules (Official 2026 Standard)
+
+| Element | Size | Weight | Case | Color |
+|---|---|---|---|---|
+| Cover / Chapter title | 44px | Bold | **ALL CAPS** | White (on dark bg) |
+| Cover subtitle | 18px | Bold | Title case | White |
+| Content slide title | 18px | Bold | **Title case — NOT all caps** | `--sf-dark-text` |
+| Slide subtitle | 12px | Regular | Sentence case | `--sf-body-grey` |
+| Section/card header | 11–13px | Bold | Title case or caps | Varies |
+| Body copy | 10px | Regular | Sentence case | `--sf-dark-text` |
+| Small body | 9px | Regular | Sentence case | `--sf-body-grey` |
+| Big numbers (KPI) | 28–44px | Bold | — | `--sf-white` or `--sf-blue` |
+| Footer / copyright | 6px | Regular | — | `#929292` |
+| Page number | 6px | Regular | — | `#919191` |
+
+**Important:** `text-transform: uppercase` in CSS is for **cover and chapter titles only**. Do not apply it to `.slide-title`, body copy, card headers, or any other element.
+
+---
+
+### Color Usage Rules
+
+Colors in priority order — use earlier entries first, reach for secondary only when needed:
+
+| Color | Hex | Official Name | Use |
+|---|---|---|---|
+| `--sf-blue` | `#29B5E8` | Snowflake Blue | Primary brand, accent bars, badges, links |
+| `--sf-mid-blue` | `#11567F` | Mid-Blue | Section headers, dark panels, card headers |
+| `--sf-dark-text` | `#262626` | — | All body text on white backgrounds |
+| `--sf-body-grey` | `#5B5B5B` | Medium Gray | Subtitles, captions, secondary text |
+| `--sf-light-bg` | `#F5F5F5` | — | Card/panel backgrounds |
+| `--sf-teal` | `#75CDD7` | Star Blue | Accents, KPI labels, dividers |
+| `--sf-orange` | `#FF9F36` | Valencia Orange | Alerts, highlights — sparingly |
+| `--sf-violet` | `#7254A3` | Purple Moon | Sparingly only |
+| `--sf-pink` | `#D45B90` | First Light | Sparingly only |
+| `--sf-midnight` | `#000000` | Midnight | Near-black elements when needed |
+
+**Rule:** Most slides need only the first 5 colors. Secondary colors (teal through midnight) should appear on fewer than 20% of slides.
+
+---
+
+### Footer & Page Number (Required on All Content Slides)
+
+Every non-cover, non-chapter slide **must** include:
+
+1. **Copyright line** — bottom left:
+```html
+<div class="slide-footer">© 2026 Snowflake Inc. All Rights Reserved</div>
+```
+
+2. **Page number** — bottom right:
+```html
+<div class="slide-page-num">3</div>
+```
+
+```css
+.slide-footer {
+  position: absolute; left: var(--pad-left); top: var(--footer-top);
+  font-size: 6px; color: #929292; font-family: Arial, sans-serif;
+}
+.slide-page-num {
+  position: absolute; right: 20px; top: var(--footer-top);
+  font-size: 6px; color: #919191; text-align: right; font-family: Arial, sans-serif;
+}
+```
+
+---
+
+## 5. Design Tips
 
 **Visual variety**: Avoid 3+ consecutive single-column bullet slides. Alternate between card grids, KPI rows, tables, and two-column layouts.
 
@@ -1056,6 +1196,6 @@ html,body{width:960px;height:540px;overflow:hidden;font-family:var(--font);-webk
 
 **Contrast rule**: White text on `--sf-mid-blue` and `--sf-blue` only. Dark text (`--sf-dark-text`) on white and light backgrounds. Never white text on `--sf-teal` or `--sf-orange` (too light).
 
-**Typography scale**: Slide title = 18px bold ALL CAPS. Section headings = 11–13px bold uppercase. Body = 9.5–10.5px. Labels/metadata = 8–9px. Footer = 7px.
+**Typography scale**: Cover/chapter titles = 44px bold ALL CAPS. Content slide titles = 18px bold title case (NOT all caps). Section headings = 11–13px bold. Body = 9.5–10.5px. Labels/metadata = 8–9px. Footer = 6px.
 
 **Spacing reference**: `var(--pad-left)` = 38px for all left-edge content. Content should not extend past `var(--safe-bottom)` = 490px from top. Footer sits at 511px.

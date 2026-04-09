@@ -70,8 +70,8 @@ SF_WHITE       = RGBColor(0xFF, 0xFF, 0xFF)
 SF_DARK_TEXT   = RGBColor(0x26, 0x26, 0x26)   # --sf-dark-text
 SF_BODY_GREY   = RGBColor(0x5B, 0x5B, 0x5B)   # --sf-body-grey
 SF_LIGHT_BG    = RGBColor(0xF5, 0xF5, 0xF5)   # --sf-light-bg
-SF_TEAL        = RGBColor(0x71, 0xD3, 0xDC)   # --sf-teal
-SF_ORANGE      = RGBColor(0xFF, 0x9F, 0x36)   # --sf-orange
+SF_TEAL        = RGBColor(0x75, 0xCD, 0xD7)   # --sf-teal  "Star Blue" (2026 brand)
+SF_ORANGE      = RGBColor(0xFF, 0x9F, 0x36)   # --sf-orange  "Valencia Orange"
 SF_BORDER      = RGBColor(0xC8, 0xC8, 0xC8)   # --sf-border
 SF_GRID        = RGBColor(0xDD, 0xDD, 0xDD)   # --sf-grid
 SF_LIGHT_ROW   = RGBColor(0xF8, 0xFA, 0xFB)   # --sf-light-row
@@ -79,6 +79,11 @@ SF_TABLE_GREY  = RGBColor(0x71, 0x71, 0x71)   # --sf-table-grey
 SF_GREEN       = RGBColor(0x2E, 0xCC, 0x71)
 SF_AMBER       = RGBColor(0xF5, 0xA6, 0x23)
 SF_RED         = RGBColor(0xE7, 0x4C, 0x3C)
+SF_VIOLET      = RGBColor(0x72, 0x54, 0xA3)   # "Purple Moon"  — use sparingly
+SF_FIRST_LIGHT = RGBColor(0xD4, 0x5B, 0x90)   # "First Light"  — use sparingly
+SF_MIDNIGHT    = RGBColor(0x00, 0x00, 0x00)   # "Midnight"     — near-black
+SF_PAGE_NUM    = RGBColor(0x91, 0x91, 0x91)   # page number color
+SF_COPYRIGHT   = RGBColor(0x92, 0x92, 0x92)   # copyright footer color
 SF_LIGHT_BLUE  = RGBColor(0xE8, 0xF4, 0xFD)
 SF_LIGHT_AMBER = RGBColor(0xFF, 0xF3, 0xE0)
 SF_LIGHT_GREEN = RGBColor(0xE8, 0xF8, 0xEF)
@@ -227,30 +232,44 @@ def add_para(tf, text, size=9, bold=False, color=SF_DARK_TEXT,
 ## Slide Structure Helpers
 
 ```python
-def add_content_slide_frame(prs, title, subtitle=""):
+# Page number position (from official brand template)
+PAGE_NUM_LEFT = Inches(9.0)
+PAGE_NUM_TOP  = Inches(5.323)
+PAGE_NUM_W    = Inches(0.518)
+PAGE_NUM_H    = Inches(0.101)
+
+COPYRIGHT_TEXT = "\u00a9 2026 Snowflake Inc. All Rights Reserved"
+
+
+def add_content_slide_frame(prs, title, subtitle="", page_num=None):
     """
     Build a standard content slide scaffold:
     - White background
     - Left edge bar (4px blue)
-    - Title (ALL CAPS, 18pt bold)
+    - Title (Title Case, 18pt bold — NOT all caps; only cover/chapter titles are all caps)
     - Subtitle (12pt grey)
-    - Footer
+    - Official copyright footer: \u00a9 2026 Snowflake Inc. All Rights Reserved
+    - Page number (optional, right-aligned)
     Returns the slide object ready for content.
     """
     slide = add_blank_slide(prs)
     # Edge bar
     add_rect(slide, EDGE_BAR_LEFT, EDGE_BAR_TOP, EDGE_BAR_WIDTH, EDGE_BAR_HEIGHT, SF_BLUE)
-    # Title
+    # Title — title case, NOT all caps (per Snowflake 2026 brand guide)
     add_text(slide, PAD_LEFT, TITLE_TOP, CONTENT_W, Inches(0.4),
-             title.upper(), size=18, bold=True, color=SF_DARK_TEXT)
+             title, size=18, bold=True, color=SF_DARK_TEXT)
     # Subtitle
     if subtitle:
         add_text(slide, PAD_LEFT, SUBTITLE_TOP, CONTENT_W, Inches(0.35),
                  subtitle, size=12, color=SF_BODY_GREY)
-    # Footer
-    add_text(slide, PAD_LEFT, FOOTER_TOP, Inches(6), Inches(0.2),
-             "Confidential — Snowflake Professional Services",
-             size=7, color=SF_BODY_GREY)
+    # Official copyright footer
+    add_text(slide, PAD_LEFT, FOOTER_TOP, Inches(6), Inches(0.15),
+             COPYRIGHT_TEXT, size=6, color=SF_COPYRIGHT)
+    # Page number (right-aligned, official position)
+    if page_num is not None:
+        add_text(slide, PAGE_NUM_LEFT, PAGE_NUM_TOP, PAGE_NUM_W, PAGE_NUM_H,
+                 str(page_num), size=6, color=SF_PAGE_NUM,
+                 align=PP_ALIGN.RIGHT)
     return slide
 
 def add_dark_slide_frame(prs):
