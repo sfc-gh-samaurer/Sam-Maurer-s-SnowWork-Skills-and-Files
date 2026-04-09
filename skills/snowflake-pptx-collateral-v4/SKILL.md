@@ -38,11 +38,11 @@ Both modes use the same HTML/CSS design system as the visual source of truth. Im
 2. **Slide count & types**: What slides do they need? (See slide type catalog below)
 3. **Content source**: Do they have data ready, or should we generate/query it?
 4. **Output path**: Where to save the .pptx file
-5. **Output mode**: Image-only (pixel-perfect, not editable) or Editable (native PowerPoint shapes and text)?
+5. **Output mode** *(optional — default is Editable)*: Image-only (pixel-perfect, not editable) or Editable (native PowerPoint shapes and text)?
 
 **Mode guidance to offer the user:**
-- **Image mode** — best for final client deliverables, investor decks, anything where design perfection matters more than editability
-- **Editable mode** — best for internal decks, templates the user will customize, or any deck that needs post-delivery edits in PowerPoint
+- **Editable mode** *(DEFAULT)* — native python-pptx shapes and text boxes, fully editable in PowerPoint. Use this unless the user explicitly requests image-only.
+- **Image mode** — Playwright screenshot of the HTML, pixel-perfect design fidelity. Use only when the user explicitly asks for image/screenshot mode or maximum design fidelity is the top priority.
 
 ### Step 2: Plan Slide Structure
 
@@ -85,7 +85,7 @@ If any content overflows, reduce font sizes or trim content before proceeding.
 
 ### Step 4a: Convert HTML → PPTX (Image Mode)
 
-> Use this path when the user selected **Image mode** or did not specify.
+> Use this path **only** when the user explicitly selected **Image mode**. The default is Editable Mode (Step 4b).
 > **CONVERSION SCRIPT** — See `references/html-to-pptx-conversion.md` for the full Playwright conversion script.
 
 **CRITICAL RULE — IMAGE-ONLY PPTX:**
@@ -110,9 +110,9 @@ The PPTX output is an image-only deck. Every slide is a single full-bleed PNG sc
 
 ---
 
-### Step 4b: Convert HTML → Editable PPTX (Editable Mode)
+### Step 4b: Convert HTML → Editable PPTX (Editable Mode) — DEFAULT
 
-> Use this path when the user selected **Editable mode**.
+> **This is the default output mode.** Use this path unless the user explicitly requested Image mode.
 > **IMPLEMENTATION GUIDE** — See `references/html-to-editable-pptx.md` for the full python-pptx builder patterns.
 
 In editable mode, the HTML slides serve as the visual specification. Write a Python script that implements each slide as native python-pptx objects using the patterns from `references/html-to-editable-pptx.md`.
