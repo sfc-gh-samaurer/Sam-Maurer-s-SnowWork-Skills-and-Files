@@ -1,6 +1,6 @@
 ---
 name: snowflake-pptx-collateral
-description: "Create professional Snowflake-branded PowerPoint (PPTX) decks using python-pptx. Use for: presentations, business reviews, district reviews, customer decks, summary slides, status updates, executive presentations. Triggers: PPTX, PowerPoint, deck, slides, presentation, create deck, build slides, business review deck, summary slide."
+description: "Create professional Snowflake-branded PowerPoint (PPTX) decks. Designs slides in HTML/CSS first (world-class visual quality), then converts to PPTX via Playwright. Use for: presentations, business reviews, district reviews, customer decks, summary slides, status updates, executive presentations. Triggers: PPTX, PowerPoint, deck, slides, presentation, create deck, build slides, business review deck, summary slide."
 ---
 
 <!--
@@ -13,13 +13,14 @@ description: "Create professional Snowflake-branded PowerPoint (PPTX) decks usin
   │  3. Start a Cortex Code session and ask it to   │
   │     create a PPTX deck                          │
   │                                                 │
-  │  Requires: pip install python-pptx              │
+  │  Requires: pip install python-pptx playwright   │
+  │            playwright install chromium           │
   └─────────────────────────────────────────────────┘
 -->
 
 # Snowflake PPTX Collateral Generator
 
-Generate polished, Snowflake-branded PowerPoint decks programmatically using python-pptx, matching the official Snowflake January 2026 template.
+Generate polished, Snowflake-branded PowerPoint decks using an **HTML-first design workflow**. Each slide is designed in HTML/CSS for maximum visual quality, then converted to PPTX via Playwright screenshots. This produces presentation-quality slides that look identical in PowerPoint, Keynote, and Google Slides.
 
 ## Workflow
 
@@ -33,49 +34,59 @@ Generate polished, Snowflake-branded PowerPoint decks programmatically using pyt
 
 ### Step 2: Plan Slide Structure
 
-Design the deck using slide types from the catalog below.
+Design the deck using the interaction model in `references/interaction-model.md`. The key deliverable at this step is the **Content Blueprint** — a slide-by-slide plan with title, subtitle, content, and visual pattern specified for each slide.
 
 **Present** the proposed slide-by-slide outline to the user.
 
-**STOP**: Get approval before writing code.
+**STOP**: Get approval before writing any HTML or code.
 
-### Step 3: Generate the Python Script
+### Step 3: Generate HTML Slide Files
 
-Write a Python script that uses the utility functions from the reference below to build the deck. The script follows this structure:
+> **PRIMARY WORKFLOW** — See `references/html-slide-design.md` for the full design system, CSS tokens, and 12 ready-to-use slide type templates.
 
-```python
-#!/usr/bin/env python3
-"""[Deck Name] Generator"""
+For each slide in the approved Content Blueprint:
 
-from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
-from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-from pptx.enum.shapes import MSO_SHAPE
+1. Create a `slides/` directory in the output location
+2. Write one HTML file per slide: `slides/slide_01_cover.html`, `slides/slide_02_agenda.html`, etc.
+3. Base each file on the appropriate template from `references/html-slide-design.md`
+4. Paste the CSS design tokens block at the top of every slide's `<style>` section
+5. Fill in the actual slide content (title, bullets, data, team names, etc.)
+6. Ensure **every slide is exactly 960×540px with `overflow: hidden`** — no exceptions
 
-# Brand colors (from reference below)
-# Utility functions (from reference below)
-# Slide data
-# build_deck() function
-# Save
-```
+**Design rules (enforced):**
+- Titles in **ALL CAPS**, 18px bold, `--sf-dark-text` on light backgrounds, white on dark
+- Use CSS variables from the design token block — never invent colors
+- At least 50% of content slides must use a visual pattern (card grid, KPI row, table, timeline, two-column) — not just a bullet list
+- Cover, Chapter, and Thank You slides use dark/blue backgrounds; all content slides use white
+- Left edge bar (4px `--sf-blue`) on every content slide at `left:0; top:36px; height:38px`
+- Footer text at `top:511px` on every content slide: "Confidential — Snowflake Professional Services"
+- Content must not extend below `top:490px` (the safe-bottom zone)
 
-**Rules:**
-- Always use `prs.slide_layouts[6]` (blank layout)
-- Slide dimensions: `Inches(10) x Inches(5.625)` (official template standard)
-- Font: **Arial** throughout (Snowflake official fallback font family)
-- Use **Arial Black** for big number KPIs (44pt stat blocks)
-- Titles in **ALL CAPS** per brand guidelines
-- Background: `#F3F3F3` for content slides when contrast is needed (white is fine by default), Snowflake Blue for cover/chapter/thank you slides
-- Every content slide gets `add_footer(slide, context_label)`
-- Every content slide gets `add_section_header(slide, title, subtitle)`
-- Standard margins: left=0.40", title top=0.30", subtitle=0.72", content=1.50"
+### Step 3b: Verify HTML Dimensions
 
-### Step 4: Execute and Save
+Before batch conversion, open 1–2 slides in a browser and confirm:
+- Slide renders at exactly 960×540px
+- No horizontal or vertical scrollbars appear
+- All content is visible within the slide boundary
 
-1. **Run** the Python script
-2. **Confirm** the .pptx was created and report the file path
-3. **Offer** to adjust slides or regenerate
+If any content overflows, reduce font sizes or trim content before proceeding.
+
+### Step 4: Convert HTML → PPTX
+
+> **CONVERSION SCRIPT** — See `references/html-to-pptx-conversion.md` for the full Playwright conversion script.
+
+1. Write `convert_to_pptx.py` using the template from `references/html-to-pptx-conversion.md`
+2. Install dependencies if not already present:
+   ```bash
+   pip install python-pptx playwright
+   playwright install chromium
+   ```
+3. Run the conversion:
+   ```bash
+   python convert_to_pptx.py "OutputDeck.pptx" "slides/slide_*.html"
+   ```
+4. **Confirm** the `.pptx` file was created and report the file path
+5. **Offer** to adjust any slide's HTML and reconvert
 
 ## Slide Type Catalog
 
@@ -187,24 +198,45 @@ from pptx.enum.shapes import MSO_SHAPE
 
 ## Stopping Points
 
-- STOP after Step 2 (slide structure approval)
-- STOP after Step 4 (present file, offer changes)
+- STOP after Step 2 (slide structure / Content Blueprint approval)
+- STOP after Step 3b (verify HTML dimensions in browser before converting)
+- STOP after Step 4 (present PPTX file path, offer per-slide adjustments)
 
 **Resume rule:** On approval, proceed directly to next step.
 
 ## Output
 
-A `.pptx` file that:
+A `.pptx` file assembled from Playwright-rendered HTML slides that:
 - Opens cleanly in PowerPoint, Keynote, and Google Slides
-- Matches the official Snowflake January 2026 template style
-- Uses Arial typography with ALL CAPS titles per brand guidelines
-- Uses the official Snowflake color scheme consistently
-- Has professional slide layouts with proper spacing (0.40" margins, standard positions)
-- Includes confidential footer on every content slide
+- Matches Snowflake January 2026 brand guidelines (colors, typography, layout)
+- Uses the HTML/CSS design system from `references/html-slide-design.md`
+- Each slide is a pixel-perfect PNG rendered at 1920×1080 (2× retina quality)
+- ALL CAPS titles, Arial font, official Snowflake color palette throughout
+- Confidential footer on every content slide
+
+> **Note on editability:** Because slides are rendered as images, individual shapes are not editable in PowerPoint. This is the intentional tradeoff for design quality. To edit a slide, modify its `.html` source and re-run conversion.
+
+---
+
+# Reference Files
+
+| File | Purpose |
+|------|---------|
+| `references/html-slide-design.md` | **PRIMARY** — CSS design tokens, 12 full HTML slide templates, design tips |
+| `references/html-to-pptx-conversion.md` | **PRIMARY** — Playwright conversion script, usage, file naming conventions |
+| `references/interaction-model.md` | Phases 0–5: requirements gathering, section menu, visual options, Content Blueprint |
+| `references/core-branding.md` | Snowflake color palette, fill→text contrast rules, typography specifications |
+| `references/patterns-enterprise.md` | 37 advanced visual patterns (useful as CSS design inspiration for HTML slides) |
+| `references/slide-patterns.md` | Additional slide pattern catalog |
+| `references/core-helpers.md` | python-pptx utility functions (only needed if building custom conversion logic) |
+| `references/content-standards.md` | Writing quality rules, narrative structure, slide content standards |
+| `references/verification.md` | Post-generation checklist |
 
 ---
 
 # PPTX Utility Functions Reference
+
+> **Note:** The functions below are the legacy python-pptx approach. They are kept here as reference only. **The current primary workflow uses HTML/CSS design (`references/html-slide-design.md`) + Playwright conversion (`references/html-to-pptx-conversion.md`).** Only use these functions if you need to do custom post-processing of PPTX files programmatically (e.g., injecting speaker notes, modifying metadata).
 
 ## Dependencies
 
