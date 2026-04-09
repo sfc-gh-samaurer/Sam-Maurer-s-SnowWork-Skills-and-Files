@@ -1,6 +1,6 @@
 ---
 name: snowflake-pptx-collateral
-description: "Create professional Snowflake-branded PowerPoint (PPTX) decks. Designs slides in HTML/CSS first (world-class visual quality), then converts to PPTX via Playwright. Use for: presentations, business reviews, district reviews, customer decks, summary slides, status updates, executive presentations. Triggers: PPTX, PowerPoint, deck, slides, presentation, create deck, build slides, business review deck, summary slide."
+description: "Create professional Snowflake-branded PowerPoint (PPTX) decks. Designs slides in HTML/CSS first (world-class visual quality), then converts to PPTX in one of two modes: (1) Image Mode — pixel-perfect PNG slides, not editable; (2) Editable Mode — native python-pptx shapes and text boxes, fully editable in PowerPoint. Use for: presentations, business reviews, district reviews, customer decks, summary slides, status updates, executive presentations. Triggers: PPTX, PowerPoint, deck, slides, presentation, create deck, build slides, business review deck, summary slide."
 ---
 
 <!--
@@ -20,7 +20,14 @@ description: "Create professional Snowflake-branded PowerPoint (PPTX) decks. Des
 
 # Snowflake PPTX Collateral Generator
 
-Generate polished, Snowflake-branded PowerPoint decks using an **HTML-first design workflow**. Each slide is designed in HTML/CSS for maximum visual quality, then converted to PPTX via Playwright screenshots. This produces presentation-quality slides that look identical in PowerPoint, Keynote, and Google Slides.
+Generate polished, Snowflake-branded PowerPoint decks using an **HTML-first design workflow**. Slides are designed in HTML/CSS for maximum visual quality, then converted to PPTX in one of two modes:
+
+| Mode | Description | Editable in PowerPoint? |
+|------|-------------|------------------------|
+| **Image** | Playwright screenshots each HTML slide and inserts as a full-bleed PNG | No — design-only |
+| **Editable** | python-pptx recreates each slide as native shapes, text boxes, and tables | Yes — fully editable |
+
+Both modes use the same HTML/CSS design system as the visual source of truth. Image mode preserves 100% design fidelity. Editable mode preserves all layout, color, typography, and content — with minor approximations for CSS features python-pptx cannot replicate (gradients, border-radius, clip-paths).
 
 ## Workflow
 
@@ -31,6 +38,11 @@ Generate polished, Snowflake-branded PowerPoint decks using an **HTML-first desi
 2. **Slide count & types**: What slides do they need? (See slide type catalog below)
 3. **Content source**: Do they have data ready, or should we generate/query it?
 4. **Output path**: Where to save the .pptx file
+5. **Output mode**: Image-only (pixel-perfect, not editable) or Editable (native PowerPoint shapes and text)?
+
+**Mode guidance to offer the user:**
+- **Image mode** — best for final client deliverables, investor decks, anything where design perfection matters more than editability
+- **Editable mode** — best for internal decks, templates the user will customize, or any deck that needs post-delivery edits in PowerPoint
 
 ### Step 2: Plan Slide Structure
 
@@ -71,8 +83,9 @@ Before batch conversion, open 1–2 slides in a browser and confirm:
 
 If any content overflows, reduce font sizes or trim content before proceeding.
 
-### Step 4: Convert HTML → PPTX
+### Step 4a: Convert HTML → PPTX (Image Mode)
 
+> Use this path when the user selected **Image mode** or did not specify.
 > **CONVERSION SCRIPT** — See `references/html-to-pptx-conversion.md` for the full Playwright conversion script.
 
 **CRITICAL RULE — IMAGE-ONLY PPTX:**
@@ -94,6 +107,34 @@ The PPTX output is an image-only deck. Every slide is a single full-bleed PNG sc
    ```
 4. **Confirm** the `.pptx` file was created and report the file path
 5. **Offer** to adjust any slide's HTML and reconvert
+
+---
+
+### Step 4b: Convert HTML → Editable PPTX (Editable Mode)
+
+> Use this path when the user selected **Editable mode**.
+> **IMPLEMENTATION GUIDE** — See `references/html-to-editable-pptx.md` for the full python-pptx builder patterns.
+
+In editable mode, the HTML slides serve as the visual specification. Write a Python script that implements each slide as native python-pptx objects using the patterns from `references/html-to-editable-pptx.md`.
+
+**What is preserved exactly:**
+- All text content, font sizes, bold/italic, color values
+- Tables with styled header rows and alternating data rows
+- Layout geometry (positions and sizes derived from CSS px ÷ 96 = inches)
+- Brand colors, edge bars, footers, section headers
+- KPI boxes, card grids, two-column layouts, RACI tables
+
+**What is approximated (CSS features python-pptx cannot replicate):**
+- `linear-gradient` backgrounds → solid fill with the dominant color
+- `border-radius` on cards → square rectangle corners
+- `clip-path` waves/diagonals → omitted or replaced with a solid shape
+- `box-shadow`, `opacity`, `::before/::after` decorations → omitted
+
+1. Read `references/html-to-editable-pptx.md` for the full builder function library
+2. Write a Python script that calls the appropriate builder for each slide, passing real content
+3. Install dependency: `pip install python-pptx`
+4. Run the script and confirm the `.pptx` was created
+5. **Offer** to adjust any slide and regenerate
 
 ## Slide Type Catalog
 
@@ -212,19 +253,21 @@ All sizes are CSS pixels in the HTML source. At 96dpi (960px = 10"), these map 1
 
 - STOP after Step 2 (slide structure / Content Blueprint approval)
 - STOP after Step 3b (verify HTML dimensions in browser before converting)
-- STOP after Step 4 (present PPTX file path, offer per-slide adjustments)
+- STOP after Step 4a or 4b (present PPTX file path, offer per-slide adjustments)
 
 **Resume rule:** On approval, proceed directly to next step.
 
 ## Output
 
-A `.pptx` file where **every slide is a full-bleed PNG image** — a Playwright screenshot of its HTML source inserted to fill the entire 10"×5.625" slide area. No editable shapes, text boxes, or placeholders exist inside the PPTX.
+**Image mode:** A `.pptx` file where every slide is a full-bleed PNG image — a Playwright screenshot of its HTML source inserted to fill the entire 10"×5.625" slide area. No editable shapes or text boxes. 1920×1080 retina quality.
 
-- Opens cleanly in PowerPoint, Keynote, and Google Slides
-- Pixel-perfect rendering — slides look identical to the HTML source
-- 1920×1080 retina quality (2× device scale factor)
-- Design is fully governed by the HTML/CSS source files
-- To change any slide: edit its `.html` and reconvert — never patch the PPTX directly
+**Editable mode:** A `.pptx` file with native shapes, text boxes, and tables — fully editable in PowerPoint, Keynote, and Google Slides. Layout, colors, and typography match the HTML design system. Some CSS decorative effects (gradients, rounded corners, clip-paths) are approximated with flat shapes.
+
+In both modes:
+- Slides match Snowflake January 2026 brand guidelines
+- Arial font, official Snowflake color palette, ALL CAPS titles
+- Confidential footer on every content slide
+- HTML/CSS source files are kept as the design source of truth
 
 ---
 
@@ -233,7 +276,8 @@ A `.pptx` file where **every slide is a full-bleed PNG image** — a Playwright 
 | File | Purpose |
 |------|---------|
 | `references/html-slide-design.md` | **PRIMARY** — CSS design tokens, 12 full HTML slide templates, design tips |
-| `references/html-to-pptx-conversion.md` | **PRIMARY** — Playwright conversion script, image-only PPTX rules, file naming |
+| `references/html-to-pptx-conversion.md` | **Image mode** — Playwright conversion script, image-only PPTX rules, file naming |
+| `references/html-to-editable-pptx.md` | **Editable mode** — python-pptx builder patterns for all 12 slide types, CSS→pptx mapping |
 | `references/interaction-model.md` | Phases 0–5: requirements gathering, section menu, visual options, Content Blueprint |
 | `references/core-branding.md` | Snowflake color palette, fill→text contrast rules, typography specifications |
 | `references/patterns-enterprise.md` | 37 advanced visual patterns (useful as CSS design inspiration for HTML slides) |
