@@ -3,7 +3,23 @@ name: pptx-core-helpers
 description: Placeholder helpers (set_ph, set_ph_lines, set_ph_sections, set_ph_bold_keywords, set_ph_rich), custom shape text rules, add_shape_text(), footnotes, images, and saving.
 ---
 
-## 9. Placeholder Helper Functions
+## 9. Dark-Background Layout Detection
+
+Copy this constant into every script. Use it to determine whether custom shapes
+need WHITE text.
+
+```python
+# Layouts where the canvas (or a major panel) is dark.
+# Custom shapes placed in the dark region MUST use WHITE text.
+DARK_BG_LAYOUTS = {9, 10, 18, 19, 20, 21, 22, 23, 25, 26, 27, 28}
+COVER_LAYOUTS = {13, 14, 15, 16, 17}
+# Split layouts: Layout 9 right panel (x >= 2.51"), Layout 11 right panel (x >= 5.00")
+# are dark. The opposite side is light.
+```
+
+---
+
+## 10. Placeholder Helper Functions
 
 Always let placeholders **inherit styling from the template**. Do not override fonts or colours on placeholder text.
 
@@ -884,6 +900,17 @@ def add_shape_text(slide, shape_type, left, top, width, height,
         text: Use \\n for multi-line: "LINE ONE\\nLINE TWO". 
               NEVER pass multiple strings or create separate runs.
     """
+    # AUTO-CORRECT: warn if using DK1 text on a dark-background layout
+    layout_idx = None
+    try:
+        layout_idx = list(slide.slide_layout.slide_master.slide_layouts).index(slide.slide_layout)
+    except (ValueError, AttributeError):
+        pass
+    if layout_idx in DARK_BG_LAYOUTS or layout_idx in COVER_LAYOUTS:
+        if font_colour == DK1:
+            print(f"⚠ DARK-BG WARNING: DK1 text on layout {layout_idx} will be invisible. Switching to WHITE.")
+            font_colour = WHITE
+
     shape = slide.shapes.add_shape(
         shape_type,
         Inches(left), Inches(top), Inches(width), Inches(height)
@@ -1104,10 +1131,52 @@ slide.shapes.add_picture(
 
 ## 18. Saving
 
+### 18.1 Default — Save to Google Drive (syncs automatically)
+
+Save directly to the Google Drive Desktop folder. The `.pptx` file syncs to
+Google Drive and can be opened natively in Google Slides.
+
 ```python
 import os
-output_path = "outputs/My_Deck.pptx"
+
+GDRIVE_DIR = os.path.expanduser("~/Google Drive/My Drive")
+deck_name = "My_Deck"
+
+if os.path.isdir(GDRIVE_DIR):
+    output_path = os.path.join(GDRIVE_DIR, f"{deck_name}.pptx")
+else:
+    output_path = os.path.expanduser(f"~/Downloads/{deck_name}.pptx")
+    print(f"⚠ Google Drive not found — saving to {output_path}")
+
 os.makedirs(os.path.dirname(output_path), exist_ok=True)
+prs.save(output_path)
+print(f"Saved: {output_path}")
+if os.path.isdir(GDRIVE_DIR):
+    print("→ File will sync to Google Drive. Open in Google Slides from drive.google.com")
+```
+
+### 18.2 Fallback — Save locally
+
+Use when user explicitly requests local output or Google Drive Desktop is not installed.
+
+```python
+import os
+output_path = os.path.expanduser("~/Downloads/My_Deck.pptx")
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
+prs.save(output_path)
+print(f"Saved: {output_path}")
+```
+
+### 18.3 Save to a specific Google Drive subfolder
+
+```python
+import os
+
+GDRIVE_DIR = os.path.expanduser("~/Google Drive/My Drive")
+subfolder = "Presentations"
+output_dir = os.path.join(GDRIVE_DIR, subfolder)
+os.makedirs(output_dir, exist_ok=True)
+output_path = os.path.join(output_dir, "My_Deck.pptx")
 prs.save(output_path)
 print(f"Saved: {output_path}")
 ```
