@@ -1,0 +1,25 @@
+skill_name: snowflake-sd-scoping
+skill_type: internal
+promotion_stage: staging
+validation:
+  testers:
+    count: 3
+    names:
+    - Vikas Malik
+    - Melinda Webster
+    - Rangi Devanathan
+customer_impact:
+  customers:
+    count: 1
+    names:
+    - Internal SD Team
+evidence_links:
+- ''
+notes: 'Refer to google doc for more details: https://docs.google.com/presentation/d/1k_LT2F-xYrSsB1IHnHAq6dvNQxhxLLN_yPUmpkXe_-c/edit?slide=id.g3ba4215b2b6_0_17#slide=id.g3ba4215b2b6_0_17'
+overlap_check:
+  max_score: 0.0
+  highest_match: none
+  highest_match_source: none
+  method: cortex-embedding
+  checked_against_count: 25
+  checked_at: '2026-02-27T00:39:37Z'
