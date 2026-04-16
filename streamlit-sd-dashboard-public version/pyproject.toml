@@ -1,0 +1,9 @@
+[project]
+name = "sd-account-dashboard"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "streamlit>=1.52.0",
+    "pandas",
+    "snowflake-snowpark-python",
+]
