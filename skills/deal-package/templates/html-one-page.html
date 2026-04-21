@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{engagement_title}} — {{customer_name}}</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+body {
+  font-family: 'Lato', system-ui, -apple-system, sans-serif;
+  background: #f1f5f9;
+  margin: 0; padding: 0;
+  color: #262626; line-height: 1.6;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.page-container {
+  max-width: 960px; margin: 24px auto;
+  background: white; border-radius: 12px;
+  overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+.header-bg {
+  background-color: #29B5E8;
+  background-image: linear-gradient(135deg, #29B5E8 0%, #1a9ac7 100%);
+}
+.section-header {
+  font-size: 0.8rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: #94a3b8; font-weight: 700; margin-bottom: 0.5rem;
+  padding-bottom: 4px; border-bottom: 1px solid #e2e8f0;
+  display: flex; align-items: center; gap: 8px;
+}
+.card {
+  background: white; border: 1px solid #e2e8f0;
+  border-radius: 8px; padding: 12px;
+}
+.metric-card { text-align: center; padding: 28px 20px; }
+.metric-card .num { font-size: 36px; font-weight: 800; line-height: 1; }
+.metric-card .lbl { font-size: 0.72rem; letter-spacing: 0.06em; text-transform: uppercase; color: #94a3b8; margin-top: 8px; }
+.metric-card .sub { font-size: 0.6rem; color: #94a3b8; margin-top: 2px; }
+.pain-icon {
+  width: 28px; height: 28px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; flex-shrink: 0;
+}
+.tag {
+  display: inline-block; padding: 2px 8px; border-radius: 12px;
+  font-size: 0.65rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.03em; white-space: nowrap;
+}
+.tag.blue { background: #e0f4fc; color: #0e84ae; }
+.tag.green { background: #dcfce7; color: #166534; }
+.tag.amber { background: #fef3c7; color: #92400e; }
+.tag.purple { background: #f3e8ff; color: #6b21a8; }
+.tag.slate { background: #f1f5f9; color: #475569; }
+.tag.white { background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.3); }
+.callout { border-radius: 8px; padding: 16px 20px; margin: 16px 0; font-size: 14px; }
+.callout-info { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid #29B5E8; border-radius: 6px; padding: 10px 14px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #e2e8f0; }
+th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
+
+@media print {
+  body { margin: 0; padding: 0; background: white; }
+  .page-container { max-width: 100%; margin: 0; box-shadow: none; border-radius: 0; }
+  .no-print { display: none !important; }
+  .page-break { page-break-before: always; }
+  .avoid-break { break-inside: avoid; page-break-inside: avoid; }
+  .section-header { break-after: avoid; page-break-after: avoid; }
+  .card, .grid, table, .callout, .metric-card { break-inside: avoid; page-break-inside: avoid; }
+  p { orphans: 3; widows: 3; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- Print helper -->
+<div class="no-print" style="background:#fefce8; border-bottom:2px solid #fbbf24; padding:8px 16px; text-align:center; font-size:13px; color:#92400e;">
+  <i class="fa-solid fa-print"></i> Press <kbd style="background:#fff; padding:1px 6px; border-radius:3px; border:1px solid #d4d4d8;">Cmd+P</kbd> to save as PDF
+</div>
+
+<div class="page-container">
+
+<!-- ============================================================ -->
+<!-- HEADER                                                        -->
+<!-- ============================================================ -->
+<header class="header-bg text-white p-6 relative overflow-hidden">
+  <div class="relative z-10">
+    <div class="flex justify-between items-start mb-3">
+      <div>
+        <div class="text-[11px] tracking-widest uppercase font-medium text-blue-100 mb-2">
+          Snowflake Professional Services
+        </div>
+        <h1 class="text-2xl font-bold leading-tight mb-1">{{engagement_title}}</h1>
+        <p class="text-blue-100 text-sm">Engagement Proposal &mdash; {{customer_name}}</p>
+      </div>
+      <div class="text-right text-sm">
+        <div class="tag white mb-2">DRAFT</div>
+        <div class="text-blue-100 text-xs">{{date}}</div>
+      </div>
+    </div>
+  </div>
+  <div class="absolute top-0 right-0 w-64 h-64 opacity-10" style="background: radial-gradient(circle at 70% 30%, white 1px, transparent 1px); background-size: 20px 20px;"></div>
+</header>
+
+<!-- ============================================================ -->
+<!-- METRICS                                                       -->
+<!-- ============================================================ -->
+<div class="px-6 py-4">
+  <div class="grid grid-cols-3 gap-6 avoid-break" style="max-width: 780px; margin: 0 auto;">
+    {{#metrics}}
+    <div class="card metric-card" style="border-top: 3px solid {{color}};">
+      <div class="num" style="color: {{color}};">{{value}}</div>
+      <div class="lbl">{{label}}</div>
+      {{#subtitle}}<div class="sub">{{subtitle}}</div>{{/subtitle}}
+    </div>
+    {{/metrics}}
+  </div>
+
+  <p class="text-sm text-slate-600 leading-relaxed mt-4">
+    {{summary_paragraph}}
+  </p>
+</div>
+
+<!-- ============================================================ -->
+<!-- THE PROBLEM                                                   -->
+<!-- ============================================================ -->
+<div class="px-6 pb-4">
+  <div class="section-header">
+    <i class="fa-solid fa-triangle-exclamation text-amber-500"></i>
+    The Problem
+  </div>
+
+  <div class="grid grid-cols-2 gap-3 avoid-break">
+    {{#pain_points}}
+    <div class="card flex gap-3">
+      <div class="pain-icon {{icon_color_bg}} {{icon_color_text}}">
+        <i class="{{icon}}"></i>
+      </div>
+      <div>
+        <div class="text-sm font-semibold text-slate-700 mb-1">{{title}}</div>
+        <div class="text-xs text-slate-500">{{description}}</div>
+      </div>
+    </div>
+    {{/pain_points}}
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- WHAT YOU GET (Deliverables)                                   -->
+<!-- ============================================================ -->
+<div class="px-6 pb-4">
+  <div class="section-header">
+    <i class="fa-solid fa-arrow-up-right-dots text-emerald-500"></i>
+    What You Get
+  </div>
+
+  <div class="grid grid-cols-3 gap-3 avoid-break">
+    {{#deliverables}}
+    <div class="card" style="border-top: 3px solid {{border_color}};">
+      <div class="flex items-center gap-2 mb-2">
+        <div class="pain-icon {{icon_color_bg}} {{icon_color_text}}">
+          <i class="{{icon}}"></i>
+        </div>
+        <div class="text-sm font-bold text-slate-700">{{title}}</div>
+      </div>
+      <ul class="text-xs text-slate-500 leading-relaxed space-y-1.5 pl-4" style="list-style-type: disc;">
+        {{#bullets}}
+        <li>{{.}}</li>
+        {{/bullets}}
+      </ul>
+    </div>
+    {{/deliverables}}
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- TIMELINE (CSS Grid Gantt)                                     -->
+<!-- ============================================================ -->
+<div class="px-6 pb-4">
+  <div class="section-header">
+    <i class="fa-solid fa-road" style="color:#29B5E8;"></i>
+    Timeline
+  </div>
+
+  <div class="avoid-break" style="font-size: 0.72rem;">
+    {{timeline_gantt_html}}
+  </div>
+
+  <!-- T&M / Fixed Fee Qualifier -->
+  <div class="callout callout-info mt-3 avoid-break">
+    <div class="flex items-center gap-2 mb-1">
+      <i class="fa-solid fa-scale-balanced" style="font-size:12px; color:#29B5E8;"></i>
+      <strong style="font-size:12px; color:#334155;">{{engagement_type}} Engagement</strong>
+    </div>
+    <div style="font-size:11px; color:#64748b; line-height:1.6;">
+      {{engagement_type_qualifier_text}}
+    </div>
+  </div>
+</div>
+<div class="page-break"></div>
+
+<!-- ============================================================ -->
+<!-- WHY SNOWFLAKE PS                                              -->
+<!-- ============================================================ -->
+<div class="px-6 py-4">
+  <div class="section-header">
+    <i class="fa-solid fa-bolt" style="color:#29B5E8;"></i>
+    Why Snowflake Professional Services
+  </div>
+
+  <div class="grid grid-cols-3 gap-3 avoid-break">
+    {{#why_ps}}
+    <div class="card flex gap-3">
+      <div class="pain-icon {{icon_color_bg}} {{icon_color_text}}">
+        <i class="{{icon}}"></i>
+      </div>
+      <div>
+        <div class="text-sm font-semibold text-slate-700 mb-1">{{title}}</div>
+        <div class="text-xs text-slate-500">{{description}}</div>
+      </div>
+    </div>
+    {{/why_ps}}
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- DELIVERY TEAM                                                 -->
+<!-- ============================================================ -->
+<div class="px-6 pb-4">
+  <div class="section-header">
+    <i class="fa-solid fa-users" style="color:#29B5E8;"></i>
+    Delivery Team
+  </div>
+
+  <div class="grid grid-cols-2 gap-3 avoid-break">
+    {{#team_cards}}
+    <div class="card" style="border-top: 3px solid {{border_color}};">
+      <div class="flex items-center gap-2 mb-3">
+        <div class="pain-icon {{icon_color_bg}} {{icon_color_text}}">
+          <i class="{{icon}}"></i>
+        </div>
+        <div class="text-sm font-bold text-slate-700">{{role}} &mdash; {{hours}} hrs @ ${{rate}}/hr</div>
+      </div>
+      <p class="text-xs text-slate-500 leading-relaxed mb-2">{{description}}</p>
+      <ul class="text-xs text-slate-500 leading-relaxed space-y-1 pl-4" style="list-style-type: disc;">
+        {{#bullets}}
+        <li>{{.}}</li>
+        {{/bullets}}
+      </ul>
+    </div>
+    {{/team_cards}}
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- ASSUMPTIONS & OUT OF SCOPE                                    -->
+<!-- ============================================================ -->
+<div class="px-6 pb-4">
+  <div class="grid grid-cols-2 gap-4">
+
+    <div>
+      <div class="section-header">
+        <i class="fa-solid fa-list-check" style="color:#29B5E8;"></i>
+        Assumptions &amp; Dependencies
+      </div>
+      <ul class="text-xs text-slate-500 leading-relaxed space-y-1.5 pl-4" style="list-style-type: disc;">
+        {{#assumptions}}
+        <li>{{.}}</li>
+        {{/assumptions}}
+      </ul>
+    </div>
+
+    <div>
+      <div class="section-header">
+        <i class="fa-solid fa-ban text-red-400"></i>
+        Out of Scope
+      </div>
+      <ul class="text-xs text-slate-500 leading-relaxed space-y-1.5 pl-4" style="list-style-type: disc;">
+        {{#out_of_scope}}
+        <li>{{.}}</li>
+        {{/out_of_scope}}
+      </ul>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- NEXT STEPS                                                    -->
+<!-- ============================================================ -->
+<div class="px-6 pb-4">
+  <div class="section-header">
+    <i class="fa-solid fa-forward" style="color:#29B5E8;"></i>
+    Next Steps
+  </div>
+
+  <table class="avoid-break">
+    <thead>
+      <tr>
+        <th style="width:40px;"></th>
+        <th>Action</th>
+        <th>Details</th>
+        <th style="text-align:right;">Owner</th>
+      </tr>
+    </thead>
+    <tbody>
+      {{#next_steps}}
+      <tr>
+        <td style="font-weight:800; color:#29B5E8; text-align:center;">{{index}}</td>
+        <td style="font-weight:600;">{{action}}</td>
+        <td>{{details}}</td>
+        <td style="text-align:right; color:#64748b; white-space:nowrap;">{{owner}}</td>
+      </tr>
+      {{/next_steps}}
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================ -->
+<!-- FOOTER                                                        -->
+<!-- ============================================================ -->
+<footer class="px-6 py-4" style="border-top: 1px solid #e2e8f0;">
+  <div class="flex justify-between items-center">
+    <div style="font-size: 10px; color: #94a3b8;">
+      &copy; {{year}} Snowflake Inc. All rights reserved.
+    </div>
+    <div>
+      <span class="tag slate">Confidential</span>
+    </div>
+  </div>
+</footer>
+
+</div><!-- end page-container -->
+
+</body>
+</html>
