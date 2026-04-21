@@ -1,0 +1,67 @@
+{
+    "exec_summary": "Text body",
+    "exec_challenges": ["Item 1", "Item 2", "Item 3"],
+    "exec_solution": ["Item 1", "Item 2", "Item 3"],
+    "exec_outcomes": ["Item 1", "Item 2", "Item 3"],
+
+
+    "our_understanding": "Text body",
+    "our_understanding_current_state": ["Item 1", "Item 2", "Item 3"],
+    "our_understanding_engagement_objectives": ["Item 1", "Item 2", "Item 3"],
+
+    "meth_summary": "Text body",
+    "meth_phases": [
+        {"phase": "Text body 1", "duration": "Text body 1", "activities": ["Item 11", "Item 12", "Item 13"]},
+        {"phase": "Text body 2", "duration": "Text body 2", "activities": ["Item 21", "Item 22", "Item 23"]},
+        {"phase": "Text body 3", "duration": "Text body 3", "activities": ["Item 31", "Item 32", "Item 33"]}
+    ],
+
+    "engage_summary": "Text body",
+    "high_engage_high_own": "Text body",
+    "high_engage_low_own": "Text body",
+    "low_engage_high_own": ["Item 1", "Item 2", "Item 3"],
+    "low_engage_low_own": ["Item 1", "Item 2", "Item 3"],
+
+    "scope_assessment": ["Item 1", "Item 2", "Item 3"],
+    "scope_architecture": ["Item 1", "Item 2", "Item 3"],
+    "scope_implementation": ["Item 1", "Item 2", "Item 3"],
+    "scope_out": ["Item 1", "Item 2", "Item 3"],
+
+    "dependencies": ["Item 1", "Item 2", "Item 3"],
+
+    "gov_forum": [
+        {"forum": "Text body 1", "cadence": "Text body 1", "roles": "Text body 1", "responsibility": "Text body 1", "material": "Text body 1"},
+        {"forum": "Text body 2", "cadence": "Text body 2", "roles": "Text body 2", "responsibility": "Text body 2", "material": "Text body 2"},
+        {"forum": "Text body 3", "cadence": "Text body 3", "roles": "Text body 3", "responsibility": "Text body 3", "material": "Text body 3"}
+    ],
+
+    "assum_commitments": "Text body",
+    "assum_access": ["Item 1", "Item 2", "Item 3"],
+    "assum_roles": "Text body",
+    "assum_clarification": ["Item 1", "Item 2", "Item 3"],
+
+    "risks_scope": "Text body",
+    "risks_timeline": "Text body",
+    "risks_resource": "Text body",
+    "risks_tech": "Text body",
+    "risks_org": "Text body",
+    "risks_adopt": "Text body",
+    "risks_gov": "Text body",
+    "impact_scope": "Text body",
+    "impact_timeline": "Text body",
+    "impact_resource": "Text body",
+    "impact_tech": "Text body",
+    "impact_org": "Text body",
+    "impact_adopt": "Text body",
+    "impact_gov": "Text body",
+    "mitigation_scope": "Text body",
+    "mitigation_timeline": "Text body",
+    "mitigation_resource": "Text body",
+    "mitigation_tech": "Text body",
+    "mitigation_org": "Text body",
+    "mitigation_adoption": "Text body",
+    "mitigation_gov": "Text body",
+    "additional_risk_considerations": "Text body",
+
+    "next_actions": ["Item 1", "Item 2", "Item 3"]
+}
