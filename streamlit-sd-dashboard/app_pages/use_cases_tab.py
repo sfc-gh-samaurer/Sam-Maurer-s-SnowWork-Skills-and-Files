@@ -55,12 +55,14 @@ if not df.empty:
         total_eacv = filtered["ACV"].sum()
         st.metric("Total EACV", f"${total_eacv:,.0f}")
     with kpi5:
-        stuck_count = len(filtered[filtered["DAYS_IN_STAGE"] > 90])
+        today = pd.Timestamp.now().normalize()
+        filtered["DAYS_SINCE_MODIFIED"] = (today - pd.to_datetime(filtered["LAST_MODIFIED_DATE"], errors="coerce").dt.tz_localize(None)).dt.days
+        stuck_count = len(filtered[filtered["DAYS_SINCE_MODIFIED"] > 90])
         st.metric("Stuck >90d", stuck_count)
 
     display = filtered[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "USE_CASE_NAME", "USE_CASE_ID", "USE_CASE_NUMBER", "USE_CASE_STATUS",
                         "ACV", "STAGE", "DECISION_DATE", "CREATED_DATE", "LAST_MODIFIED_DATE",
-                        "DAYS_IN_STAGE", "OWNER", "NEXT_STEPS", "IS_PS_ENGAGED"]].copy()
+                        "DAYS_SINCE_MODIFIED", "OWNER", "NEXT_STEPS", "IS_PS_ENGAGED"]].copy()
 
     display["UC_LINK"] = display.apply(
         lambda r: f'{SFDC_BASE}/{r["USE_CASE_ID"]}/view' if pd.notna(r.get("USE_CASE_ID")) else None,
@@ -79,7 +81,7 @@ if not df.empty:
         {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
         {"col": "CREATED_DATE", "label": "Created", "fmt": "date"},
         {"col": "LAST_MODIFIED_DATE", "label": "Modified", "fmt": "date"},
-        {"col": "DAYS_IN_STAGE", "label": "Days Since Modified", "fmt": "number"},
+        {"col": "DAYS_SINCE_MODIFIED", "label": "Days Since Modified", "fmt": "number"},
         {"col": "OWNER", "label": "AE"},
         {"col": "NEXT_STEPS", "label": "Next Steps"},
         {"col": "PS_ENGAGED", "label": "PS Engaged"},

@@ -10,18 +10,9 @@ _WAREHOUSE = "SNOWADHOC"
 
 def _get_session():
     session = st.connection("snowflake").session()
-    try:
-        session.sql(f"USE ROLE {_ROLE}").collect()
-    except Exception:
-        pass
-    try:
-        session.sql(f"USE WAREHOUSE {_WAREHOUSE}").collect()
-    except Exception:
-        pass
-    try:
-        session.sql("USE SECONDARY ROLES ALL").collect()
-    except Exception:
-        pass
+    session.sql(f"USE ROLE {_ROLE}").collect()
+    session.sql(f"USE WAREHOUSE {_WAREHOUSE}").collect()
+    session.sql("USE SECONDARY ROLES ALL").collect()
     return session
 
 
@@ -241,19 +232,20 @@ def load_accounts_base():
     session = _get_session()
     df = session.sql("""
         SELECT
-            NAME AS ACCOUNT_NAME,
-            SALESFORCE_ACCOUNT_ID,
-            ACCOUNT_OWNER_NAME AS ACCOUNT_OWNER,
-            ACCOUNT_OWNER_MANAGER_C AS DM,
-            CAST(ARR_C AS FLOAT) AS ARR,
-            INDUSTRY,
-            SUBINDUSTRY,
-            TIER_C AS TIER,
-            LEAD_SALES_ENGINEER_NAME_C AS LEAD_SE
-        FROM SALES.RAVEN.ACCOUNT
-        WHERE ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
-        AND ACCOUNT_STATUS_C = 'Active'
-        ORDER BY ARR_C DESC
+            fa.NAME AS ACCOUNT_NAME,
+            fa.ID AS SALESFORCE_ACCOUNT_ID,
+            fa.ACCOUNT_OWNER_NAME_C AS ACCOUNT_OWNER,
+            fa.ACCOUNT_OWNER_MANAGER_C AS DM,
+            CAST(fa.ARR_C AS FLOAT) AS ARR,
+            fa.INDUSTRY,
+            raven.SUB_INDUSTRY AS SUBINDUSTRY,
+            fa.TIER_C AS TIER,
+            raven.LEAD_SALES_ENGINEER_NAME AS LEAD_SE
+        FROM FIVETRAN.SALESFORCE.ACCOUNT fa
+        LEFT JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS raven ON fa.ID = raven.SALESFORCE_ACCOUNT_ID
+        WHERE fa.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
+        AND fa.ACCOUNT_STATUS_C = 'Active'
+        ORDER BY fa.ARR_C DESC
     """).to_pandas()
     return _fix_decimals(df)
 
@@ -265,17 +257,17 @@ def load_capacity_renewals():
         WITH base AS (
             SELECT
                 a.NAME AS ACCOUNT_NAME,
-                a.SALESFORCE_ACCOUNT_ID,
-                a.ACCOUNT_OWNER_NAME AS ACCOUNT_OWNER,
+                a.ID AS SALESFORCE_ACCOUNT_ID,
+                a.ACCOUNT_OWNER_NAME_C AS ACCOUNT_OWNER,
                 a.ACCOUNT_OWNER_MANAGER_C AS DM,
                 CAST(a.ARR_C AS FLOAT) AS ARR,
                 a.TIER_C AS TIER,
-                a.LEAD_SALES_ENGINEER_NAME_C AS LEAD_SE
-            FROM SALES.RAVEN.ACCOUNT a
-            JOIN FIVETRAN.SALESFORCE.ACCOUNT fa ON a.SALESFORCE_ACCOUNT_ID = fa.ID
+                raven.LEAD_SALES_ENGINEER_NAME AS LEAD_SE
+            FROM FIVETRAN.SALESFORCE.ACCOUNT a
+            LEFT JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS raven ON a.ID = raven.SALESFORCE_ACCOUNT_ID
             WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
             AND a.ACCOUNT_STATUS_C = 'Active'
-            AND fa.CAPACITY_COUNTER_C > 0
+            AND a.CAPACITY_COUNTER_C > 0
         ),
         capacity AS (
             SELECT
@@ -466,7 +458,7 @@ def load_ps_projects_active():
             p.NAME AS PROJECT_NAME,
             p.ID AS PROJECT_ID,
             a.NAME AS ACCOUNT_NAME,
-            a.SALESFORCE_ACCOUNT_ID,
+            a.ID AS SALESFORCE_ACCOUNT_ID,
             p.PSE_PROJECT_STATUS_C AS PROJECT_STATUS,
             p.PSE_STAGE_C AS PROJECT_STAGE,
             pr.NAME AS PRACTICE,
@@ -505,9 +497,9 @@ def load_ps_projects_active():
             o.FISCAL_QUARTER,
             o.OPPORTUNITY_OWNER_NAME AS OPP_OWNER,
             a.ACCOUNT_OWNER_MANAGER_C AS DM,
-            a.ACCOUNT_OWNER_NAME AS AE
+            a.ACCOUNT_OWNER_NAME_C AS AE
         FROM FIVETRAN.SALESFORCE.PSE_PROJ_C p
-        JOIN SALES.RAVEN.ACCOUNT a ON p.PSE_ACCOUNT_C = a.SALESFORCE_ACCOUNT_ID
+        JOIN FIVETRAN.SALESFORCE.ACCOUNT a ON p.PSE_ACCOUNT_C = a.ID
         LEFT JOIN FIVETRAN.SALESFORCE.PSE_PRACTICE_C pr ON p.PSE_PRACTICE_C = pr.ID
         LEFT JOIN FIVETRAN.SALESFORCE.CONTACT c ON p.PSE_PROJECT_MANAGER_C = c.ID
         LEFT JOIN assignments asn ON p.ID = asn.PROJECT_ID
@@ -557,7 +549,7 @@ def load_ps_pipeline():
         fivetran_opps AS (
             SELECT
                 a.NAME AS ACCOUNT_NAME,
-                a.SALESFORCE_ACCOUNT_ID,
+                a.ID AS SALESFORCE_ACCOUNT_ID,
                 opp.NAME AS OPPORTUNITY_NAME,
                 opp.ID AS OPPORTUNITY_ID,
                 opp.TYPE AS OPPORTUNITY_TYPE,
@@ -576,7 +568,7 @@ def load_ps_pipeline():
                 NULL AS SE_COMMENTS,
                 opp.NEXT_STEP AS NEXT_STEPS
             FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
-            JOIN SALES.RAVEN.ACCOUNT a ON opp.ACCOUNT_ID = a.SALESFORCE_ACCOUNT_ID
+            JOIN FIVETRAN.SALESFORCE.ACCOUNT a ON opp.ACCOUNT_ID = a.ID
             LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
             WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
             AND a.ACCOUNT_STATUS_C = 'Active'
@@ -672,7 +664,7 @@ def load_ps_history():
             opp.NAME AS OPPORTUNITY_NAME,
             opp.ID AS OPPORTUNITY_ID,
             a.ACCOUNT_OWNER_MANAGER_C AS DM,
-            a.ACCOUNT_OWNER_NAME AS AE,
+            a.ACCOUNT_OWNER_NAME_C AS AE,
             u.NAME AS OPP_OWNER,
             opp.STAGE_NAME,
             opp.TYPE AS OPPORTUNITY_TYPE,
@@ -686,7 +678,7 @@ def load_ps_history():
             ops.TOTAL_PST_AMOUNT,
             ops.PRODUCT_FAMILIES
         FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
-        JOIN SALES.RAVEN.ACCOUNT a ON opp.ACCOUNT_ID = a.SALESFORCE_ACCOUNT_ID
+        JOIN FIVETRAN.SALESFORCE.ACCOUNT a ON opp.ACCOUNT_ID = a.ID
         JOIN opp_ps_summary ops ON opp.ID = ops.OPPORTUNITY_ID
         LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
         LEFT JOIN SALES.RAVEN.SDA_OPPORTUNITY_PS_VIEW ps_view ON opp.ID = ps_view.OPPORTUNITY_ID
@@ -704,11 +696,11 @@ def load_action_planner_pipeline():
     session = _get_session()
     df = session.sql("""
         SELECT
-            ra.NAME AS ACCOUNT_NAME,
-            ra.SALESFORCE_ACCOUNT_ID AS ACCOUNT_ID,
+            a.NAME AS ACCOUNT_NAME,
+            a.ID AS ACCOUNT_ID,
             u.DISTRICT_C AS DISTRICT,
-            ra.ACCOUNT_OWNER_NAME AS AE_NAME,
-            ra.LEAD_SALES_ENGINEER_NAME_C AS SE_NAME,
+            a.ACCOUNT_OWNER_NAME_C AS AE_NAME,
+            raven.LEAD_SALES_ENGINEER_NAME AS SE_NAME,
             v.DELIVERABLE_ID AS USE_CASE_ID,
             v.DELIVERABLE_NAME AS USE_CASE_NAME,
             COALESCE(d.USE_CASE_STAGE, v.NEW_STAGE) AS STAGE,
@@ -727,14 +719,14 @@ def load_action_planner_pipeline():
             v.PARTNERS_C AS PARTNERS,
             v.INDUSTRY_USE_CASE_C AS INDUSTRY_UC,
             d.SE_COMMENTS AS SE_COMMENTS_FULL
-        FROM SALES.RAVEN.ACCOUNT ra
-        JOIN FIVETRAN.SALESFORCE.ACCOUNT a ON ra.SALESFORCE_ACCOUNT_ID = a.ID
+        FROM FIVETRAN.SALESFORCE.ACCOUNT a
         JOIN FIVETRAN.SALESFORCE.USER u ON a.OWNER_ID = u.ID
+        LEFT JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS raven ON a.ID = raven.SALESFORCE_ACCOUNT_ID
         LEFT JOIN SALES.SE_REPORTING.VIVUN_DELIVERABLE_USE_CASE v ON v.ACCOUNT_ID = a.ID
         LEFT JOIN MDM.MDM_INTERFACES.DIM_USE_CASE d ON v.USE_CASE_NUMBER = d.USE_CASE_NUMBER
-        WHERE ra.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
-        AND ra.ACCOUNT_STATUS_C = 'Active'
-        ORDER BY ra.NAME, v.ACV_C DESC NULLS LAST
+        WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
+        AND a.ACCOUNT_STATUS_C = 'Active'
+        ORDER BY a.NAME, v.ACV_C DESC NULLS LAST
     """).to_pandas()
     return _fix_decimals(df)
 
@@ -752,7 +744,7 @@ def load_account_consumption_summary(account_name):
                 CAST(SUM(p.TOTAL_CREDITS) AS FLOAT) AS CREDITS
             FROM SALES.RAVEN.A360_PRODUCT_CATEGORY_VIEW p
             WHERE p.SALESFORCE_ACCOUNT_ID IN (
-                SELECT SALESFORCE_ACCOUNT_ID FROM SALES.RAVEN.ACCOUNT
+                SELECT ID FROM FIVETRAN.SALESFORCE.ACCOUNT
                 WHERE NAME = '{account_name.replace("'", "''")}'
                 AND ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
             )
@@ -788,8 +780,8 @@ def load_product_usage():
             CAST(SUM(p.TOTAL_JOBS) AS FLOAT) AS TOTAL_JOBS
         FROM SALES.RAVEN.A360_PRODUCT_CATEGORY_VIEW p
         WHERE p.SALESFORCE_ACCOUNT_ID IN (
-            SELECT SALESFORCE_ACCOUNT_ID
-            FROM SALES.RAVEN.ACCOUNT
+            SELECT ID
+            FROM FIVETRAN.SALESFORCE.ACCOUNT
             WHERE ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
             AND ACCOUNT_STATUS_C = 'Active'
         )
@@ -840,9 +832,9 @@ def load_exec_services_renewals():
             p.NAME AS PROJECT_NAME,
             p.ID AS PROJECT_ID,
             a.NAME AS ACCOUNT_NAME,
-            a.SALESFORCE_ACCOUNT_ID,
+            a.ID AS SALESFORCE_ACCOUNT_ID,
             a.ACCOUNT_OWNER_MANAGER_C AS DM,
-            a.ACCOUNT_OWNER_NAME AS AE,
+            a.ACCOUNT_OWNER_NAME_C AS AE,
             p.SUB_AGREEMENT_TYPE_C AS AGREEMENT_TYPE,
             p.SERVICE_TYPE_C AS SERVICE_TYPE,
             p.PSE_STAGE_C AS PROJECT_STAGE,
@@ -853,7 +845,7 @@ def load_exec_services_renewals():
             c.NAME AS PROJECT_MANAGER,
             DATEDIFF('day', CURRENT_DATE(), p.PSE_END_DATE_C) AS DAYS_TO_END
         FROM FIVETRAN.SALESFORCE.PSE_PROJ_C p
-        JOIN SALES.RAVEN.ACCOUNT a ON p.PSE_ACCOUNT_C = a.SALESFORCE_ACCOUNT_ID
+        JOIN FIVETRAN.SALESFORCE.ACCOUNT a ON p.PSE_ACCOUNT_C = a.ID
         LEFT JOIN FIVETRAN.SALESFORCE.CONTACT c ON p.PSE_PROJECT_MANAGER_C = c.ID
         WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
         AND a.ACCOUNT_STATUS_C = 'Active'
@@ -894,7 +886,7 @@ def load_exec_new_opps():
         fivetran_new AS (
             SELECT
                 a.NAME AS ACCOUNT_NAME,
-                a.SALESFORCE_ACCOUNT_ID,
+                a.ID AS SALESFORCE_ACCOUNT_ID,
                 opp.NAME AS OPPORTUNITY_NAME,
                 opp.ID AS OPPORTUNITY_ID,
                 opp.TYPE AS OPPORTUNITY_TYPE,
@@ -907,7 +899,7 @@ def load_exec_new_opps():
                 a.ACCOUNT_OWNER_MANAGER_C AS DM,
                 opp.AGREEMENT_TYPE_C AS AGREEMENT_TYPE
             FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
-            JOIN SALES.RAVEN.ACCOUNT a ON opp.ACCOUNT_ID = a.SALESFORCE_ACCOUNT_ID
+            JOIN FIVETRAN.SALESFORCE.ACCOUNT a ON opp.ACCOUNT_ID = a.ID
             LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
             WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
             AND a.ACCOUNT_STATUS_C = 'Active'
