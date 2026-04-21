@@ -1,0 +1,81 @@
+{
+  "title": "Updated QuickStart Accelerator Slides",
+  "description": "QuickStart / QSA partner delivery model — process flow, team slide, pricing, next steps",
+  "google_slides_source": "1wMGwpsiZhmrJRbJs36Z1RTKl2BRM6XROVHJ2BEKtF0s",
+  "slides": [
+    {
+      "type": "title",
+      "title": "QuickStart Accelerator",
+      "subtitle": "Customer Facing | Recently Updated"
+    },
+    {
+      "type": "two_column",
+      "title": "What is a QuickStart (QSA)?",
+      "left_title": "QUICKSTART OVERVIEW",
+      "right_title": "QUICKSTART PROCESS FLOW",
+      "left_bullets": [
+        "A 2-week series of interactive workshops led by a Snowflake Solutions Architect",
+        "Designed to begin implementing a customer's primary use case on Snowflake",
+        "Build customer confidence through hands-on implementation",
+        "Sessions include delivery of implementation scripts from decisions made during QuickStart"
+      ],
+      "right_bullets": [
+        "Customer brings their first use case and our SA will advise through the end-to-end process",
+        "Secure — Define naming conventions and implement baseline RBAC",
+        "Ingest — Ingest initial data during the workshop and enable customer",
+        "Transform — Advise on transformation best practices for analytics",
+        "Analyze — Enable data visualization in Snowsight"
+      ]
+    },
+    {
+      "type": "content",
+      "title": "How QuickStart Engagements Work",
+      "bullets": [
+        "QuickStart is delivered through interactive workshops led by a Snowflake Solutions Architect.",
+        "Sessions combine brief presentations and live demos with hands-on working time.",
+        "The SA guides key decisions, shares sample scripts, and assists the customer in implementing those scripts in their Snowflake environment.",
+        "SCOPE: Review relevant Snowflake capabilities → Align on primary use case → Review implementation standards → Review scripting/coding standards → Assist with customizing, deploying, and validating scripts → Provide clear next steps toward production.",
+        "Identifying a primary use case and completing Fundamentals or Data Warehousing Workshop training prior to QuickStart is highly recommended."
+      ]
+    },
+    {
+      "type": "cards",
+      "title": "QuickStart Next Steps",
+      "style": "cards",
+      "cards": [
+        {
+          "title": "Pricing & Resourcing",
+          "body": "Fixed fee engagement, priced at $14,000 (50% discount for new customers). Single SA assigned throughout. Contracting via Snowflake Order Form. Available on AWS Marketplace."
+        },
+        {
+          "title": "Customer Requirements",
+          "body": "Customer has data available and a small, identified use case. Team of data analyst(s) and data engineer(s) available. Must complete Fundamentals or Data Warehousing Workshop training before scheduling."
+        }
+      ]
+    },
+    {
+      "type": "team_photo",
+      "title": "Partner + Snowflake QuickStart Delivery",
+      "groups": [
+        {
+          "label": "Account Team",
+          "members": [
+            { "name": "Account Executive", "role": "Snowflake", "slack_email": "" },
+            { "name": "Sales Engineer", "role": "Snowflake", "slack_email": "" }
+          ]
+        },
+        {
+          "label": "Service Delivery Team",
+          "members": [
+            { "name": "Practice Manager", "role": "Snowflake", "slack_email": "" },
+            { "name": "Solutions Architect", "role": "BlueCloud (Partner)", "slack_email": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "closing",
+      "title": "Thank You"
+    }
+  ]
+}

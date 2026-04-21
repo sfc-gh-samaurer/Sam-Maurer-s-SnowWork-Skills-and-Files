@@ -1,0 +1,7 @@
+[project]
+name = "use-case-compliance-scripts"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "snowflake-connector-python[secure-local-storage]>=3.0.0",
+]

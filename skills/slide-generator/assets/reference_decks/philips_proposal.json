@@ -1,0 +1,220 @@
+{
+  "title": "Philips Healthcare — Fixed Fee Service Delivery Proposal",
+  "description": "Full PS proposal with executive summary, approach, timeline, scope summaries, assumptions, governance, RACI, pricing, risks, next steps",
+  "google_slides_source": "1KtY1M1NFxp_QoKzDDNtY6IPo5kcHsGvpceX1x5Q0GO4",
+  "slides": [
+    {
+      "type": "title",
+      "title": "Fixed Fee Service Delivery Proposal",
+      "subtitle": "Philips Healthcare | April 2026"
+    },
+    {
+      "type": "executive_summary",
+      "title": "Executive Summary",
+      "overview": "Philips Healthcare operates across a highly complex data landscape — SAP, Salesforce, unstructured clinical content, and a sprawling multi-cloud environment spanning Azure, AWS, GCP, Databricks, Teradata, and legacy SQL Server and Oracle systems. Without a deliberate data foundation, AI and analytics initiatives risk being built on unstable ground: inconsistent data, siloed pipelines, brittle integrations, and no clear path to production readiness.\n\nThe goal of this engagement is to establish that foundation and repeatable framework — and ensure Philips' internal teams are equipped to sustain and extend it independently.",
+      "workstreams": [
+        { "title": "Architecture Foundations & Security", "bullets": ["RBAC / Security", "Table Structure & Virtual Warehouse", "Medallion Architecture", "Horizon Governance Guidance"] },
+        { "title": "AI Readiness", "bullets": ["Data Pipeline", "POV and Walkthrough", "Use case productionalized playbook"] }
+      ],
+      "outcomes": [
+        "Foundational Snowflake environment configured to best practices",
+        "RBAC, security, and Horizon governance guidance",
+        "Data ingestion enablement for your sources",
+        "Essential transformation patterns to improve data readiness and clarity",
+        "Medallion Architecture to enable Snowflake Intelligence",
+        "Performance and cost optimization guidance",
+        "Productionalization of AI/ML use cases",
+        "Project management, milestones, and weekly cadence"
+      ]
+    },
+    {
+      "type": "engagement_approach",
+      "title": "Engagement Approach",
+      "phases": [
+        {
+          "title": "Foundational Discovery & Roadmap",
+          "description": "Define the blueprint: align on scope, map source systems, and design the foundation that will scale beyond this engagement.",
+          "activities": [
+            "Align on business priorities, success criteria, and expansion goals",
+            "Identify priority sources and map the future ingestion roadmap",
+            "Review source system architecture, data availability, and access requirements",
+            "Validate Snowflake access, identity, and cloud storage readiness",
+            "Define the scalable framework architecture and milestone execution plan"
+          ],
+          "outcome": "A clear blueprint and expansion roadmap before build begins"
+        },
+        {
+          "title": "Guided Implementation & Advisory",
+          "description": "Build the reusable framework: implement a secure foundation and scalable patterns your team can use to onboard new sources and deploy additional use cases.",
+          "activities": [
+            "Establish a secure, governance-ready Snowflake foundation (RBAC, tagging, policies)",
+            "Implement medallion architecture as a reusable template for future data domains",
+            "Enable initial source ingestion with repeatable patterns and playbooks",
+            "Build reusable transformation standards your team can apply to new sources",
+            "Productionize AI use cases with evaluation frameworks, observability, and handoff playbooks"
+          ],
+          "outcome": "A secure, scalable foundation and reusable framework your team can extend"
+        },
+        {
+          "title": "Enablement, Tracking & Future Roadmapping",
+          "description": "Ensure delivery quality, validate the blueprint, and equip Philips to operate and expand independently.",
+          "activities": [
+            "Weekly working sessions and backlog reviews",
+            "Proactive risk and dependency management",
+            "Milestone check-ins to validate framework completeness and reusability",
+            "Final review to confirm blueprint outcomes and team readiness",
+            "Roadmap workshop: define the next wave of source systems and use cases"
+          ],
+          "outcome": "A validated blueprint and roadmap — ready for Philips to operate, expand, and scale"
+        }
+      ]
+    },
+    {
+      "type": "gantt_timeline",
+      "title": "High Level Timeline",
+      "subtitle": "Based on the scope, we recommend the following timeline for the delivery of the engagement.",
+      "total_weeks": 11,
+      "milestone_groups": [
+        {
+          "name": "Foundations",
+          "milestones": [
+            { "name": "Kickoff & Discovery", "start": 1, "end": 2, "owner": "SF" },
+            { "name": "Security Assessment & Overhaul", "start": 2, "end": 4, "owner": "SF" },
+            { "name": "Medallion Architecture Design", "start": 3, "end": 6, "owner": "SF" }
+          ]
+        },
+        {
+          "name": "Data Onboarding",
+          "milestones": [
+            { "name": "Ingestion — Bring Data into Snowflake", "start": 4, "end": 7, "owner": "SF" },
+            { "name": "AI Solution Productionization", "start": 6, "end": 9, "owner": "SF" }
+          ]
+        },
+        {
+          "name": "Closure",
+          "milestones": [
+            { "name": "UAT & Validation", "start": 9, "end": 10, "owner": "SI" },
+            { "name": "Knowledge Transfer & Handoff", "start": 10, "end": 11, "owner": "SF" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "milestone_detail",
+      "title": "Security — Assessment and Overhaul",
+      "outcome": "Your Snowflake account is established and configured with fundamental authentication, role based access control (RBAC), and data protection for any sensitive data or PII (data masking, row level access, aggregation policies).",
+      "milestones": [
+        { "name": "Security Assessment", "activities": ["Review current authentication methods", "Audit existing RBAC structure", "Identify sensitive/PII columns"] },
+        { "name": "RBAC Overhaul", "activities": ["Implement functional role hierarchy", "Define object-level grant matrix", "Apply network policies"] },
+        { "name": "Data Protection", "activities": ["Apply dynamic data masking policies", "Configure row access policies", "Enable audit logging"] }
+      ]
+    },
+    {
+      "type": "milestone_detail",
+      "title": "Medallion Architecture — Design for Scale",
+      "outcome": "A modern data architecture positioning Philips Healthcare to accelerate data readiness and use case deployment.",
+      "milestones": [
+        { "name": "Architecture Design", "activities": ["Define Bronze/Silver/Gold layer standards", "Establish naming conventions and schema patterns", "Design dynamic tables and transformation workflows"] },
+        { "name": "Initial Implementation", "activities": ["Implement Bronze ingestion layer for priority sources", "Build Silver transformation templates", "Activate Gold analytical views"] },
+        { "name": "Governance Layer", "activities": ["Apply tags and classification policies", "Enable Data Metric Functions for quality monitoring", "Document lineage and ownership"] }
+      ]
+    },
+    {
+      "type": "assumptions_split",
+      "title": "Snowflake's Role & Delivery Assumptions",
+      "left_title": "ENVIRONMENT & EXECUTION ASSUMPTIONS",
+      "right_title": "SCOPE ASSUMPTIONS",
+      "left_items": [
+        "Snowflake's advisory work is performed in development and validation environments only",
+        "Required security approvals, cloud service provider resource access, and networking rules are in place before engagement start",
+        "Engagement does not include re-factoring or modification of existing custom code developed by the customer",
+        "Engagement does not include production execution, operations, or ongoing monitoring",
+        "Snowflake provides guidance and validation; customers approve and execute final operationalization steps"
+      ],
+      "right_items": [
+        "Engagement focuses on a single, clearly defined business priority and supporting data flow",
+        "Source data must be reasonably structured and ready for onboarding at engagement start",
+        "Data onboarding leverages Snowflake-native features and recommended patterns",
+        "Data consumption layer activation includes connectivity, access, and validation for analytics — not application or dashboard development",
+        "Any expansion of scope requires a change order"
+      ]
+    },
+    {
+      "type": "customer_responsibilities",
+      "title": "Customer Responsibilities & Collaboration Assumptions",
+      "intro": "SD Engagement is a collaborative model — Snowflake provides advisory guidance and enablement, but does not replace customer engineers or operational teams.",
+      "responsibilities": [
+        { "area": "Staffing", "items": ["Assign a dedicated technical contact and project coordinator", "Ensure SME availability for weekly working sessions", "Maintain availability for approvals and decisions within 48 hours"] },
+        { "area": "Data & Access", "items": ["Provide access to source systems and development environments", "Ensure source data is available and reasonably structured", "Provision Snowflake account access for Snowflake engineers prior to kickoff"] },
+        { "area": "Decisions & Approvals", "items": ["Approve architecture and security design documents before build begins", "Provide timely sign-off on milestone deliverables", "Manage internal change management and stakeholder alignment"] }
+      ]
+    },
+    {
+      "type": "governance_table",
+      "title": "Governance Cadence",
+      "rows": [
+        { "meeting": "Weekly Status Meeting", "frequency": "Weekly", "participants": "PM, TL, Customer PM", "purpose": "Review status, risks, blockers, upcoming activities" },
+        { "meeting": "Backlog / Sprint Review", "frequency": "Weekly", "participants": "Full delivery team", "purpose": "Review completed items, prioritize upcoming sprint" },
+        { "meeting": "Executive Check-in", "frequency": "Bi-weekly", "participants": "Snowflake PM, AE, Customer Exec", "purpose": "Milestone progress, strategic alignment, escalations" },
+        { "meeting": "Milestone Sign-off", "frequency": "Per milestone", "participants": "PM, TL, Customer PM + Exec", "purpose": "Formal acceptance of milestone deliverables" }
+      ]
+    },
+    {
+      "type": "raci_table",
+      "title": "RACI — Who Is Doing What & When?",
+      "legend": {
+        "R": "Responsible — The group who does the work.",
+        "A": "Accountable — The group ultimately answerable for task completion.",
+        "C": "Consulted — The group whose opinion is sought before a decision.",
+        "I": "Inform — Group who need to be kept up-to-date on progress."
+      },
+      "rows": [
+        { "task": "Architecture Design", "snowflake": "R/A", "customer": "C", "partner": "I" },
+        { "task": "Security & RBAC Implementation", "snowflake": "R/A", "customer": "C/I", "partner": "I" },
+        { "task": "Data Ingestion Build", "snowflake": "R/A", "customer": "C", "partner": "I" },
+        { "task": "Transformation & Medallion", "snowflake": "R/A", "customer": "C", "partner": "I" },
+        { "task": "UAT Execution", "snowflake": "C", "customer": "R/A", "partner": "I" },
+        { "task": "Production Deployment", "snowflake": "C", "customer": "R/A", "partner": "I" },
+        { "task": "Project Management", "snowflake": "R/A", "customer": "I", "partner": "I" }
+      ]
+    },
+    {
+      "type": "pricing_table",
+      "title": "Engagement Estimates and Fees",
+      "note": "Fixed-price, fixed-outcome engagement. This proposal is based on a clearly defined scope of work, guaranteeing the delivery of the specified outcomes for a fixed price.",
+      "rows": [
+        { "role": "Practice Manager", "responsibilities": "Project management, stakeholder alignment, risk management, weekly status reporting", "hours": 120, "rate": 250, "price": 30000 },
+        { "role": "Senior Solutions Architect", "responsibilities": "Architecture design, security, medallion implementation, AI productionization", "hours": 240, "rate": 300, "price": 72000 },
+        { "role": "Solutions Architect", "responsibilities": "Data ingestion, transformation, documentation, knowledge transfer", "hours": 200, "rate": 275, "price": 55000 },
+        { "role": "AI/ML Specialist", "responsibilities": "AI use case productionization, model evaluation, Cortex Intelligence setup", "hours": 80, "rate": 325, "price": 26000 }
+      ],
+      "total_label": "Total Fixed Fee",
+      "total_value": "$183,000"
+    },
+    {
+      "type": "risk_table",
+      "title": "Typical Areas of Risk & How We Mitigate",
+      "rows": [
+        { "risk": "Data Access Delays", "impact": "High", "probability": "Medium", "mitigation": "Confirm all access requirements in kickoff; document prerequisites before engagement start." },
+        { "risk": "Scope Creep", "impact": "High", "probability": "High", "mitigation": "Fixed-fee scope with formal change order process for any additions." },
+        { "risk": "Customer Resourcing", "impact": "Medium", "probability": "Medium", "mitigation": "Dedicated customer PM and SME availability confirmed as contract prerequisite." },
+        { "risk": "Technical Complexity", "impact": "Medium", "probability": "Low", "mitigation": "Discovery phase identifies risks before build begins; architecture sign-off gates build." }
+      ]
+    },
+    {
+      "type": "next_steps_proposal",
+      "title": "Next Steps — Ensuring a Smooth and Successful Start",
+      "steps": [
+        { "label": "Align on Scope", "description": "Guarantee a single, clear agreement on what will be delivered." },
+        { "label": "Scope Using Best Practices", "description": "Ensure the project is scoped using Snowflake's proven best practices for successful delivery." },
+        { "label": "Secure Day 1 Access", "description": "Prevent delays by ensuring our team can start securely and efficiently on day one." },
+        { "label": "Assign Best-Prepared Experts", "description": "Ensure you have the best-prepared experts and set the entire project up for effective execution." },
+        { "label": "Align Everyone on the Plan", "description": "Align everyone on goals, roles, and the plan, setting the project up for fast, effective execution." }
+      ]
+    },
+    {
+      "type": "closing",
+      "title": "Thank You"
+    }
+  ]
+}

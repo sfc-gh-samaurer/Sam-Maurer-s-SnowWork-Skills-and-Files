@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>UC1 Timeline Slide</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #ffffff; font-family: -apple-system, 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #1a1a1a; }
+.slide { width: 1920px; height: 1080px; position: relative; overflow: hidden; }
+
+.legend-bar { padding: 12px 40px 4px; display: flex; align-items: center; justify-content: flex-end; }
+.subtitle { color: #64748b; font-size: 11px; padding: 2px 40px 10px; }
+.legend { display: flex; gap: 22px; align-items: center; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #1a1a1a; }
+.legend-swatch { width: 14px; height: 14px; border-radius: 2px; }
+
+.timeline-area { position: relative; margin: 0 40px; }
+
+.month-header-row { display: flex; margin-left: 340px; height: 28px; align-items: center; }
+.month-col { flex: 1; text-align: center; font-size: 15px; font-weight: 600; color: #334155; border-bottom: 2px solid #e2e8f0; padding-bottom: 4px; }
+
+.grid-lines { position: absolute; top: 28px; bottom: 0; left: 340px; right: 0; display: flex; pointer-events: none; z-index: 0; }
+.grid-col { flex: 1; border-left: 1px solid #e8ecf0; }
+.grid-col:last-child { border-right: 1px solid #e8ecf0; }
+
+.sections { position: relative; z-index: 1; }
+
+.section { margin-bottom: 0; }
+.section-title { background: #eef2f7; padding: 3px 10px; font-size: 11px; font-weight: 700; color: #334155; letter-spacing: 0.4px; text-transform: uppercase; border-left: 3px solid #94a3b8; }
+
+.row { position: relative; display: flex; height: 28px; align-items: center; }
+.row-label { width: 340px; flex-shrink: 0; display: flex; align-items: center; gap: 6px; padding-left: 12px; font-size: 10px; color: #475569; line-height: 1.2; }
+.row-label .dot { width: 5px; height: 16px; border-radius: 2px; flex-shrink: 0; }
+.row-label .owner { font-weight: 600; color: #334155; min-width: 20px; }
+.row-track { position: relative; flex: 1; height: 22px; }
+
+.bar { position: absolute; top: 0; height: 22px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 500; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 5px; }
+.bar.sf { background: #29ABE2; }
+.bar.si { background: #FF6B35; }
+.bar.wd { background: #8B5CF6; }
+.bar.light { background: transparent !important; border: 1.5px solid; }
+.bar.light.sf { border-color: #29ABE2; color: #29ABE2; }
+.bar.light.si { border-color: #FF6B35; color: #FF6B35; }
+.bar.light.wd { border-color: #8B5CF6; color: #8B5CF6; }
+
+.divider { height: 1px; background: #e2e8f0; margin: 1px 0; }
+
+.gates-row { display: flex; margin-left: 340px; padding-top: 6px; }
+.gate-col { flex: 1; display: flex; flex-direction: column; align-items: center; }
+.diamond { width: 16px; height: 16px; background: #10B981; transform: rotate(45deg); border-radius: 2px; }
+.gate-label { text-align: center; font-size: 10px; color: #10B981; line-height: 1.25; margin-top: 6px; font-weight: 500; }
+.gate-empty { flex: 1; }
+
+.footer { position: absolute; bottom: 0; left: 0; right: 0; border-top: 1px solid #e2e8f0; padding: 8px 40px; background: #fff; }
+.footer-notes { font-size: 10px; color: #64748b; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="slide">
+
+<div class="legend-bar">
+  <div class="legend">
+    <div class="legend-item"><div class="legend-swatch" style="background:#29ABE2"></div>Snowflake (SF)</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#FF6B35"></div>SI Partner</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#8B5CF6"></div>WD / Customer</div>
+    <div class="legend-item"><div class="legend-swatch" style="background:#10B981"></div>Checkpoint</div>
+  </div>
+</div>
+<div class="subtitle">8-Month Rollout Timeline &nbsp;|&nbsp; Snowflake Service Delivery + SI Partner &nbsp;|&nbsp; Target: Q3 (October) Go-Live</div>
+
+<div class="timeline-area">
+  <div class="month-header-row">
+    <div class="month-col">M1</div><div class="month-col">M2</div><div class="month-col">M3</div><div class="month-col">M4</div>
+    <div class="month-col">M5</div><div class="month-col">M6</div><div class="month-col">M7</div><div class="month-col">M8</div>
+  </div>
+
+  <div class="grid-lines">
+    <div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div>
+    <div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div><div class="grid-col"></div>
+  </div>
+
+  <div class="sections">
+
+    <!-- Phase 1 -->
+    <div class="section">
+      <div class="section-title">Phase 1 — Discovery & Alignment</div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Kickoff workshops & stakeholder alignment</div>
+        <div class="row-track"><div class="bar sf" style="left:0%; width:12.5%;">Kickoff & Deep Dive</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Current-state architecture assessment</div>
+        <div class="row-track"><div class="bar sf" style="left:0%; width:12.5%;">Arch Assessment</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Iceberg lakehouse roadmap & governance cadence</div>
+        <div class="row-track"><div class="bar sf" style="left:0%; width:12.5%;">Roadmap & Governance</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#FF6B35"></div><span class="owner">SI</span> Team mobilization & project plan baseline</div>
+        <div class="row-track"><div class="bar si" style="left:0%; width:12.5%;">Team Mobilization</div></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- Phase 2 -->
+    <div class="section">
+      <div class="section-title">Phase 2 — Platform Foundation, Governance & Cost Controls</div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Multi-account topology & environment design</div>
+        <div class="row-track"><div class="bar sf" style="left:0%; width:18.75%;">Account & Env Design</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> RBAC role hierarchy & Horizon catalog setup</div>
+        <div class="row-track"><div class="bar sf" style="left:6.25%; width:18.75%;">RBAC & Horizon Catalog</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Resource monitors, warehouse sizing & FinOps guardrails</div>
+        <div class="row-track"><div class="bar sf" style="left:6.25%; width:18.75%;">Cost Controls & FinOps</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#FF6B35"></div><span class="owner">SI</span> Infrastructure setup & data replication config</div>
+        <div class="row-track"><div class="bar si" style="left:0%; width:25%;">S3 / Iceberg Setup → GoldenGate/HVR Config</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#8B5CF6"></div><span class="owner">WD</span> Network access, identity/SSO & security approvals</div>
+        <div class="row-track"><div class="bar wd" style="left:0%; width:25%;">Provision Access → Security & Approvals</div></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- Phase 3 -->
+    <div class="section">
+      <div class="section-title">Phase 3 — CoCo Enablement & Development Acceleration</div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> CoCo workspace configuration</div>
+        <div class="row-track"><div class="bar sf" style="left:12.5%; width:12.5%;">CoCo Setup</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Hands-on enablement labs & training</div>
+        <div class="row-track"><div class="bar sf" style="left:12.5%; width:25%;">Enablement & Labs</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Medallion reference patterns (Bronze→Silver→Gold)</div>
+        <div class="row-track"><div class="bar sf" style="left:25%; width:25%;">Ref Patterns & Templates</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Dynamic Tables & Snowpipe Streaming templates</div>
+        <div class="row-track"><div class="bar sf" style="left:25%; width:25%;">DT & Snowpipe Templates</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#FF6B35"></div><span class="owner">SI</span> CoCo adoption & pipeline development</div>
+        <div class="row-track"><div class="bar si" style="left:12.5%; width:37.5%;">CoCo Training → Bronze-Silver Pipes → Silver-Gold Models</div></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- Phase 4 -->
+    <div class="section">
+      <div class="section-title">Phase 4 — Finance Use Case Buildout & Quality Reviews</div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Ingestion architecture review</div>
+        <div class="row-track"><div class="bar sf" style="left:37.5%; width:12.5%;">Ingestion Review</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Transform architecture review</div>
+        <div class="row-track"><div class="bar sf" style="left:50%; width:12.5%;">Transform Review</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Query & concurrency performance advisory (GLDD)</div>
+        <div class="row-track"><div class="bar sf" style="left:62.5%; width:12.5%;">Perf Advisory</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Warehouse optimization advisory</div>
+        <div class="row-track"><div class="bar sf" style="left:62.5%; width:12.5%;">WH Optimization</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Quality gate checkpoints</div>
+        <div class="row-track"><div class="bar sf" style="left:75%; width:12.5%;">Quality Gates</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#FF6B35"></div><span class="owner">SI</span> Finance use case build, test & UAT cycles</div>
+        <div class="row-track"><div class="bar si" style="left:37.5%; width:50%;">GLDD Pipelines → Exec Dashboards → Process Mining → UAT</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#8B5CF6"></div><span class="owner">WD</span> Data validation, business logic review & UAT sign-off</div>
+        <div class="row-track"><div class="bar wd" style="left:50%; width:37.5%;">Data Validation → Business Review → UAT Sign-off</div></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- Phase 5 -->
+    <div class="section">
+      <div class="section-title">Phase 5 — Operational Readiness</div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Ops readiness review</div>
+        <div class="row-track"><div class="bar sf" style="left:75%; width:12.5%;">Ops Readiness</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Runbook & monitoring advisory</div>
+        <div class="row-track"><div class="bar sf" style="left:75%; width:12.5%;">Runbook Advisory</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#29ABE2"></div><span class="owner">SF</span> Prod warehouse config validation & FinOps review</div>
+        <div class="row-track"><div class="bar sf" style="left:87.5%; width:12.5%;">FinOps Review</div></div>
+      </div>
+      <div class="row">
+        <div class="row-label"><div class="dot" style="background:#FF6B35"></div><span class="owner">SI</span> Production deployment & hypercare</div>
+        <div class="row-track"><div class="bar si" style="left:75%; width:25%;">Production Deploy → Hypercare Support</div></div>
+      </div>
+    </div>
+    <div class="divider"></div>
+
+    <!-- Gates -->
+    <div class="gates-row">
+      <div class="gate-col"><div class="diamond"></div><div class="gate-label">Checkpoint 1<br>Scope & Roadmap<br>Confirmed</div></div>
+      <div class="gate-col"><div class="diamond"></div><div class="gate-label">Checkpoint 2<br>Platform &<br>Governance Baselined</div></div>
+      <div class="gate-empty"></div>
+      <div class="gate-col"><div class="diamond"></div><div class="gate-label">Checkpoint 3<br>CoCo Enablement<br>& Patterns Delivered</div></div>
+      <div class="gate-empty"></div>
+      <div class="gate-empty"></div>
+      <div class="gate-col"><div class="diamond"></div><div class="gate-label">Checkpoint 4<br>Use Case Reviews<br>Complete</div></div>
+      <div class="gate-col"><div class="diamond"></div><div class="gate-label">Checkpoint 5<br>Ops Readiness<br>Review Complete</div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <div class="footer-notes">
+    Snowflake scope: Architecture advisory, enablement, reviews & quality gates — does not include pipeline development, data modeling, or production operations<br>
+    SI Partner scope (inferred): End-to-end pipeline development, data models, testing, production deployment & hypercare<br>
+    WD/Customer: Program management, access provisioning, data validation, operational ownership post-engagement
+  </div>
+
+</div>
+
+</div>
+</body>
+</html>

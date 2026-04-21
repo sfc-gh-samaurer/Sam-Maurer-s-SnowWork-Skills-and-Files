@@ -1,0 +1,11 @@
+[project]
+name = "slide-generator"
+version = "1.0.0"
+description = "Generate PowerPoint presentations with Snowflake branding"
+requires-python = ">=3.9"
+dependencies = [
+    "python-pptx>=0.6.21",
+]
+
+[tool.uv]
+dev-dependencies = []

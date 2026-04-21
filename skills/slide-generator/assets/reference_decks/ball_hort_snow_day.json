@@ -1,0 +1,147 @@
+{
+  "title": "Snowflake Snow Day — Ball Horticultural",
+  "description": "Snow Day / technical discovery deck pattern — use cases, demos, services delivery approach, path forward",
+  "google_slides_source": "1KxYmBmLllyhsorBhJw5IHnVsY2D1Vj45a_mR-TMpHrQ",
+  "slides": [
+    {
+      "type": "title",
+      "title": "Snowflake Snow Day",
+      "subtitle": "Ball Horticultural | April 7, 2026"
+    },
+    {
+      "type": "agenda",
+      "title": "Agenda",
+      "items": [
+        "Snowflake 101",
+        "Identified Use Cases",
+        "Demos",
+        "From Concept to Reality",
+        "Q&A"
+      ]
+    },
+    {
+      "type": "team_photo",
+      "title": "Snowflake Team",
+      "groups": [
+        {
+          "label": "Account Team",
+          "members": [
+            { "name": "First Last", "role": "Account Executive", "slack_email": "" },
+            { "name": "First Last", "role": "Solutions Architect", "slack_email": "" }
+          ]
+        },
+        {
+          "label": "Service Delivery Team",
+          "members": [
+            { "name": "First Last", "role": "Practice Manager", "slack_email": "" },
+            { "name": "First Last", "role": "Solutions Architect", "slack_email": "" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Identified Use Cases"
+    },
+    {
+      "type": "pillar_cards",
+      "title": "Initial AI Use Cases",
+      "subtitle": "Priority workloads identified for this engagement",
+      "pillars": [
+        {
+          "title": "Preliminary & Final Forecasting",
+          "tag": "BALL FLORAPLANT",
+          "stat": "85–90%",
+          "stat_label": "Accuracy Goal",
+          "bullets": [
+            "ML pipelines for seasonal demand prediction",
+            "Replace 7+ tab Excel workbooks with Snowflake-native model",
+            "Dynamic context for anomalies vs. 3-year historical average"
+          ]
+        },
+        {
+          "title": "Pricing Execution",
+          "tag": "BALL SEED",
+          "stat": "28,000",
+          "stat_label": "Hrs/yr Saved",
+          "bullets": [
+            "Automate SAP pricing entry at scale across all SKUs",
+            "Eliminate requoting treadmill from cost/FX changes",
+            "Turnkey SAP integration saving thousands of hours annually"
+          ]
+        },
+        {
+          "title": "SAP Order Confirmation",
+          "tag": "BOTH DIVISIONS",
+          "stat": "84K",
+          "stat_label": "Quotes/Year",
+          "bullets": [
+            "Document AI to parse supplier PDF confirmations",
+            "Auto-match to SAP ZORS table, eliminating manual entry",
+            "Notifications auto-triggered to customer, rep, supplier"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "From Concept to Reality"
+    },
+    {
+      "type": "engagement_approach",
+      "title": "Snowflake Services Delivery Approach",
+      "phases": [
+        {
+          "title": "Phase 1: Co-Build",
+          "description": "Snowflake PS + customer builds priority use cases together to ensure success.",
+          "activities": [
+            "Establish ingestion pattern from Fabric/existing source, bringing in use case-specific data",
+            "Build ML models, semantic views and Cortex Analyst/Search models",
+            "Activate Snowflake Intelligence & Streamlit application",
+            "Cortex Code & MLOps training for customer team"
+          ],
+          "outcome": "Working pattern + trained team"
+        },
+        {
+          "title": "Phase 2: Replicate",
+          "description": "Customer leads subsequent use cases, Snowflake PS rides shotgun.",
+          "activities": [
+            "Bring in additional data from repeatable patterns",
+            "Explore additional Snowflake features with Snowflake PS during subsequent use case delivery",
+            "Customer leverages Cortex Code to accelerate build",
+            "Increase working patterns and build self-sufficient AI CoE"
+          ],
+          "outcome": "Increase working patterns & build self-sufficient AI CoE"
+        },
+        {
+          "title": "Phase 3: Scale",
+          "description": "Customer owns the platform and drives new AI use cases independently.",
+          "activities": [
+            "New use cases delivered by internal team",
+            "Platform operations fully owned by customer",
+            "Extend to new business domains & data sources",
+            "Continuous improvement via SnowWork skills"
+          ],
+          "outcome": "Customer-owned innovation at scale"
+        }
+      ]
+    },
+    {
+      "type": "cards",
+      "title": "Why Snowflake Service Delivery",
+      "style": "cards",
+      "cards": [
+        { "title": "Enable Use Cases", "body": "Identify opportunities and recommend new ways to use Snowflake" },
+        { "title": "Shorten Time to Value", "body": "Enable you to see results faster after initial Snowflake deployment" },
+        { "title": "Maximize Efficiency", "body": "Knowledge transfer to help you use Snowflake fully and efficiently" },
+        { "title": "Rely on Experienced Help", "body": "Rely on a team with the depth of experience you need" },
+        { "title": "Mitigate Risk", "body": "Reduce the chances of migration issues and mis-adoption" },
+        { "title": "Ensure Success", "body": "Experience delivering Snowflake transformation across dozens of organizations" }
+      ]
+    },
+    {
+      "type": "closing",
+      "title": "Thank You"
+    }
+  ]
+}

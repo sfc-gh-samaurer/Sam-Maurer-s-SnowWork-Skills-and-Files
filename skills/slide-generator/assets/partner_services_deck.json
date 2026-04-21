@@ -1,0 +1,461 @@
+{
+  "slides": [
+    {
+      "type": "title",
+      "title": "Partners + Snowflake Services Delivery",
+      "subtitle": "One-Team Approach | Better Together",
+      "extra_line": "Engagement Models for Greenfield, Migration & AI/ML",
+      "date": "CONFIDENTIAL  |  March 2026"
+    },
+    {
+      "type": "agenda",
+      "title": "Agenda",
+      "items": [
+        "Partners + Services Delivery Overview",
+        "Greenfield Engagement Model",
+        "Migration Engagement Model",
+        "AI/ML Engagement Model",
+        "Responsibility Summary Across All Engagement Types"
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Partners + Snowflake Services Delivery"
+    },
+    {
+      "type": "venn",
+      "title": "Partners + Snowflake Professional Services",
+      "circles": [
+        {
+          "label": "Partners\nBusiness Logic\nTransformation\nBI & Reporting\nProgram Mgmt",
+          "color": "#7D44CF"
+        },
+        {
+          "label": "Services Delivery\nPlatform & Security\nBronze Layer\nArchitecture\nCortex AI/ML",
+          "color": "#29B5E8"
+        }
+      ],
+      "center_text": "Better Together",
+      "items": [
+        "Partners bring domain expertise, transformation & BI",
+        "Snowflake brings platform, security, ingestion & AI/ML",
+        "One-Team Approach drives accelerated time-to-value"
+      ]
+    },
+    {
+      "type": "framed_two_column",
+      "title": "Responsibility Overview",
+      "left_title": "PARTNERS",
+      "left_color": "#7D44CF",
+      "left_bullets": [
+        "Program Leadership & Project Management",
+        "Change Management & Adoption",
+        "Business Requirements Gathering",
+        "Data Transformation & Business Logic (Silver/Gold)",
+        "End-User Reporting & BI Development",
+        "Non-Snowflake Tooling (dbt Labs, Coalesce, Fivetran)",
+        "External AI/ML Beyond Snowflake Platform"
+      ],
+      "right_title": "SERVICES DELIVERY",
+      "right_color": "#29B5E8",
+      "right_bullets": [
+        "Snowflake Best Practices & Architecture",
+        "Platform Foundations, Security & Governance",
+        "Bronze Layer Activation & Data Ingestion",
+        "Customer Enablement & Knowledge Transfer",
+        "Snowflake-Native Migration Execution",
+        "Snowflake Cortex AI & Snowpark ML",
+        "Implementation Efficiency & Optimization"
+      ],
+      "callout": "One-Team Approach: Snowflake enables the platform and data ingestion; Partners transform data and deliver business outcomes."
+    },
+    {
+      "type": "hub_spoke",
+      "title": "Engagement Model Overview",
+      "hub": "One-Team\nApproach",
+      "spokes": [
+        {"label": "Greenfield", "color": "#29B5E8"},
+        {"label": "Migration", "color": "#11567F"},
+        {"label": "AI/ML", "color": "#7D44CF"},
+        {"label": "Platform\nFoundations", "color": "#71D3DC"},
+        {"label": "Security &\nGovernance", "color": "#FF9F36"},
+        {"label": "Enablement", "color": "#D45B90"}
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Greenfield Engagement Model"
+    },
+    {
+      "type": "process_flow",
+      "title": "Greenfield Delivery Lifecycle",
+      "steps": [
+        {"label": "Discovery & Architecture", "description": "Platform design, account strategy, requirements alignment", "color": "#11567F"},
+        {"label": "Platform Setup", "description": "Configuration, RBAC, security & governance", "color": "#29B5E8"},
+        {"label": "Bronze Layer Activation", "description": "Ingestion pipelines, batch/streaming/CDC", "color": "#71D3DC"},
+        {"label": "Transformation & BI", "description": "Silver/Gold layers, reporting, analytics", "color": "#7D44CF"},
+        {"label": "Enablement & Go-Live", "description": "Knowledge transfer, optimization, handoff", "color": "#D45B90"}
+      ],
+      "callout": "Snowflake leads Discovery through Bronze Layer; Partners lead Transformation & BI through Go-Live"
+    },
+    {
+      "type": "table",
+      "title": "Greenfield Scope Summary",
+      "headers": ["Snowflake Services Delivery", "SI / Partner", "Customer"],
+      "rows": [
+        ["Platform Architecture & Account Strategy", "Project & Program Management", "Executive alignment & adoption"],
+        ["Account Setup, Configuration & Optimization", "Business Requirements & Data Modeling", "Stakeholder coordination"],
+        ["Security & RBAC, Governance Strategy", "Data Transformation (Silver/Gold)", "Support UAT efforts"],
+        ["Bronze Layer: Data Ingestion (batch/streaming/CDC)", "End-User Reporting & BI Development", "Compliance & retention requirements"],
+        ["Overall Architecture & Design Guidance", "dbt Framework & Data Engineering", "AI, ML & BI use case prioritization"],
+        ["ELT/dbt Modeling Best Practices", "Data Quality & Observability", "Change management & roll-out"],
+        ["Metrics, Alerting & Observability", "DevEx, IaC, CI/CD Pipelines", ""],
+        ["Connectivity & Integration Strategy", "", ""],
+        ["Cost Management & Resource Monitors", "", ""]
+      ],
+      "col_widths": [3.2, 3.2, 3.0],
+      "callout": "Snowflake owns platform design, security, governance & bronze layer ingestion. Partners build transformation & business solutions."
+    },
+    {
+      "type": "cards",
+      "title": "Greenfield \u2014 Snowflake Services Delivery Focus Areas",
+      "cards": [
+        {
+          "style": "column",
+          "title": "Platform\nFoundations",
+          "bullets": [
+            "Account architecture & multi-env strategy",
+            "Configuration & optimization",
+            "Connectivity & integration",
+            "Cost management & resource monitors"
+          ],
+          "color": "#112749"
+        },
+        {
+          "style": "column",
+          "title": "Security &\nGovernance",
+          "bullets": [
+            "RBAC design & implementation",
+            "Data classification framework",
+            "Governance strategy & policies",
+            "Compliance alignment"
+          ],
+          "color": "#0D47A1"
+        },
+        {
+          "style": "column",
+          "title": "Bronze Layer\nActivation",
+          "bullets": [
+            "Data ingestion (batch/streaming/CDC)",
+            "Pipeline orchestration & scheduling",
+            "Standardized ingestion zones",
+            "Pipeline operations & monitoring"
+          ],
+          "color": "#29B5E8"
+        },
+        {
+          "style": "column",
+          "title": "Architecture &\nBest Practices",
+          "bullets": [
+            "Overall architecture & design",
+            "ELT/dbt modeling best practices",
+            "Native capabilities advisement",
+            "Metrics, alerting & observability"
+          ],
+          "color": "#00838F"
+        }
+      ]
+    },
+    {
+      "type": "cards",
+      "title": "Greenfield \u2014 Partner Focus Areas",
+      "cards": [
+        {
+          "style": "column",
+          "title": "Business\nRequirements",
+          "bullets": [
+            "Requirements gathering workshops",
+            "Data modeling for business use cases",
+            "End-user reporting requirements",
+            "Use case prioritization"
+          ],
+          "color": "#7B2D8E"
+        },
+        {
+          "style": "column",
+          "title": "Transformation\n(Silver/Gold)",
+          "bullets": [
+            "Business logic & transformation rules",
+            "dbt framework & data engineering",
+            "Data quality & testing framework",
+            "DevEx, IaC, and CI/CD pipelines"
+          ],
+          "color": "#9C27B0"
+        },
+        {
+          "style": "column",
+          "title": "Reporting\n& BI",
+          "bullets": [
+            "Dashboard & report development",
+            "BI tool integration & configuration",
+            "Self-service analytics enablement",
+            "End-user training & adoption"
+          ],
+          "color": "#AB47BC"
+        },
+        {
+          "style": "column",
+          "title": "Program\nManagement",
+          "bullets": [
+            "Project & program leadership",
+            "Change management & adoption",
+            "Stakeholder coordination",
+            "Data quality & observability ops"
+          ],
+          "color": "#CE93D8"
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Migration Engagement Model"
+    },
+    {
+      "type": "process_flow",
+      "title": "Migration Delivery Lifecycle",
+      "steps": [
+        {"label": "Assessment & Planning", "description": "Source system analysis, target-state design", "color": "#11567F"},
+        {"label": "Platform & Security", "description": "Account setup, RBAC, governance config", "color": "#29B5E8"},
+        {"label": "Native Data Migration", "description": "Schema + data conversion, validation", "color": "#71D3DC"},
+        {"label": "Validation & Optimization", "description": "Data reconciliation, performance tuning", "color": "#FF9F36"},
+        {"label": "Cutover & Go-Live", "description": "Production cutover, enablement, handoff", "color": "#D45B90"}
+      ],
+      "callout": "Snowflake owns end-to-end native data migration. Partners manage non-native tooling and program delivery."
+    },
+    {
+      "type": "table",
+      "title": "Migration Scope Summary",
+      "headers": ["Snowflake Services Delivery", "SI / Partner", "Customer"],
+      "rows": [
+        ["End-to-End Native Data Migration", "Non-Native Tooling (dbt, Coalesce, Fivetran)", "Executive alignment & adoption"],
+        ["Platform Architecture & Account Strategy", "Third-Party ETL/ELT Tool Management", "Stakeholder coordination"],
+        ["Account Setup, Configuration & Optimization", "Custom connector development (non-native)", "Support UAT efforts"],
+        ["Security & RBAC, Governance Strategy", "Project & Program Management", "Source system access & documentation"],
+        ["Ingestion Pipeline Development & Testing", "Change Management & Adoption", "Validate migrated data accuracy"],
+        ["Architecture & Design for Target State", "", "Change management & roll-out"],
+        ["Pipeline Orchestration & Monitoring", "", ""],
+        ["Performance Optimization & Best Practices", "", ""],
+        ["Connectivity & Integration Strategy", "", ""]
+      ],
+      "col_widths": [3.2, 3.2, 3.0],
+      "callout": "Snowflake owns end-to-end native data migrations. Partners support non-Snowflake tooling and program management."
+    },
+    {
+      "type": "two_column",
+      "title": "Migration \u2014 Focus Area Breakdown",
+      "left_title": "SNOWFLAKE SERVICES DELIVERY",
+      "left_title_color": "#29B5E8",
+      "left_bullets": [
+        "Full data migration via native tooling",
+        "Schema conversion & object migration",
+        "Data validation & reconciliation",
+        "Target-state architecture design",
+        "Account setup & configuration",
+        "Security, RBAC & governance",
+        "Performance optimization",
+        "Pipeline build, orchestration & monitoring"
+      ],
+      "right_title": "SI / PARTNER",
+      "right_title_color": "#7D44CF",
+      "right_bullets": [
+        "dbt Labs implementation & support",
+        "Coalesce configuration & management",
+        "Fivetran connector setup & operations",
+        "Non-Snowflake connector development",
+        "Third-party system integrations",
+        "Legacy system bridging",
+        "Project & program leadership",
+        "Migration cutover planning"
+      ]
+    },
+    {
+      "type": "section",
+      "title": "AI/ML Engagement Model"
+    },
+    {
+      "type": "pyramid",
+      "title": "AI/ML Capability Maturity on Snowflake",
+      "levels": [
+        {"label": "Cortex Agents & Autonomous AI", "color": "#11567F"},
+        {"label": "Cortex ML  |  Search  |  Document AI", "color": "#29B5E8"},
+        {"label": "Snowpark ML  |  Feature Engineering  |  Model Registry", "color": "#71D3DC"},
+        {"label": "Data Foundation  |  Governance  |  Platform Architecture", "color": "#FF9F36"}
+      ]
+    },
+    {
+      "type": "table",
+      "title": "AI/ML Scope Summary",
+      "headers": ["Snowflake Services Delivery", "SI / Partner", "Customer"],
+      "rows": [
+        ["Cortex AI/ML Implementation & Enablement", "AI/ML Beyond Snowflake Platform", "AI/ML use case prioritization"],
+        ["Cortex Functions (LLM, Sentiment, Classification)", "Custom ML Development (non-Cortex)", "Business requirements for AI/ML"],
+        ["Snowpark ML & Feature Engineering", "Third-Party AI/ML Platform Integration", "BU and data science coordination"],
+        ["ML Model Registry & Deployment", "End-to-End MLOps Pipeline (external)", "Validate AI/ML output quality"],
+        ["Cortex Search & Document AI", "Advanced Analytics & Custom Visualization", "Champion AI/ML adoption"],
+        ["Architecture & Best Practices for AI/ML", "Program Management for AI/ML", ""]
+      ],
+      "col_widths": [3.2, 3.2, 3.0],
+      "callout": "If it's Snowflake technology (Cortex, Snowpark ML, ML Registry), Services Delivery leads. Beyond the platform, Partners own it."
+    },
+    {
+      "type": "two_column",
+      "title": "AI/ML \u2014 Focus Area Breakdown",
+      "left_title": "SNOWFLAKE SERVICES DELIVERY",
+      "left_title_color": "#29B5E8",
+      "left_bullets": [
+        "Cortex LLM functions & AI services",
+        "Cortex Search & Document AI",
+        "Sentiment analysis & classification",
+        "Cortex Analyst (text-to-SQL)",
+        "Feature engineering on Snowflake",
+        "Snowpark ML model training",
+        "ML Model Registry & deployment",
+        "AI/ML architecture & best practices"
+      ],
+      "right_title": "SI / PARTNER",
+      "right_title_color": "#7D44CF",
+      "right_bullets": [
+        "Custom ML model development (non-Cortex)",
+        "Third-party AI/ML platform integration",
+        "External model training & deployment",
+        "End-to-end MLOps (external tooling)",
+        "Model monitoring & retraining pipelines",
+        "Feature store management (non-native)",
+        "AI/ML program management",
+        "Custom visualization & reporting"
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Responsibility Summary"
+    },
+    {
+      "type": "horizontal_bars",
+      "title": "Responsibility by Work Area (RACI View)",
+      "bars": [
+        {
+          "label": "Platform Arch.",
+          "segments": [
+            {"value": 8, "label": "Snowflake", "color": "#29B5E8"},
+            {"value": 2, "label": "Partner", "color": "#7D44CF"}
+          ]
+        },
+        {
+          "label": "Security/RBAC",
+          "segments": [
+            {"value": 9, "label": "Snowflake", "color": "#29B5E8"},
+            {"value": 1, "label": "Partner", "color": "#7D44CF"}
+          ]
+        },
+        {
+          "label": "Bronze / Ingest",
+          "segments": [
+            {"value": 9, "label": "Snowflake", "color": "#29B5E8"},
+            {"value": 1, "label": "", "color": "#D0D0D0"}
+          ]
+        },
+        {
+          "label": "Native Migration",
+          "segments": [
+            {"value": 10, "label": "Snowflake", "color": "#29B5E8"}
+          ]
+        },
+        {
+          "label": "Cortex AI/ML",
+          "segments": [
+            {"value": 10, "label": "Snowflake", "color": "#29B5E8"}
+          ]
+        },
+        {
+          "label": "Transform (S/G)",
+          "segments": [
+            {"value": 2, "label": "", "color": "#D0D0D0"},
+            {"value": 8, "label": "Partner", "color": "#7D44CF"}
+          ]
+        },
+        {
+          "label": "Reporting / BI",
+          "segments": [
+            {"value": 1, "label": "", "color": "#D0D0D0"},
+            {"value": 9, "label": "Partner", "color": "#7D44CF"}
+          ]
+        },
+        {
+          "label": "Program Mgmt",
+          "segments": [
+            {"value": 1, "label": "", "color": "#D0D0D0"},
+            {"value": 9, "label": "Partner", "color": "#7D44CF"}
+          ]
+        }
+      ],
+      "legend": [
+        {"label": "Snowflake Services Delivery", "color": "#29B5E8"},
+        {"label": "SI / Partner", "color": "#7D44CF"},
+        {"label": "Not Applicable", "color": "#D0D0D0"}
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Engagement Responsibility Matrix \u2014 All Models",
+      "headers": ["Work Area", "Greenfield", "Migration", "AI/ML"],
+      "rows": [
+        ["Platform Architecture & Design", "\u2b22 Snowflake", "\u2b22 Snowflake", "\u2b22 Snowflake"],
+        ["Security, RBAC & Governance", "\u2b22 Snowflake", "\u2b22 Snowflake", "\u2b22 Snowflake"],
+        ["Bronze Layer / Data Ingestion", "\u2b22 Snowflake", "\u2b22 Snowflake", "\u2014"],
+        ["Data Migration (Native)", "\u2014", "\u2b22 Snowflake", "\u2014"],
+        ["Cortex AI & Snowpark ML", "\u2014", "\u2014", "\u2b22 Snowflake"],
+        ["Transformation (Silver/Gold)", "\u2b21 Partner", "\u2b21 Partner", "\u2014"],
+        ["Business Requirements & Data Modeling", "\u2b21 Partner", "\u2b21 Partner", "\u2b21 Partner"],
+        ["Reporting & BI Development", "\u2b21 Partner", "\u2014", "\u2b21 Partner"],
+        ["Non-Native Tooling (dbt, Coalesce, Fivetran)", "\u2b21 Partner", "\u2b21 Partner", "\u2014"],
+        ["External AI/ML (non-Snowflake)", "\u2014", "\u2014", "\u2b21 Partner"],
+        ["MLOps & External Pipelines", "\u2014", "\u2014", "\u2b21 Partner"],
+        ["Program & Project Management", "\u2b21 Partner", "\u2b21 Partner", "\u2b21 Partner"],
+        ["Best Practices & Enablement", "\u2b22 Snowflake", "\u2b22 Snowflake", "\u2b22 Snowflake"]
+      ],
+      "col_widths": [3.0, 2.0, 2.0, 2.0],
+      "callout": "\u2b22 = Snowflake Services Delivery    \u2b21 = SI / Partner    \u2014 = Not Applicable"
+    },
+    {
+      "type": "framed_two_column",
+      "title": "Key Takeaway: Where Each Team Plays",
+      "left_title": "SNOWFLAKE SERVICES DELIVERY",
+      "left_color": "#29B5E8",
+      "left_bullets": [
+        "Platform foundations, security & governance",
+        "Bronze layer activation & data ingestion",
+        "Overall architecture & design guidance",
+        "End-to-end native data migrations",
+        "Snowflake Cortex AI & Snowpark ML",
+        "Best practices, enablement & optimization"
+      ],
+      "right_title": "SI / PARTNER",
+      "right_color": "#7D44CF",
+      "right_bullets": [
+        "Business requirements gathering & data modeling",
+        "Data transformation (Silver/Gold layers)",
+        "End-user reporting & BI development",
+        "Non-native tooling (dbt, Coalesce, Fivetran)",
+        "External AI/ML beyond Snowflake platform",
+        "Program leadership & change management"
+      ],
+      "callout": "Snowflake enables the platform and gets your data in. Partners transform it to where it needs to go."
+    },
+    {
+      "type": "closing",
+      "title": "Thank You",
+      "subtitle": "Snowflake Services Delivery",
+      "message": "One-Team Approach  |  Better Together"
+    }
+  ]
+}

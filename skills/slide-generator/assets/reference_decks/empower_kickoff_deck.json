@@ -1,0 +1,172 @@
+{
+  "title": "Empower Financial DnA Platform Engagement Kickoff",
+  "description": "Engagement kickoff deck pattern — team photo, scope, timeline, logistics, next steps",
+  "google_slides_source": "1wGbUap0JUtqDZ1EzU09xK_eDht-yTV4kse0OW_0a684",
+  "slides": [
+    {
+      "type": "title",
+      "title": "Snowflake Services Delivery\nEngagement Kickoff",
+      "subtitle": "Empower Financial | Apr 15 2026"
+    },
+    {
+      "type": "agenda",
+      "title": "Agenda",
+      "items": [
+        "Introductions / Project Team",
+        "Scope, Outcomes, & Dependencies",
+        "RACI",
+        "Engagement Logistics",
+        "Next Steps"
+      ]
+    },
+    {
+      "type": "team_photo",
+      "title": "Your Engagement Team",
+      "groups": [
+        {
+          "label": "Account Team",
+          "members": [
+            { "name": "CV Briggler", "role": "Solutions Architect", "slack_email": "cv.briggler@snowflake.com" },
+            { "name": "Kelsey Gonzalez", "role": "AI/ML Specialist Architect", "slack_email": "kelsey.gonzalez@snowflake.com" },
+            { "name": "Rachel Regan", "role": "Account Executive", "slack_email": "rachel.regan@snowflake.com" },
+            { "name": "Jim Lebonitte", "role": "Enterprise Architect", "slack_email": "jim.lebonitte@snowflake.com" }
+          ]
+        },
+        {
+          "label": "Service Delivery Team",
+          "members": [
+            { "name": "Stephanie Vrona", "role": "Service Delivery Manager", "slack_email": "stephanie.vrona@snowflake.com" },
+            { "name": "Jiri Prochazka", "role": "Solutions Architect", "slack_email": "jiri.prochazka@snowflake.com" },
+            { "name": "Michael Kelly", "role": "Practice Manager", "slack_email": "michael.kelly@snowflake.com" },
+            { "name": "Wole Babalola", "role": "Solutions Architect", "slack_email": "wole.babalola@snowflake.com" }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Scope, Assumptions, & Dependencies"
+    },
+    {
+      "type": "content",
+      "title": "Scope of Work",
+      "bullets": [
+        "Kickoff & Onboarding — Establish project governance, communication cadences, and team structure. Confirm system access, complete internal handoffs, onboard Snowflake team to Dev environment.",
+        "Discovery & Planning — Conduct discovery, analysis, and architectural design. Define environment strategy (Dev/UAT/Prod/DR) and physical architecture. Assess data sources and document assumptions.",
+        "Build — Finalize data modeling approach, PII classification, ingestion tooling, and security architecture. Deliver IaC, DevOps, dbt development standards, error handling, and data quality framework designs.",
+        "User Acceptance Testing — 2 weeks of support for customer to validate solution and remediate defects.",
+        "Deployment — Provide deployment support for solution.",
+        "Project Closure — Provide 1 Knowledge Transfer Session (with recording).",
+        "Project Management — Project Planning/Replanning, Schedule Development, Scope Management, Risk Management, and Progress Reporting."
+      ]
+    },
+    {
+      "type": "engagement_approach",
+      "title": "Engagement Approach",
+      "phases": [
+        {
+          "title": "Foundational Discovery & Roadmap",
+          "description": "Define the blueprint: align on scope, map source systems, and design the foundation that will scale beyond this engagement.",
+          "activities": [
+            "Align on business priorities, success criteria, and expansion goals",
+            "Identify priority sources and map the future ingestion roadmap",
+            "Review source system architecture, data availability, and access requirements",
+            "Validate Snowflake access, identity, and cloud storage readiness",
+            "Define the scalable framework architecture and milestone execution plan"
+          ],
+          "outcome": "A clear blueprint and expansion roadmap before build begins"
+        },
+        {
+          "title": "Guided Implementation & Advisory",
+          "description": "Build the reusable framework: implement a secure foundation and scalable patterns your team can use to onboard new sources and deploy additional use cases.",
+          "activities": [
+            "Establish a secure, governance-ready Snowflake foundation (RBAC, tagging, policies)",
+            "Implement medallion architecture as a reusable template for future data domains",
+            "Enable initial source ingestion with repeatable patterns and playbooks",
+            "Build reusable transformation standards your team can apply to new sources",
+            "Productionize AI use cases with evaluation frameworks and handoff playbooks"
+          ],
+          "outcome": "A secure, scalable foundation and reusable framework your team can extend"
+        },
+        {
+          "title": "Enablement, Tracking & Future Roadmapping",
+          "description": "Ensure delivery quality, validate the blueprint, and equip your team to operate and expand independently.",
+          "activities": [
+            "Weekly working sessions and backlog reviews",
+            "Proactive risk and dependency management",
+            "Milestone check-ins to validate framework completeness and reusability",
+            "Final review to confirm blueprint outcomes and team readiness",
+            "Roadmap workshop: define the next wave of source systems and use cases"
+          ],
+          "outcome": "A validated blueprint and roadmap — ready to operate, expand, and scale"
+        }
+      ]
+    },
+    {
+      "type": "gantt_timeline",
+      "title": "Program Timeline",
+      "subtitle": "Based on the scope, we recommend the following timeline for the delivery of the engagement.",
+      "total_weeks": 16,
+      "milestones": [
+        {
+          "label": "Data Platform",
+          "color": "#29B5E8",
+          "areas": [
+            { "name": "Kickoff & Onboarding", "start": 1, "duration": 2 },
+            { "name": "Discovery & Data Ingestion", "start": 1, "duration": 4 },
+            { "name": "Architecture & Security", "start": 2, "duration": 5 },
+            { "name": "Build — Wave 1", "start": 5, "duration": 5 },
+            { "name": "UAT & PROD Rollout", "start": 10, "duration": 3 },
+            { "name": "Documentation & Closure", "start": 13, "duration": 2 }
+          ]
+        },
+        {
+          "label": "AI/ML",
+          "color": "#71D3DC",
+          "areas": [
+            { "name": "Discovery & Planning", "start": 2, "duration": 3 },
+            { "name": "ML Model Migration", "start": 5, "duration": 4 },
+            { "name": "UAT & PROD Rollout", "start": 9, "duration": 4 },
+            { "name": "Documentation & Closure", "start": 13, "duration": 2 }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "title": "Engagement Logistics"
+    },
+    {
+      "type": "two_column",
+      "title": "Engagement Logistics",
+      "left_title": "TOUCHPOINTS",
+      "right_title": "RESOURCING & COMMUNICATION",
+      "left_bullets": [
+        "Weekly Status Meetings — Weekly Wednesday (existing call), 30-min review of status report and gap coverage.",
+        "Backlog Review & Sprint Planning — Weekly Tuesday at 2:30PM EDT, 30 min to review items in pipeline for the following sprint.",
+        "Working Sessions / Ad-hoc Meetings — Available 8–5PM Local Time within team availability.",
+        "Weekly Status Reports — Activities from previous week, planned for next week, Challenges/Issues/Risks."
+      ],
+      "right_bullets": [
+        "Method of Access — Snowflake will use VDI to access Customer Assets unless directed otherwise in writing.",
+        "Code Collaboration — Git-based repository; Snowflake team commits to customer-approved branch.",
+        "Project Management — Snowflake PM tool used for backlog, sprint planning, and milestone tracking.",
+        "Communication — Primary channel: Teams/Slack; escalation path defined in RACI."
+      ]
+    },
+    {
+      "type": "next_steps_proposal",
+      "title": "Next Steps",
+      "steps": [
+        { "label": "Onboarding Access", "description": "Provide names of Snowflake architects to customer for DEV environment onboarding (VDIs take ~2 weeks after SOW signing)." },
+        { "label": "Data Readiness", "description": "Customer to provide data source information and confirm data is accessible in Bronze layer prior to build phase." },
+        { "label": "Kickoff Follow-up", "description": "Snowflake to send finalized Kickoff deck and schedule initial discovery sessions." },
+        { "label": "Account Integrations", "description": "Account Engineering to engage on definition of account integrations, Snowflake account structure, and sensitive data approach." }
+      ]
+    },
+    {
+      "type": "closing",
+      "title": "Thank You"
+    }
+  ]
+}

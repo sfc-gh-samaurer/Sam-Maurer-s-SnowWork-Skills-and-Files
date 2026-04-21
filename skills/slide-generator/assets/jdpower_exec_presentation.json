@@ -1,0 +1,611 @@
+{
+  "_meta": {
+    "source": "https://docs.google.com/presentation/d/1Kqy1E94LolxW6TAFGf1ud2cauekp1Ck8BpsNli6ZaDQ/edit",
+    "title": "Snowflake Services Delivery Migration: J.D. Power Executive Presentation April 2026",
+    "slide_count": 29,
+    "description": "Executive migration proposal for JD Power — BigQuery + Redshift → Snowflake. 8 workstreams, T&M + fixed-fee hybrid model, $2.08M partner fixed-fee. Reference deck for executive migration proposal pattern."
+  },
+  "slides": [
+    {
+      "type": "title",
+      "title": "Migration to Snowflake",
+      "subtitle": "Services Estimates for JD Power",
+      "date": "CONFIDENTIAL  |  April 13, 2026"
+    },
+    {
+      "type": "agenda",
+      "title": "Proposal Content",
+      "items": [
+        "Business Case & Current State",
+        "Strategic Value of Snowflake",
+        "Delivery Approach & Risk Mitigation",
+        "Investment & Expected ROI",
+        "Decisions Required to Proceed",
+        "Appendix: Workstream Detail & Assumptions"
+      ]
+    },
+    {
+      "type": "section",
+      "number": "01",
+      "title": "Business Case &\nCurrent State"
+    },
+    {
+      "type": "executive_summary",
+      "title": "Executive Summary",
+      "overview": {
+        "heading": "ENGAGEMENT OVERVIEW",
+        "text": "Total investment for an 18–24 month hybrid Professional Services engagement (T&M + fixed fee) spanning 8 workstreams. Tightly governed, with $2.08M contracted as Partner fixed-fee to eliminate overrun risk."
+      },
+      "engagement": {
+        "heading": "MIGRATION SCOPE",
+        "subtitle": "8 workstreams covering full BigQuery + Redshift → Snowflake migration",
+        "workstreams": [
+          {"title": "Discovery & Analysis", "icon": "🔍", "color": "#29B5E8", "bullets": ["181+ workspace inventory", "Complexity scoring & migration briefs"]},
+          {"title": "Platform & Governance", "icon": "🏗", "color": "#11567F", "bullets": ["RBAC, CI/CD, FinOps, BCDR", "Architecture advisory through delivery"]},
+          {"title": "Data Ingestion", "icon": "⬇", "color": "#71D3DC", "bullets": ["Replace all AIC connectors", "Openflow CDC + Snowpipe patterns"]},
+          {"title": "Historical Migration + Code Conversion", "icon": "🔄", "color": "#FF9F36", "bullets": ["1.25 PB BigQuery → Snowflake (DMVA)", "120K+ SQL/PySpark tasks, Partner fixed-fee"]}
+        ]
+      },
+      "outcomes": {
+        "heading": "THE OUTCOME",
+        "items": [
+          "Guaranteed GCP spend eliminated ($136K/month) — 2.5-year payback period",
+          "Ends dual-platform overhead and establishes a single, highly governed platform",
+          "Full migration of active pipelines, decommissioning BigQuery and Redshift",
+          "Native Day-1 Snowflake Cortex AI capabilities delivered"
+        ]
+      }
+    },
+    {
+      "type": "cards",
+      "title": "Migration Landscape & Business Case",
+      "cards": [
+        {
+          "style": "column",
+          "title": "AIC V3 / BigQuery",
+          "color": "#11567F",
+          "bullets": [
+            "242 workspaces, 9,000+ pipelines",
+            "1.26 PB of data",
+            "~$136K/month in GCP spend",
+            "Primary platform driving cost and complexity",
+            "Board-mandated migration in 2026"
+          ]
+        },
+        {
+          "style": "column",
+          "title": "AIC V2 / Redshift",
+          "color": "#29B5E8",
+          "bullets": [
+            "120K+ SQL and PySpark tasks",
+            "600+ data connectors",
+            "Small number of active workloads",
+            "Critical upstream dependency for ~180 V3 connectors",
+            "Must migrate to enable full V3 cutover"
+          ]
+        },
+        {
+          "style": "column",
+          "title": "Content Parser + DTP Framework",
+          "color": "#71D3DC",
+          "bullets": [
+            "Independent AI pipeline for document extraction",
+            "Not dependent on current platforms",
+            "Opportunity to deploy AI capabilities natively on Snowflake from Day 1",
+            "DTP: rebuilding dynamic pipeline creation capability in Snowflake"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "number": "02",
+      "title": "Strategic Value\nof Snowflake"
+    },
+    {
+      "type": "cards",
+      "title": "Why Snowflake",
+      "subtitle": "Four strategic reasons this migration pays off beyond cost savings",
+      "callout": "Snowflake transforms JD Power's data platform by lowering cost, simplifying operations, and enabling AI-driven growth on a single, governed foundation.",
+      "cards": [
+        {
+          "style": "column",
+          "title": "Reduce Operating Costs",
+          "color": "#29B5E8",
+          "bullets": [
+            "Eliminate ~$1.6M/year in BigQuery spend",
+            "Remove dual-platform overhead and idle infrastructure waste",
+            "Shift to consumption-based model aligned to actual usage"
+          ]
+        },
+        {
+          "style": "column",
+          "title": "Enable AI-Driven Growth",
+          "color": "#71D3DC",
+          "bullets": [
+            "Built-in AI capabilities available at go-live",
+            "No need for separate AI vendors or infrastructure",
+            "Accelerates time to deliver new data products and insights"
+          ]
+        },
+        {
+          "style": "column",
+          "title": "Accelerate Migration & Time to Value",
+          "color": "#FF9F36",
+          "bullets": [
+            "Proven approach to migrate at scale with reduced manual effort",
+            "Faster delivery through automation and repeatable patterns",
+            "Minimizes business disruption during transition"
+          ]
+        },
+        {
+          "style": "column",
+          "title": "Strengthen Governance & Risk Control",
+          "color": "#7D44CF",
+          "bullets": [
+            "Enterprise-grade security and data governance from Day 1",
+            "Improved cost visibility and accountability across teams",
+            "Simplified architecture reduces operational risk"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "section",
+      "number": "03",
+      "title": "Delivery Approach\n& Risk Mitigation"
+    },
+    {
+      "type": "engagement_approach",
+      "title": "Derisked Delivery Approach",
+      "phases": [
+        {
+          "label": "Phase 0: Foundation\n(Months 1–2)",
+          "header_color": "#29B5E8",
+          "description": "Establish the Snowflake platform and assess full migration scope",
+          "activities_label": "Deliverables:",
+          "activities": [
+            "Stand up secure, production-ready platform",
+            "Assess and prioritize all in-scope workloads",
+            "Define migration plan and sequencing"
+          ],
+          "bullet_char": "→",
+          "footer_color": "#11567F",
+          "outcome": "Milestone: Platform ready and full migration scope confirmed"
+        },
+        {
+          "label": "Phase 1: Pilot\n(Months 1–2)",
+          "header_color": "#71D3DC",
+          "description": "Validate approach with a controlled, end-to-end migration — run in parallel with Foundation Phase",
+          "activities_label": "Deliverables:",
+          "activities": [
+            "Migrate a representative workload",
+            "Run in parallel with existing systems",
+            "Confirm performance, data accuracy, and business readiness"
+          ],
+          "bullet_char": "→",
+          "footer_color": "#29B5E8",
+          "outcome": "Milestone: Pilot approved and migration approach validated"
+        },
+        {
+          "label": "Phase 2: Scaled Delivery\n(Month 3+)",
+          "header_color": "#FF9F36",
+          "description": "Execute full migration in parallel with minimal disruption",
+          "activities_label": "Deliverables:",
+          "activities": [
+            "Multiple teams migrate workloads concurrently",
+            "Standardized approach ensures speed and consistency",
+            "Ongoing governance ensures quality and control"
+          ],
+          "bullet_char": "→",
+          "footer_color": "#FF9F36",
+          "outcome": "Milestone: All workloads migrated and legacy platforms decommissioned"
+        }
+      ]
+    },
+    {
+      "type": "cards",
+      "title": "What We're Migrating",
+      "subtitle": "242 workspaces, 9,000+ pipelines | 1.26 PB of data | ~$136K/month in GCP spend | 120K+ SQL and PySpark tasks | 600+ data connectors",
+      "cards": [
+        {
+          "style": "column",
+          "title": "AIC V3 / BigQuery",
+          "color": "#11567F",
+          "bullets": ["Primary platform driving cost and complexity", "Board-mandated migration in 2026"]
+        },
+        {
+          "style": "column",
+          "title": "AIC V2 / Redshift",
+          "color": "#29B5E8",
+          "bullets": ["Must be migrated to enable full V3 cutover", "Can run in parallel"]
+        },
+        {
+          "style": "column",
+          "title": "Content Parser",
+          "color": "#71D3DC",
+          "bullets": ["Opportunity to deploy AI capabilities natively on Snowflake from Day 1"]
+        },
+        {
+          "style": "column",
+          "title": "DTP Framework Migration",
+          "color": "#FF9F36",
+          "bullets": ["Rebuilding DTP dynamic pipeline creation capability in Snowflake"]
+        }
+      ]
+    },
+    {
+      "type": "gantt_timeline",
+      "title": "Illustrative High Level Timeline",
+      "subtitle": "Parallel foundation and pilot phases enable a controlled scale-out to five teams, accelerating delivery with minimal disruption.",
+      "total_weeks": 24,
+      "milestones": [
+        {
+          "label": "Phase 0A: Discovery & Analysis",
+          "color": "#29B5E8",
+          "areas": [
+            {"name": "Workspace Inventory & Complexity Scoring", "start": 1, "duration": 8, "color": "#29B5E8", "milestones": [8]}
+          ]
+        },
+        {
+          "label": "Phase 0B: Platform Foundation",
+          "color": "#11567F",
+          "areas": [
+            {"name": "Platform, RBAC, CI/CD, FinOps Setup", "start": 1, "duration": 8, "color": "#11567F", "milestones": [8]}
+          ]
+        },
+        {
+          "label": "Phase 1: Migration Pilot",
+          "color": "#71D3DC",
+          "areas": [
+            {"name": "End-to-End Pilot Workspace Migration", "start": 3, "duration": 6, "color": "#71D3DC", "milestones": [8]}
+          ]
+        },
+        {
+          "label": "Phase 2: Scaled Delivery (Teams 1–5)",
+          "color": "#FF9F36",
+          "areas": [
+            {"name": "Team 1 — Ingestion + Code Conversion", "start": 9, "duration": 10, "color": "#FF9F36", "milestones": [18]},
+            {"name": "Teams 2–5 — Parallel Migration Cohorts", "start": 11, "duration": 12, "color": "#FF9F36", "milestones": [22]},
+            {"name": "DTP Framework Migration", "start": 9, "duration": 14, "color": "#7D44CF", "milestones": [22]},
+            {"name": "Content Parser AI + Streamlit UI", "start": 9, "duration": 10, "color": "#D45B90", "milestones": [18]}
+          ]
+        }
+      ],
+      "spanning_bar": {
+        "label": "Program Management / SDM Oversight",
+        "color": "#11567F",
+        "start": 1,
+        "duration": 24,
+        "milestones": [24]
+      }
+    },
+    {
+      "type": "cards",
+      "title": "Single Governance Model with Clear Accountability",
+      "subtitle": "Clear Ownership Model Reduces Execution Risk",
+      "cards": [
+        {
+          "style": "column",
+          "title": "Snowflake SD",
+          "color": "#29B5E8",
+          "bullets": [
+            "Role: Defines architecture and enforces quality gates across all phases",
+            "Accountable for: Platform design, standards, and quality",
+            "Why it matters: Ensures consistency, performance, and long-term scalability"
+          ]
+        },
+        {
+          "style": "column",
+          "title": "Partner (Datafold)",
+          "color": "#FF9F36",
+          "bullets": [
+            "Role: Executes migration across dedicated delivery teams",
+            "Accountable for: Code conversion and delivery at scale",
+            "Why it matters: Fixed-fee model ensures predictable cost and delivery outcomes"
+          ]
+        },
+        {
+          "style": "column",
+          "title": "JD Power",
+          "color": "#7D44CF",
+          "bullets": [
+            "Role: Owns UAT, parallel run, and go/no-go approval",
+            "Accountable for: Business validation and final cutover decision",
+            "Why it matters: Maintains full control over business continuity and risk"
+          ]
+        }
+      ]
+    },
+    {
+      "type": "framed_two_column",
+      "title": "Key Risks & How We Control Them",
+      "callout": "Risks are understood and structurally mitigated",
+      "left_title": "RISK",
+      "left_color": "#D45B90",
+      "left_bullets": [
+        "Cost Overrun",
+        "Execution at Scale",
+        "Data Readiness",
+        "Business Disruption"
+      ],
+      "right_title": "HOW WE CONTROL IT",
+      "right_color": "#29B5E8",
+      "right_bullets": [
+        "Fixed-fee structure caps exposure",
+        "Pilot-first approach validates before scaling",
+        "Assessed and confirmed before execution",
+        "Parallel run and controlled cutover"
+      ]
+    },
+    {
+      "type": "section",
+      "number": "04",
+      "title": "Investment &\nExpected ROI"
+    },
+    {
+      "type": "kpi_dashboard",
+      "title": "Engagement Summary",
+      "subtitle": "Initial Partner Estimates: Datafold $2.08M Fixed Fee | SoftServe $3.2M T&M for equivalent scope",
+      "kpis": [
+        {"value": "$1.6M", "label": "Annual Savings", "trend": "Eliminated BigQuery spend", "color": "#29B5E8"},
+        {"value": "~2.5yr", "label": "Payback Period", "trend": "Clear return on investment", "color": "#71D3DC"},
+        {"value": "$2.08M", "label": "Partner Fixed-Fee", "trend": "Zero overrun risk", "color": "#FF9F36"},
+        {"value": "8", "label": "Workstreams", "trend": "T&M + Fixed-Fee hybrid", "color": "#7D44CF"}
+      ]
+    },
+    {
+      "type": "section",
+      "number": "05",
+      "title": "Decisions Required\nto Proceed"
+    },
+    {
+      "type": "content",
+      "title": "Critical Decision Required",
+      "subtitle": "Immediate decisions are required to unblock the May 2026 project kickoff.",
+      "bullets": [
+        "Approve engagement scope and authorize Snowflake SD to proceed",
+        "Confirm partner selection: Datafold (fixed-fee) vs. SoftServe (T&M)",
+        "Designate JD Power program lead and cross-functional project team",
+        "Confirm CDC/logging readiness for on-prem database hosts (Data Ingestion go/no-go)",
+        "Confirm Streamlit UI approach: Greenfield ($186K) vs. Lift-and-Shift ($97K)"
+      ]
+    },
+    {
+      "type": "section",
+      "number": "06",
+      "title": "Appendix: Workstream Detail\n& Assumptions"
+    },
+    {
+      "type": "table",
+      "title": "RACI — Roles & Responsibilities by Workstream",
+      "subtitle": "R = Responsible  |  A = Accountable  |  C = Consulted  |  I = Informed",
+      "headers": ["Workstream", "Snowflake SD", "Partner (Datafold)", "JD Power"],
+      "rows": [
+        ["Discovery & Analysis", "A/R", "R", "C"],
+        ["Platform & Governance", "A/R", "I", "C"],
+        ["Data Ingestion", "A/R", "I", "C"],
+        ["Historical Data Migration", "A/R", "I", "C"],
+        ["Code Conversion + Testing", "C", "A/R", "I"],
+        ["UAT & Deployment", "C", "C/R", "A/R"],
+        ["DTP Framework Migration", "A/R", "I", "C"],
+        ["Content Parser AI + Streamlit UI", "A/R", "I", "C"]
+      ],
+      "col_widths": [3.5, 1.8, 2.2, 1.8]
+    },
+    {
+      "type": "two_column",
+      "title": "Discovery & Analysis  |  $160K  |  Snowflake SD + Partner",
+      "left_title": "WHAT'S INCLUDED",
+      "left_bullets": [
+        "2-month duration, running in parallel with Platform Foundation and Migration Pilot",
+        "Inventory all 181+ workspaces: pipeline count, task types, connectors, stored GB",
+        "SQL/PySpark complexity scan — output IS the effort model for all downstream workstreams",
+        "Connector classification and Ingestion Pattern Design",
+        "Dependency mapping and downstream consumer catalog",
+        "Migration briefs authored and signed by workspace owners",
+        "Sequencing and prioritization plan for scaled delivery",
+        "Pilot included: First pilot workspace runs end-to-end during this phase"
+      ],
+      "right_title": "KEY ASSUMPTIONS & PRICING",
+      "right_bullets": [
+        "Duration: 2 months (parallel with Phase 0B Platform Foundation)",
+        "Scope: All 242 workspaces scanned; 181 migrating (estimate — may decrease)",
+        "Output: Complexity scores set hours for SQL & PySpark Conversions — cannot be skipped",
+        "Pilot runs: Full end-to-end including ingestion, migration, code conversion, UAT, deployment",
+        "Not everything will migrate: Discovery will rationalize the workspace list",
+        "Estimate assumes full scope; Phase 0A may reduce migrating workspace count",
+        "Partner (Datafold): $80K fixed fee  |  Snowflake SD: $80K",
+        "Total: $160K ($80K fixed fee)"
+      ],
+      "callout": "Discovery is the effort model foundation. Cannot be skipped."
+    },
+    {
+      "type": "two_column",
+      "title": "Platform & Governance  |  $160K–$480K  |  Snowflake SD",
+      "left_title": "WHAT'S INCLUDED",
+      "left_bullets": [
+        "RBAC framework: role hierarchy, service account roles per delivery team, per-workspace isolation",
+        "Privacy controls: Row Access Policies + Dynamic Data Masking tied to roles",
+        "FinOps cataloging and tagging (QUERY_TAG governance for cost attribution per team)",
+        "CI/CD pipeline: GitHub Actions → Dev → QA → Prod promotion framework",
+        "Business Continuity and Disaster Recovery (BCDR) architecture",
+        "Performance optimization and ongoing architecture advisory (extended engagement)"
+      ],
+      "right_title": "KEY ASSUMPTIONS & PRICING",
+      "right_bullets": [
+        "Base: 6 months — full foundation + security + BCDR architecture",
+        "Extended: 12 months ($320K) — adds performance optimization advisory",
+        "Extended: 18 months ($480K) — ongoing migration optimization and architecture advisory through scaled delivery",
+        "12–18 month option recommended if code conversion surfaces performance challenges",
+        "Extended option: Snowflake architect embedded throughout entire delivery",
+        "Snowflake SD only — no Partner component in any scenario",
+        "6-month base: $160K  |  12-month: $320K  |  18-month: $480K"
+      ],
+      "callout": "Extending to 12–18 months is recommended if performance optimization is needed post-code-conversion."
+    },
+    {
+      "type": "two_column",
+      "title": "Data Ingestion  |  $125K–$200K  |  Snowflake SD",
+      "left_title": "WHAT'S INCLUDED",
+      "left_bullets": [
+        "Replace all AIC connectors with Snowflake-native ingestion patterns",
+        "RDBMS: Openflow CDC for on-prem SQL Server, Oracle, MySQL, Postgres sources",
+        "FTP/SFTP sources: External Stage + Snowpipe auto-ingest on file arrival",
+        "S3/GCS/Azure Blob: External Stage + Snowpipe with event notifications",
+        "External APIs (51 tasks): External Access Integration + Snowpark Stored Procedures",
+        "AICv2 connectors (180 repointed)",
+        "7-day post-go-live validation: row counts, freshness SLA, error alert verification"
+      ],
+      "right_title": "KEY ASSUMPTIONS & PRICING",
+      "right_bullets": [
+        "SCENARIO A — High ($200K): All on-prem databases have primary keys, CDC, and logging enabled. Openflow CDC pattern applies.",
+        "SCENARIO B — Low ($125K): JD Power pushes data to S3 or GCS. Snowflake SD ingests from cloud object storage.",
+        "Key ask: JD Power IT must confirm CDC/logging readiness for all on-prem hosts",
+        "Private IP hosts: PrivateLink or VPN required for SQL Server connectivity",
+        "High scenario: $200K  |  Low scenario: $125K  |  Owner: Snowflake SD only"
+      ],
+      "callout": "On-prem database CDC readiness is the single biggest assumption in this workstream. JD Power IT confirmation required before finalizing cost."
+    },
+    {
+      "type": "two_column",
+      "title": "Historical Data Migration  |  $200K–$300K  |  Snowflake SD",
+      "left_title": "WHAT'S INCLUDED",
+      "left_bullets": [
+        "Migrate 1.25 PB from BigQuery to Snowflake (primary volume)",
+        "Redshift (AIC V2) migration — significantly smaller footprint than BQ",
+        "DMVA (Data Migration & Validation Accelerator) — Snowflake internal Python utility",
+        "Automated unload + transfer + row-count validation in a single pass",
+        "Target DDL generation and type mapping (BQ → Snowflake, Redshift → Snowflake)",
+        "Delta catch-up loads after initial migration window",
+        "Migrated data available for beta access by end users during migration"
+      ],
+      "right_title": "KEY ASSUMPTIONS & PRICING",
+      "right_bullets": [
+        "Data volume: 1.25 PB BigQuery + materially smaller Redshift footprint",
+        "Tooling: DMVA automates transfer + validation at scale (internal Snowflake accelerator)",
+        "Beta use allowed: Migrated data suitable for testing and beta access during migration window",
+        "NOT for production: Do not run production SLAs against DMVA-loaded data until pipeline cutover completes",
+        "Covers both BQ (V3 workspaces) and Redshift (V2 workspaces) migration tracks",
+        "High: $300K  |  Low: $200K  |  Owner: Snowflake SD only"
+      ],
+      "callout": "DMVA is an internal Snowflake accelerator — not a 3rd-party product. Data loaded via DMVA is suitable for beta review but should not power production SLAs during migration."
+    },
+    {
+      "type": "two_column",
+      "title": "Code Conversion + Testing + Orchestration  |  $2.4M  |  Partner (SD Oversight)",
+      "left_title": "WHAT'S INCLUDED",
+      "left_bullets": [
+        "Full conversion of all SQL, BQ_Script, PySpark, R, JS, Kotlin pipeline tasks",
+        "Unit testing for every converted script (row count + sample row validation)",
+        "Orchestration: AIC pipeline JSON → Snowflake Task DAGs (~70% auto via CoCo templates)",
+        "End-to-end ETL testing including parallel run issue resolution",
+        "30-day parallel run coordination and divergence root cause resolution",
+        "Full conversion guarantee: code accepted by business before any cutover",
+        "Demos, knowledge transfer, and JD Power team enablement throughout"
+      ],
+      "right_title": "KEY ASSUMPTIONS & PRICING",
+      "right_bullets": [
+        "Partner executes at scale; Snowflake SD serves as SME and pattern authority",
+        "~95% of V3 PySpark runs on Snowpark Connect with minimal changes (GA Nov 2025)",
+        "~5% requiring RDD/Spark ML rewrites handled by Snowflake SD specialist team",
+        "R tasks (645 instances): Python rewrite or SPCS container decision per script",
+        "SnowConvert for SQL; CoCo templates for PySpark PS1/PS2 pattern application",
+        "Partner (fixed fee): $2,000K  |  Snowflake SD: $400K  |  Total: $2,400K",
+        "Partner line item is fixed fee — no overruns, full outcome guarantee"
+      ],
+      "callout": "Fixed-fee, outcome-based delivery. Partner guarantees conversion quality. Snowflake SD guarantees architecture and patterns are correct."
+    },
+    {
+      "type": "two_column",
+      "title": "UAT · Deployment · Repointing · Change Management  |  $0  |  JD Power Owned",
+      "left_title": "JD POWER SCOPE (NO SERVICES COSTS)",
+      "left_bullets": [
+        "UAT: Business owners validate 5–10 key outputs per workspace in Snowflake vs BigQuery",
+        "Sign-off gate: 30-day zero sev-1 parallel run required before any cutover",
+        "Deployment: JD Power executes promotion from staging to production",
+        "Downstream repointing: BI tools, Tableau, APIs, cross-workspace AIC references",
+        "Change management: Communications to end users, downstream consumers, stakeholders",
+        "JD Power owns the cutover decision and 30-day rollback window management"
+      ],
+      "right_title": "SNOWFLAKE SD + PARTNER SUPPORT ROLE",
+      "right_bullets": [
+        "Snowflake SD: Informed on UAT progress; consulted if technical issues arise",
+        "Snowflake SD: Ensures all code is production-ready before staging handoff",
+        "Snowflake SD: Provides rollback runbook; participates in go/no-go review",
+        "Partner: Supports UAT environment; investigates root cause on divergences",
+        "Recommended: JD Power designates a dedicated deployment team per cohort",
+        "Optional add-on: Datafold automated repointing available (~$100K–$250K if needed)"
+      ],
+      "callout": "Engagement cost for these four workstreams: $0. JD Power owns execution. Snowflake SD is consulted as needed and informed throughout."
+    },
+    {
+      "type": "two_column",
+      "title": "DTP Framework Migration  |  $220K–$340K  |  Snowflake SD",
+      "left_title": "WHAT'S INCLUDED",
+      "left_bullets": [
+        "Full rebuild of DTP (Data Processing Platform) capabilities natively on Snowflake",
+        "Not a lift-and-shift — pipeline automation and orchestration intelligence moves fully onto platform",
+        "Primary deliverable: Snowflake Task DAGs for pipeline orchestration",
+        "2,175 DTP jobs in scope across the 2 T3-DTP workspaces",
+        "Snowflake SD data engineering architect skill set required",
+        "DPT specialist team runs independently — does not compete with Teams 1–5"
+      ],
+      "right_title": "KEY ASSUMPTIONS & PRICING",
+      "right_bullets": [
+        "This is a platform rebuild — NOT a standard workspace migration",
+        "Current DPT has pipeline automation + creation + intelligence running outside Snowflake",
+        "Goal: entire workload happens natively on Snowflake with no external orchestration dependencies",
+        "Main effort: Tasks and DAGs for pipeline orchestration at scale",
+        "Sizing depends on DAG complexity confirmed during Phase 0A Discovery",
+        "Low: $220K  |  Estimated $300K  |  High: $340K  |  Owner: Snowflake SD data engineering architects only"
+      ],
+      "callout": "DPT is treated as a platform rebuild, not a migration. Most architecturally complex component — runs on a dedicated Snowflake SD specialist track."
+    },
+    {
+      "type": "two_column",
+      "title": "Content Parser AI + Streamlit UI  |  $157K–$343K  |  Snowflake SD",
+      "left_title": "WHAT'S INCLUDED",
+      "left_bullets": [
+        "Content Parser AI ($157K): Cortex AI COMPLETE() extraction pipeline for Incentive + Core Car Data document types",
+        "Prompt management framework: registry tables, version history, sample-based testing harness",
+        "Accuracy testing against JD Power historical ground truth records",
+        "Multi-schema support: North America + Europe regional variants",
+        "Streamlit UI — Option A Greenfield ($186K): Full 12-screen UI including template builder, jobs management, prompt editor, RBAC",
+        "Streamlit UI — Option B Lift-and-Shift ($97K): Replatform existing UI to Snowflake-native Streamlit"
+      ],
+      "right_title": "KEY ASSUMPTIONS & PRICING",
+      "right_bullets": [
+        "JD Power provides full prompt library (base + OEM supplemental) at kickoff",
+        "JD Power provides representative document samples for both doc types before build begins",
+        "Scoped to 2 document types only: Incentive + Core Car Data",
+        "HITL review UI, action-taking agents, drag-and-drop workflow UI are out of scope",
+        "UI approach (Greenfield vs Lift-and-Shift) must be confirmed before SOW",
+        "Content Parser AI: $157K (constant in both scenarios)",
+        "Greenfield: $157K + $186K = $343K  |  Lift-and-Shift: $157K + $97K = $254K"
+      ],
+      "callout": "Greenfield vs Lift-and-Shift is an $89K decision. Recommend confirming approach before final SOW. AI pipeline cost ($157K) is the same in both scenarios."
+    },
+    {
+      "type": "content",
+      "title": "Pricing Assumptions",
+      "subtitle": "Four immediate decisions are required to unblock the May 2026 project kickoff.",
+      "bullets": [
+        "All pricing is estimated and subject to final scoping and SOW execution",
+        "Partner (Datafold) pricing shown: fixed-fee model eliminates overrun risk",
+        "Snowflake SD pricing is T&M unless noted as fixed-fee",
+        "Platform & Governance pricing varies by engagement duration: 6/12/18 months",
+        "Data Ingestion scenario (High vs Low) depends on JD Power IT CDC/logging confirmation",
+        "Historical Migration range depends on Redshift footprint confirmation",
+        "DTP sizing depends on DAG complexity confirmed in Phase 0A",
+        "Content Parser UI approach (Greenfield vs Lift-and-Shift) pending JD Power decision"
+      ]
+    },
+    {
+      "type": "closing",
+      "title": "Thank You",
+      "subtitle": "Snowflake Services Delivery",
+      "message": "We look forward to partnering with JD Power on this migration journey."
+    }
+  ]
+}
