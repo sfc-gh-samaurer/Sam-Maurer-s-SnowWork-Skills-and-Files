@@ -1,6 +1,6 @@
 ---
 name: deal-package
-description: "Generate a complete deal review package: TDR deck (PPTX), one-page HTML proposal, and optional Deal Pricing Sheet (Google Sheet). Optionally generates SOW and Capacity to PS&T. Use for ALL requests that mention: deal package, deal review, proposal package, TDR, deal materials, generate proposal deck, create deal review, deal pricing sheet, DPS. DO NOT attempt deal package generation manually - always invoke this skill first."
+description: "Generate a complete deal review package: one-page HTML proposal (always), TDR deck (PPTX, optional), and optional Deal Pricing Sheet (Google Sheet). Optionally generates SOW and Capacity to PS&T. Use for ALL requests that mention: deal package, deal review, proposal package, TDR, deal materials, generate proposal deck, create deal review, deal pricing sheet, DPS. DO NOT attempt deal package generation manually - always invoke this skill first."
 ---
 
 # Deal Package Generator
@@ -11,8 +11,8 @@ Generate a complete, deal-review-passing package of materials from a single stru
 
 | # | Artifact | Format | Selection | Method |
 |---|----------|--------|-----------|--------|
-| 1 | **TDR Deck** | PPTX | [x] Always | `generate_tdr.py` — single-pass builder from MASTER template layouts |
-| 2 | **One-Page Proposal** | HTML | [x] Always | `snowflake-html-collateral` brand system, timeline embedded inline |
+| 1 | **One-Page Proposal** | HTML | [x] Always | Brand system HTML/CSS, timeline embedded inline — generated first |
+| 2 | **TDR Deck** | PPTX | [ ] Optional | HTML-first design → editable PPTX via `snowflake-pptx-collateral-v4` approach |
 | 3 | **SOW** | .docx | [ ] Optional | Delegates to `sow-generator` skill |
 | 4 | **Capacity to PS&T** | Google Sheet | [ ] Optional | Delegates to `capacity-to-pst` skill (capacity conversion deals only) |
 | 5 | **Deal Pricing Sheet** | Google Sheet | [ ] Optional | Copy DPS template + populate from master JSON via Google Workspace MCP |
@@ -34,8 +34,9 @@ Example: `~/Downloads/Sharp-Healthcare-Ontology-Engagement/`
 ## Prerequisites
 
 - `uv` installed (for running python-pptx scripts)
-- `python-pptx` available (installed via uv in the proposal-generator-skill project)
-- MASTER template at `~/.claude/skills/tech-review-generator/Example Approved Tech Reviews/MASTER - Outcome Focused TDR and Deal Review Presentation Template.pptx`
+- `python-pptx` installed: `pip install python-pptx`
+- For TDR deck image mode only: `playwright` + `playwright install chromium`
+- Snowflake PPTX template at `~/.snowflake/cortex/github-skills/skills/snowflake-pptx-collateral-v4/` (required for TDR deck generation)
 
 ## TDR Deck Slide Structure (21 slides)
 
@@ -295,68 +296,11 @@ Present the master JSON as readable markdown, organized by slide/artifact:
 
 **MANDATORY STOPPING POINT.** Wait for user approval or change requests. Iterate until approved.
 
-### Phase 5: Artifact Selection
+### Phase 5: Generate One-Page HTML Proposal (Always)
 
-After JSON approval, confirm which artifacts to generate. Use `ask_user_question` with multi-select:
+Generate the HTML proposal immediately after JSON approval — no artifact selection gate needed.
 
-**Always generated (cannot deselect):**
-- [x] TDR Deck (PPTX)
-- [x] One-Page HTML Proposal (with embedded timeline)
-
-**Optional:**
-- [ ] SOW (.docx) — delegates to `sow-generator` skill
-- [ ] Capacity to PS&T (Google Sheet) — delegates to `capacity-to-pst` skill
-- [ ] Deal Pricing Sheet (Google Sheet) — auto-generated if `dps.generate = true` (user has no existing DPS)
-
-### Phase 6: Generate Artifacts
-
-Create the output directory:
-```bash
-mkdir -p ~/Downloads/{CUSTOMER}-{DEAL_NAME}/
-```
-
-#### 6A: TDR Deck (PPTX) — Single-Pass Generation
-
-The `generate_tdr.py` script builds the entire deck in one pass:
-1. Opens the MASTER template (23 example slides, 31 branded layouts)
-2. Deletes all example slides via XML (preserves layouts + theme)
-3. Builds each slide programmatically from layouts using the deal-package JSON
-
-```bash
-uv run --project ~/.claude/skills/proposal-generator-skill \
-  python ~/.claude/skills/deal-package/scripts/generate_tdr.py \
-  --data ~/Downloads/{CUSTOMER}-{DEAL_NAME}/deal-package.json \
-  --output ~/Downloads/{CUSTOMER}-{DEAL_NAME}/{CUSTOMER}-TDR.pptx
-```
-
-The script generates 21 slides:
-- **Cover** — customer name, engagement title, author, date (all populated)
-- **Agenda** — auto-generated from slide list
-- **Executive Summary** — 3-column text boxes (Challenges / Solution / Outcomes)
-- **Our Understanding** — 2-column (Current State / Engagement Objectives)
-- **Methodology** — phase table (Phase / Workstreams / Duration / Activities)
-- **Outcomes** — 2-column (Strategic/Business / Technical)
-- **Scope Summary** — 3-column (Assessment / Architecture / Implementation) + out-of-scope
-- **Scope by Role** — SA + SDM activities with hours (SKIP)
-- **Technical Review** — placeholder sections for reviewer (SKIP)
-- **Dependencies** — bulleted list
-- **Timeline** — Gantt bars with week labels and phase colors
-- **Milestones & Validation** — table with acceptance criteria
-- **RACI** — 3-column table (Activity / Snowflake / Customer)
-- **Governance** — cadence table
-- **Team Structure** — role/name/responsibilities table
-- **Commercials / Pricing** — pricing table + total callout + DPS link (SKIP)
-- **Staffing Plan** — role-by-week allocation grid (SKIP)
-- **Risks** — 7-category risk table with mitigations
-- **Assumptions** — structured bullet sections
-- **Next Steps** — close plan actions
-- **Thank You** — branded closing slide
-
-**SKIP slides** automatically get "(Skip for presentation)" subtitle. No "Content from Agent" banners. No template artifacts to conflict with generated content.
-
-#### 6B: One-Page HTML Proposal
-
-Generate using the `snowflake-html-collateral` bundled skill's brand system. Load the HTML template from `<SKILL_DIR>/templates/html-one-page.html` and populate with data from the master JSON. The template sections:
+Generate using the brand system HTML/CSS. Load the HTML template from `<SKILL_DIR>/templates/html-one-page.html` and populate with data from the master JSON. The template sections:
 
 1. **Header** — Blue gradient, engagement title, customer name, date, DRAFT tag
 2. **Metrics** — 3 metric cards (duration, total cost, key stat)
@@ -374,13 +318,99 @@ Generate using the `snowflake-html-collateral` bundled skill's brand system. Loa
 
 Write to: `~/Downloads/{CUSTOMER}-{DEAL_NAME}/{CUSTOMER}-Proposal.html`
 
+**⚠️ STOPPING POINT after HTML delivery.** Present the file path, then ask:
+
+> The one-page HTML proposal is ready. Would you like to continue and generate additional artifacts?
+
+Use `ask_user_question` with multi-select options:
+- [ ] **TDR Deck (PPTX)** — full 21-slide deal review deck
+- [ ] **SOW (.docx)** — delegates to `sow-generator` skill
+- [ ] **Capacity to PS&T (Google Sheet)** — delegates to `capacity-to-pst` skill
+- [ ] **Deal Pricing Sheet (Google Sheet)** — auto-generated if `dps.generate = true`
+- [ ] **None — proposal only**
+
+If user selects none / proposal only, proceed to Phase 7 (Deliver). Otherwise proceed to Phase 6.
+
+### Phase 6: Generate Optional Artifacts
+
+Generate only the artifacts the user selected in Phase 5.
+
+#### 6A: TDR Deck (PPTX) — HTML-First Design → Editable PPTX
+
+The TDR deck uses the `snowflake-pptx-collateral-v4` HTML-first workflow for professional visual quality.
+
+**Step 1: Load design system references**
+
+Load these references from the `snowflake-pptx-collateral-v4` skill before writing any HTML:
+- `~/.snowflake/cortex/github-skills/skills/snowflake-pptx-collateral-v4/references/html-slide-design.md` — CSS design tokens, brand rules, 12 HTML slide templates
+- `~/.snowflake/cortex/github-skills/skills/snowflake-pptx-collateral-v4/references/html-to-editable-pptx.md` — python-pptx builder patterns
+- `~/.snowflake/cortex/github-skills/skills/snowflake-pptx-collateral-v4/references/core-helpers.md` — `add_shape_text()`, brand constants, saving
+
+**Step 2: Create slides directory**
+```bash
+mkdir -p ~/Downloads/{CUSTOMER}-{DEAL_NAME}/slides/
+```
+
+**Step 3: Write one HTML file per slide**
+
+Create `slides/slide_01_cover.html` through `slides/slide_21_thankyou.html` using the design system templates. Every slide must be exactly **960×540px** with `overflow: hidden`.
+
+Design rules (enforced — same as `snowflake-pptx-collateral-v4`):
+- Titles in **ALL CAPS**, 18px bold, `var(--sf-dark-text)` on light backgrounds, white on dark
+- Use CSS variables from the design token block — never invent colors
+- Left edge bar: 4px `var(--sf-blue)` on every content slide
+- Footer: `"Confidential — Snowflake Professional Services"` at `top:511px`
+- Content must not extend below `top:490px`
+- At least 50% of content slides use a visual pattern (card grid, table, timeline, two-column) — not just bullets
+- Cover, Thank You use dark/blue gradient backgrounds with white text
+- SKIP slides: add `"(SKIP FOR PRESENTATION)"` as a red badge in the top-right corner
+
+**TDR Slide → Visual Pattern mapping:**
+
+| Slide | Title | Visual Pattern |
+|-------|-------|----------------|
+| 1 | Cover | Dark gradient cover slide |
+| 2 | Agenda | Two-column list |
+| 3 | Executive Summary | Three-column card grid (Challenges / Solution / Outcomes) |
+| 4 | Our Understanding | Two-column (Current State / Engagement Objectives) |
+| 5 | Methodology & Engagement Approach | Phase table with columns: Phase / Workstreams / Duration / Activities |
+| 6 | Outcomes | Two-column card grid (Strategic/Business / Technical) |
+| 7 | Scope Summary | Three-column cards + out-of-scope section below |
+| 8 | Scope by Role *(SKIP)* | Two-column table: SA activities / SDM activities with hours |
+| 9 | Technical Review Outcome *(SKIP)* | Placeholder sections for reviewer |
+| 10 | Dependencies | Bulleted card list |
+| 11 | Timeline with Key Milestones | Gantt chart — CSS grid with phase bars and week labels |
+| 12 | Milestones & Validation | Table: Milestone / Deliverables / Acceptance Criteria / Duration |
+| 13 | Detailed RACI | RACI table with R/A/C/I badges (3-col: Activity / Snowflake / Customer) |
+| 14 | Governance Cadence | Table: Forum / Cadence / Participants / Responsibilities |
+| 15 | Team Structure | Team cards (Snowflake roles with names, hours) |
+| 16 | Commercials / Pricing *(SKIP)* | Pricing table + total callout box + DPS link |
+| 17 | Staffing Plan *(SKIP)* | Role-by-week allocation grid |
+| 18 | Risks & Mitigations | Table: Category / Risk / Impact / Mitigation (7 categories) |
+| 19 | Assumptions & Commitments | Two-section bullet list (Assumptions / Dependencies) |
+| 20 | Next Steps / Close Plan | Action table: Step / Owner / Details |
+| 21 | Thank You | Dark gradient closing slide with contact info |
+
+**Step 4: Convert HTML → Editable PPTX**
+
+After all HTML slides are written, use the patterns from `html-to-editable-pptx.md` and `core-helpers.md` to write a Python script that builds the deck as native python-pptx shapes, text boxes, and tables.
+
+```bash
+python ~/Downloads/{CUSTOMER}-{DEAL_NAME}/build_tdr.py
+```
+
+Output: `~/Downloads/{CUSTOMER}-{DEAL_NAME}/{CUSTOMER}-TDR.pptx`
+
+**What is preserved exactly:** All text, tables, layout geometry, brand colors, edge bars, footers.
+**What is approximated:** CSS gradients → solid fill; border-radius → square corners; box-shadows → omitted.
+
 #### 6C: SOW (Optional)
 
 If selected, transform the master JSON into the sow-generator schema format and delegate to the `sow-generator` skill.
 
 #### 6D: Capacity to PS&T (Optional)
 
-If selected, delegate to the `capacity-to-pst` skill.
+Delegate to the `capacity-to-pst` skill.
 
 #### 6E: Deal Pricing Sheet (Optional)
 
@@ -486,7 +516,7 @@ The financial sections (rows 13+) auto-populate from the Deal Summary fee table.
 **Reference: MasterControl Completed DPS** — `1jM6SqCWL3vBZ__3RbetpsqI2GetjUnDLPU_8jZ9M9pw`
 Use this as a pattern reference for correct cell population. Key values: A2="MasterControl - Get Well Investment", D5=SFDC URL, D8="Direct", D11="Yes", fee table rows with 100% investment discount, Resource/Staffing Plan with 20hrs/wk SA + 5hrs/wk SDM over 8 weeks.
 
-### Phase 6.5: Self-Validation
+### Phase 6.5: Self-Validation (TDR only — skip if TDR not generated)
 
 Before delivering, validate the TDR deck against the TDR checklist:
 
@@ -543,19 +573,18 @@ If any mandatory check fails, auto-fix or flag to the user.
 
 ### Phase 7: Deliver
 
-After all artifacts are generated and validated:
-
 1. Write the master JSON to `~/Downloads/{CUSTOMER}-{DEAL_NAME}/deal-package.json`
-2. List all generated files with their paths
-3. Present the self-validation results
-4. Remind the user to review:
-   - Open the PPTX and check all slides
-   - Open the HTML proposal in a browser (Cmd+P to save as PDF)
+2. List all generated files with paths
+3. Present self-validation results (TDR only, if generated)
+4. Remind the user:
+   - HTML proposal: open in browser → Cmd+P to save as PDF
+   - TDR deck: open in PowerPoint — all shapes are editable
+   - HTML slide source files kept in `slides/` as the design source of truth
 
 ## Key Rules
 
-### Single-Pass Generation
-The `generate_tdr.py` script builds the entire deck from layouts in one pass. No two-pass rendering. No template placeholder filling. No post-processing. Every slide is built programmatically from the layout + JSON data.
+### TDR Deck Generation
+The TDR deck is built HTML-first: design each of the 21 slides as a 960×540px HTML file using the `snowflake-pptx-collateral-v4` brand system, then convert to a fully editable PPTX using python-pptx native shapes. The HTML files are kept as the design source of truth. Do not use `generate_tdr.py` — it is superseded by this approach.
 
 ### Character Limits
 - Text paragraphs: MAX 350 characters
@@ -616,8 +645,8 @@ Slides marked SKIP in the audience map get `"(Skip for presentation)"` as subtit
 - Phase 1.5: After DPS check, confirm pricing approach
 - Phase 2: If validation fails, present missing items before looping back
 - Phase 4: **MANDATORY** — Wait for user approval of the master JSON
-- Phase 5: After artifact selection confirmation
-- Phase 6.5: After self-validation, present results
+- Phase 5: **MANDATORY** — After HTML proposal delivery, ask which additional artifacts to generate
+- Phase 6.5: After TDR self-validation, present results (TDR only)
 - Phase 7: After delivery, wait for user review feedback
 
 ## Related Skills
@@ -627,8 +656,8 @@ Slides marked SKIP in the audience map get `"(Skip for presentation)"` as subtit
 | `tech-review-generator` | TDR generation authority. Provides the MASTER template, approved examples, and 39-item checklist. `generate_tdr.py` follows its patterns. |
 | `proposal-generator` | Legacy PPTX orchestrator. Superseded by deal-package for TDR generation. Still provides uv project environment. |
 | `sd-technical-deal-review` | Legacy template sub-skill. Superseded by MASTER template. Retained for reference. |
-| `snowflake-html-collateral` | Brand system for HTML output. Used for one-page proposal generation. |
-| `snowflake-pptx-collateral` | Brand constants for python-pptx. Referenced by generate_tdr.py. |
+| `snowflake-pptx-collateral-v4` | **Primary TDR deck generator.** Provides HTML design system + editable PPTX builder patterns used in Phase 6A. Load its references before writing TDR slide HTML. |
+| `snowflake-html-collateral` | Brand system for one-page HTML proposal generation. |
 | `sow-generator` | Optional delegation target for .docx SOW output. |
 | `capacity-to-pst` | Optional delegation target for capacity conversion deals. |
 | `kickoff-deck-generator` | Post-deal skill. Not used by deal-package. |
