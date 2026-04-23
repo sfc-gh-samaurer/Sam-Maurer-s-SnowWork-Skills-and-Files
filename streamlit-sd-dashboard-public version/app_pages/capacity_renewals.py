@@ -21,34 +21,15 @@ render_nav_bar([
 st.markdown('<div id="nav-cr-active" class="tab-banner"><p class="tab-banner-title">Active Capacity Contracts</p></div>', unsafe_allow_html=True)
 
 if not df.empty:
-    fc1, fc2, fc3 = st.columns(3)
+    fc1, fc2 = st.columns(2)
     with fc1:
         ae_filter = st.multiselect("AE", options=sorted(df["ACCOUNT_OWNER"].dropna().unique()), default=[], key="cap_ae")
     with fc2:
-        cap_filter = st.multiselect("Remaining Capacity", options=["$0 (No Data)", "< $1M", "$1M - $5M", "$5M - $10M", "> $10M"], default=[], key="cap_band")
-    with fc3:
         search = st.text_input("Search account", "", key="cap_search")
 
     filtered = df.copy()
     if ae_filter:
         filtered = filtered[filtered["ACCOUNT_OWNER"].isin(ae_filter)]
-    if cap_filter:
-        cap_masks = []
-        if "$0 (No Data)" in cap_filter:
-            cap_masks.append(filtered["CAPACITY_REMAINING"].fillna(0) == 0)
-        if "< $1M" in cap_filter:
-            cap_masks.append((filtered["CAPACITY_REMAINING"].fillna(0) > 0) & (filtered["CAPACITY_REMAINING"].fillna(0) < 1_000_000))
-        if "$1M - $5M" in cap_filter:
-            cap_masks.append((filtered["CAPACITY_REMAINING"].fillna(0) >= 1_000_000) & (filtered["CAPACITY_REMAINING"].fillna(0) < 5_000_000))
-        if "$5M - $10M" in cap_filter:
-            cap_masks.append((filtered["CAPACITY_REMAINING"].fillna(0) >= 5_000_000) & (filtered["CAPACITY_REMAINING"].fillna(0) < 10_000_000))
-        if "> $10M" in cap_filter:
-            cap_masks.append(filtered["CAPACITY_REMAINING"].fillna(0) >= 10_000_000)
-        if cap_masks:
-            combined_cap = cap_masks[0]
-            for m in cap_masks[1:]:
-                combined_cap = combined_cap | m
-            filtered = filtered[combined_cap]
     if search:
         filtered = filtered[filtered["ACCOUNT_NAME"].str.contains(search, case=False, na=False)]
 
@@ -60,20 +41,18 @@ if not df.empty:
     display = filtered[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                         "LEAD_SE",
                         "CONTRACT_START_DATE", "CONTRACT_END_DATE",
-                        "CAPACITY_USED", "CAPACITY_REMAINING",
+                        "CAPACITY_USED",
                         "OVERAGE_UNDERAGE_PREDICTION", "OVERAGE_DATE"]].copy()
 
     display["ACCOUNT_LINK"] = display.apply(lambda r: sfdc_account_link(r["ACCOUNT_NAME"], r["SALESFORCE_ACCOUNT_ID"]), axis=1)
 
-    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi1, kpi2 = st.columns(2)
     with kpi1:
         st.metric("Accounts", len(filtered))
     with kpi2:
         used_ytd = filtered["CAPACITY_USED"].sum()
         st.metric("Total Used YTD", f"${used_ytd:,.0f}")
     with kpi3:
-        remaining = filtered["CAPACITY_REMAINING"].sum()
-        st.metric("Total Remaining", f"${remaining:,.0f}")
 
     with st.expander(f"{len(filtered)} contracts", expanded=True):
         render_html_table(display, columns=[
@@ -85,7 +64,6 @@ if not df.empty:
             {"col": "CONTRACT_START_DATE", "label": "Start", "fmt": "date"},
             {"col": "CONTRACT_END_DATE", "label": "End", "fmt": "date"},
             {"col": "CAPACITY_USED", "label": "Cap Used (YTD)", "fmt": "dollar"},
-            {"col": "CAPACITY_REMAINING", "label": "Cap Remain", "fmt": "dollar"},
             {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
             {"col": "OVERAGE_DATE", "label": "Overage Date", "fmt": "date"},
         ], height=600)
@@ -97,11 +75,6 @@ if not df.empty:
         (filtered["CONTRACT_END_DATE"].notna())
     ].copy()
     candidates["DAYS_LEFT"] = (pd.to_datetime(candidates["CONTRACT_END_DATE"]) - today).dt.days
-    candidates["PCT_REMAINING"] = candidates.apply(
-        lambda r: round(r["CAPACITY_REMAINING"] / (r["CAPACITY_REMAINING"] + r["CAPACITY_USED"]) * 100, 1)
-        if pd.notna(r["CAPACITY_REMAINING"]) and pd.notna(r["CAPACITY_USED"]) and (r["CAPACITY_REMAINING"] + r["CAPACITY_USED"]) > 0
-        else None, axis=1
-    )
     candidates = candidates[
         (candidates["DAYS_LEFT"] <= 730)
         & (candidates["DAYS_LEFT"] > 0)
@@ -116,7 +89,7 @@ if not df.empty:
             st.caption("These accounts are predicted to have significant unused capacity at contract end — consider converting remaining capacity into services contracts.")
             conv_display = candidates[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                                        "CONTRACT_END_DATE", "DAYS_LEFT",
-                                       "CAPACITY_USED", "CAPACITY_REMAINING", "PCT_REMAINING",
+                                       "CAPACITY_USED",
                                        "OVERAGE_UNDERAGE_PREDICTION"]].copy()
             conv_display["ACCOUNT_LINK"] = conv_display.apply(
                 lambda r: f'{SFDC_BASE}/Account/{r["SALESFORCE_ACCOUNT_ID"]}/view' if pd.notna(r.get("SALESFORCE_ACCOUNT_ID")) else None, axis=1)
@@ -128,8 +101,6 @@ if not df.empty:
                 {"col": "CONTRACT_END_DATE", "label": "End Date", "fmt": "date"},
                 {"col": "DAYS_LEFT", "label": "Days Left", "fmt": "number"},
                 {"col": "CAPACITY_USED", "label": "Used (YTD)", "fmt": "dollar"},
-                {"col": "CAPACITY_REMAINING", "label": "Cap Remain", "fmt": "dollar"},
-                {"col": "PCT_REMAINING", "label": "% Remain", "fmt": "pct"},
                 {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Pred Under", "fmt": "dollar"},
             ])
 
