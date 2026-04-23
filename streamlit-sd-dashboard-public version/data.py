@@ -420,15 +420,21 @@ def load_capacity_renewals():
                 a.TIER_C AS TIER,
                 a.LEAD_SALES_ENGINEER_NAME_C AS LEAD_SE,
                 CAST(fa.OVERAGE_UNDERAGE_AMOUNT_C AS FLOAT) AS OVERAGE_UNDERAGE_AMOUNT_C,
-                fa.OVERAGE_DATE_C,
-                CAST(fa.ACTUAL_CONSUMPTION_YTD_C AS FLOAT) AS ACTUAL_CONSUMPTION_YTD_C,
-                CAST(fa.CURRENT_CAPACITY_VALUE_C AS FLOAT) AS CURRENT_CAPACITY_VALUE_C,
-                CAST(fa.CURRENT_CAPACITY_VALUE_C AS FLOAT) - CAST(fa.ACTUAL_CONSUMPTION_YTD_C AS FLOAT) AS CAPACITY_REMAINING_CALC
+                fa.OVERAGE_DATE_C
             FROM SALES.RAVEN.ACCOUNT a
             JOIN FIVETRAN.SALESFORCE.ACCOUNT fa ON a.SALESFORCE_ACCOUNT_ID = fa.ID
             WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
             AND a.ACCOUNT_STATUS_C = 'Active'
             AND fa.CAPACITY_COUNTER_C > 0
+        ),
+        dim_cap AS (
+            SELECT
+                SALESFORCE_ACCOUNT_ID,
+                SUM(TOTAL_CAPACITY - CAPACITY_USAGE_REMAINING) AS CAPACITY_USED,
+                SUM(CAPACITY_USAGE_REMAINING) AS CAPACITY_REMAINING
+            FROM SALES.RAVEN.DIM_CONTRACT_VIEW
+            WHERE TOTAL_CAPACITY > 0
+            GROUP BY SALESFORCE_ACCOUNT_ID
         ),
         contracts AS (
             SELECT
@@ -475,8 +481,8 @@ def load_capacity_renewals():
             contracts.CONTRACT_END_DATE AS CONTRACT_END_DATE,
             contracts.CAPACITY_PURCHASED,
             contracts.TOTAL_CAPACITY,
-            b.ACTUAL_CONSUMPTION_YTD_C AS CAPACITY_USED,
-            b.CAPACITY_REMAINING_CALC AS CAPACITY_REMAINING,
+            dc.CAPACITY_USED,
+            dc.CAPACITY_REMAINING,
             b.OVERAGE_UNDERAGE_AMOUNT_C AS OVERAGE_UNDERAGE_PREDICTION,
             b.OVERAGE_DATE_C AS OVERAGE_DATE,
             r.RENEWAL_OPP_NAME,
@@ -487,6 +493,7 @@ def load_capacity_renewals():
             r.RENEWAL_CLOSE_DATE,
             r.RENEWAL_NEXT_STEPS
         FROM base b
+        LEFT JOIN dim_cap dc ON b.SALESFORCE_ACCOUNT_ID = dc.SALESFORCE_ACCOUNT_ID
         LEFT JOIN contracts ON b.SALESFORCE_ACCOUNT_ID = contracts.SALESFORCE_ACCOUNT_ID
         LEFT JOIN renewals r ON b.SALESFORCE_ACCOUNT_ID = r.SALESFORCE_ACCOUNT_ID AND r.rn = 1
         ORDER BY contracts.CONTRACT_END_DATE ASC NULLS LAST
