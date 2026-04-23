@@ -925,24 +925,23 @@ def load_exec_software_renewals():
     session = _get_session()
     df = session.sql("""
         SELECT
-            o.ACCOUNT_NAME,
-            o.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
-            o.OPP_NAME AS OPPORTUNITY_NAME,
-            o.OPP_ID AS OPPORTUNITY_ID,
+            o.NAME AS OPPORTUNITY_NAME,
+            o.ID AS OPPORTUNITY_ID,
+            a.ACCOUNT_NAME,
+            a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
             o.STAGE_NAME,
-            o.FORECAST_STATUS,
-            CAST(o.OPPORTUNITY_PRODUCT_ACV_TOTAL AS FLOAT) AS TOTAL_ACV,
-            CAST(o.OPPORTUNITY_RENEWAL_ACV AS FLOAT) AS RENEWAL_ACV,
+            o.FORECAST_CATEGORY_NAME AS FORECAST_STATUS,
+            CAST(COALESCE(o.PRODUCT_ACV_LOOKER_C, o.ACV_C, o.AMOUNT) AS FLOAT) AS TOTAL_ACV,
+            CAST(COALESCE(o.RENEWAL_ACV_LOOKER_C, o.ACV_C, 0) AS FLOAT) AS RENEWAL_ACV,
             o.CLOSE_DATE,
-            fc.FISCAL_PERIOD AS FISCAL_QUARTER,
-            o.REP_NAME AS OWNER,
-            o.NEXT_STEPS,
-            o.DM
-        FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
-        LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = o.CLOSE_DATE
-        WHERE o.DM IN ('Erik Schneider', 'Raymond Navarro')
-        AND o.DS = CURRENT_DATE()
+            o.NEXT_STEPS_C AS NEXT_STEPS,
+            a.REP_NAME AS OWNER,
+            a.DM
+        FROM FIVETRAN.SALESFORCE.OPPORTUNITY o
+        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON o.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND o.IS_CLOSED = FALSE
+        AND o.IS_DELETED = FALSE
         AND o.TYPE = 'Renewal'
         AND o.CLOSE_DATE BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 6, CURRENT_DATE())
         ORDER BY o.CLOSE_DATE ASC
