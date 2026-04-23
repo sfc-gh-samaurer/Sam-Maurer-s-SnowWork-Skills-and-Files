@@ -238,8 +238,10 @@ with st.expander(
             lambda x: f"{SFDC_BASE}/Opportunity/{x}/view" if pd.notna(x) and x else None
         )
         render_html_table(sw_display, columns=[
+            {"col": "ACCOUNT_NAME", "label": "Account"},
             {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
             {"col": "OPP_LINK", "label": "Opp", "fmt": "link"},
+            {"col": "STAGE_NAME", "label": "Stage"},
             {"col": "FORECAST_STATUS", "label": "Forecast"},
             {"col": "TOTAL_ACV", "label": "Total ACV", "fmt": "dollar"},
             {"col": "RENEWAL_ACV", "label": "Rnwl ACV", "fmt": "dollar"},

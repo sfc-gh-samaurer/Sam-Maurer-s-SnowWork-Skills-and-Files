@@ -663,7 +663,7 @@ def load_ps_pipeline():
                 o.TYPE AS OPPORTUNITY_TYPE,
                 o.STAGE_NAME,
                 o.FORECAST_STATUS,
-                CAST(o.OPPORTUNITY_PRODUCT_ACV_TOTAL AS FLOAT) AS TOTAL_ACV,
+                CAST(COALESCE(fv.PRODUCT_ACV_LOOKER_C, fv.ACV_C, o.OPPORTUNITY_PRODUCT_ACV_TOTAL) AS FLOAT) AS TOTAL_ACV,
                 o.CLOSE_DATE,
                 fc.FISCAL_PERIOD AS FISCAL_QUARTER,
                 NULL AS DAYS_IN_STAGE,
@@ -677,6 +677,7 @@ def load_ps_pipeline():
                 o.NEXT_STEPS
             FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
             LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = o.CLOSE_DATE
+            LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY fv ON fv.ID = o.OPP_ID
             WHERE o.DM IN ('Erik Schneider', 'Raymond Navarro')
             AND o.DS = CURRENT_DATE()
             AND o.IS_CLOSED = FALSE
@@ -996,13 +997,14 @@ def load_exec_new_opps():
                 o.TYPE AS OPPORTUNITY_TYPE,
                 o.STAGE_NAME,
                 o.FORECAST_STATUS,
-                CAST(o.OPPORTUNITY_PRODUCT_ACV_TOTAL AS FLOAT) AS TOTAL_ACV,
+                CAST(COALESCE(fv.PRODUCT_ACV_LOOKER_C, fv.ACV_C, o.OPPORTUNITY_PRODUCT_ACV_TOTAL) AS FLOAT) AS TOTAL_ACV,
                 o.CLOSE_DATE,
                 o.CREATED_DATE,
                 o.REP_NAME AS OWNER,
                 o.DM,
                 o.AGREEMENT_TYPE
             FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
+            LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY fv ON fv.ID = o.OPP_ID
             WHERE o.DM IN ('Erik Schneider', 'Raymond Navarro')
             AND o.DS = CURRENT_DATE()
             AND o.CREATED_DATE >= DATEADD('day', -90, CURRENT_DATE())
