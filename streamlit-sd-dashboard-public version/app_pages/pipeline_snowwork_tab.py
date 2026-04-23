@@ -87,7 +87,7 @@ st.markdown("""
 st.markdown("""
 <div class="sw-banner">
     <div>
-        <p class="sw-banner-title">Pipeline in SnowWork</p>
+        <p class="sw-banner-title">Use SnowWork</p>
         <p class="sw-banner-sub">Manage your pipeline, action items, and book of business in CoCo/SnowWork.</p>
     </div>
 </div>

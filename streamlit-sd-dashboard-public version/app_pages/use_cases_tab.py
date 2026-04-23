@@ -1,13 +1,26 @@
 import streamlit as st
 import pandas as pd
 import re
-from data import load_use_cases, load_action_planner_pipeline, render_html_table
+from data import load_use_cases, load_action_planner_pipeline, render_html_table, render_nav_bar
 
 SFDC_BASE = "https://snowforce.lightning.force.com/lightning/r"
 
 df = load_use_cases()
+ap_df = load_action_planner_pipeline()
 
-st.markdown('<div class="tab-banner"><p class="tab-banner-title">All Use Cases</p></div>', unsafe_allow_html=True)
+_sel_dms = st.session_state.get("selected_dms", ["Erik Schneider", "Raymond Navarro"])
+if _sel_dms:
+    if "DM" in df.columns:
+        df = df[df["DM"].isin(_sel_dms)]
+    if "DM" in ap_df.columns:
+        ap_df = ap_df[ap_df["DM"].isin(_sel_dms)]
+
+render_nav_bar([
+    ("All Use Cases", "nav-uc-all"),
+    ("Account-Level Use Case Summary", "nav-uc-summary"),
+])
+
+st.markdown('<div id="nav-uc-all" class="tab-banner"><p class="tab-banner-title">All Use Cases</p></div>', unsafe_allow_html=True)
 
 if not df.empty:
     fc1, fc2, fc3, fc4, fc5, fc6 = st.columns(6)
@@ -20,7 +33,7 @@ if not df.empty:
     with fc4:
         stage_filter = st.multiselect("Stage", options=sorted(df["STAGE"].dropna().unique()), default=[], key="uc_stage")
     with fc5:
-        ps_filter = st.multiselect("PS Engaged", options=["Yes", "No"], default=[], key="uc_ps")
+        impl_filter = st.multiselect("Implementer", options=["PS", "Partner", "Both", "None"], default=[], key="uc_impl")
     with fc6:
         search = st.text_input("Search use case", "", key="uc_search")
 
@@ -33,13 +46,25 @@ if not df.empty:
         filtered = filtered[filtered["USE_CASE_STATUS"].isin(status_filter)]
     if stage_filter:
         filtered = filtered[filtered["STAGE"].isin(stage_filter)]
-    if ps_filter:
-        ps_vals = []
-        if "Yes" in ps_filter:
-            ps_vals.append(True)
-        if "No" in ps_filter:
-            ps_vals.append(False)
-        filtered = filtered[filtered["IS_PS_ENGAGED"].isin(ps_vals)]
+    if impl_filter:
+        _IMPL_PS = {"Snowflake SD Prime", "Customer Prime + Snowflake SD"}
+        _IMPL_PARTNER = {"Partner Only"}
+        _IMPL_BOTH = {"Partner Prime + Snowflake SD", "Snowflake SD Prime + Partner"}
+        _IMPL_NONE = {None, "", "Customer Only", "Unknown"}
+        impl_masks = []
+        if "PS" in impl_filter:
+            impl_masks.append(filtered["IMPLEMENTER"].isin(_IMPL_PS))
+        if "Partner" in impl_filter:
+            impl_masks.append(filtered["IMPLEMENTER"].isin(_IMPL_PARTNER))
+        if "Both" in impl_filter:
+            impl_masks.append(filtered["IMPLEMENTER"].isin(_IMPL_BOTH))
+        if "None" in impl_filter:
+            impl_masks.append(filtered["IMPLEMENTER"].isnull() | filtered["IMPLEMENTER"].isin({"Customer Only", "Unknown", ""}))
+        if impl_masks:
+            combined_impl = impl_masks[0]
+            for m in impl_masks[1:]:
+                combined_impl = combined_impl | m
+            filtered = filtered[combined_impl]
     if search:
         filtered = filtered[filtered["USE_CASE_NAME"].str.contains(search, case=False, na=False)]
 
@@ -103,9 +128,7 @@ def _latest_se_comment_uc(full_text):
 
 
 st.divider()
-st.markdown('<div class="tab-banner"><p class="tab-banner-title">Account Use Case Detail</p></div>', unsafe_allow_html=True)
-
-ap_df = load_action_planner_pipeline()
+st.markdown('<div id="nav-uc-summary" class="tab-banner"><p class="tab-banner-title">Account-Level Use Case Summary</p></div>', unsafe_allow_html=True)
 
 if not ap_df.empty:
     uc_detail_left, uc_detail_right = st.columns([1, 3])

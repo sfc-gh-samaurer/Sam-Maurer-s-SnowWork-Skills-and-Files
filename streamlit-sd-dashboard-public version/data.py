@@ -3,6 +3,7 @@ import streamlit.components.v1 as components
 import pandas as pd
 from decimal import Decimal
 import html as html_mod
+import json
 
 _ROLE = "SALES_ENGINEER"
 _WAREHOUSE = "SNOWADHOC"
@@ -25,6 +26,41 @@ _ACCOUNT_SQL = """(
 )"""
 
 _DM_FILTER_HARDCODED = "IN ('Erik Schneider', 'Raymond Navarro')"
+
+
+def render_nav_bar(links):
+    buttons_html = "".join(
+        f'<button class="nav-btn" onclick="scrollParent(\'{anchor_id}\')">{label}</button>'
+        for label, anchor_id in links
+    )
+    html = f"""<style>
+*{{box-sizing:border-box;margin:0;padding:0;}}
+body{{background:transparent;overflow:hidden;}}
+.nav-container{{display:flex;align-items:center;gap:10px;background:white;
+  border:1px solid #e2e8f0;border-radius:12px;padding:10px 18px;flex-wrap:wrap;
+  box-shadow:0 2px 8px rgba(0,0,0,0.06);}}
+.nav-label{{color:#11567F;font-weight:700;font-size:0.82rem;text-transform:uppercase;
+  letter-spacing:0.08em;white-space:nowrap;margin-right:2px;
+  font-family:"Source Sans Pro",sans-serif;}}
+.nav-btn{{background:#d45b90;color:white;
+  border:none;cursor:pointer;padding:5px 14px;border-radius:20px;font-size:0.80rem;
+  font-weight:600;white-space:nowrap;font-family:"Source Sans Pro",sans-serif;
+  transition:background 0.15s ease;}}
+.nav-btn:hover{{background:#b84079;}}
+</style>
+<div class="nav-container">
+  <span class="nav-label">Page Navigation</span>
+  {buttons_html}
+</div>
+<script>
+function scrollParent(id){{
+  try{{
+    var el=window.parent.document.getElementById(id);
+    if(el)el.scrollIntoView({{behavior:'smooth',block:'start'}});
+  }}catch(e){{console.warn('Scroll error:',e);}}
+}}
+</script>"""
+    components.html(html, height=68)
 
 
 def _get_dm_in_clause():
@@ -267,6 +303,70 @@ def render_html_table(df, columns, height=500):
     components.html(table_html, height=height, scrolling=True)
 
 
+def get_current_user():
+    try:
+        from snowflake.snowpark.context import get_active_session
+        session = get_active_session()
+    except Exception:
+        session = st.connection("snowflake").session()
+    try:
+        result = session.sql("SELECT CURRENT_USER() AS U").collect()
+        return result[0]["U"]
+    except Exception:
+        return "UNKNOWN"
+
+
+def load_user_prefs():
+    try:
+        user = get_current_user()
+        from snowflake.snowpark.context import get_active_session
+        try:
+            session = get_active_session()
+        except Exception:
+            session = st.connection("snowflake").session()
+        try:
+            session.sql(f"USE ROLE {_ROLE}").collect()
+            session.sql(f"USE WAREHOUSE {_WAREHOUSE}").collect()
+        except Exception:
+            pass
+        rows = session.sql(
+            f"SELECT PREF_JSON FROM TEMP.PPACHENCE.SD_DASHBOARD_USER_PREFS "
+            f"WHERE USER_NAME = '{user.replace(chr(39), chr(39)*2)}'"
+        ).collect()
+        if rows and rows[0]["PREF_JSON"]:
+            return json.loads(rows[0]["PREF_JSON"])
+    except Exception:
+        pass
+    return {}
+
+
+def save_user_prefs(prefs_dict):
+    try:
+        user = get_current_user()
+        from snowflake.snowpark.context import get_active_session
+        try:
+            session = get_active_session()
+        except Exception:
+            session = st.connection("snowflake").session()
+        try:
+            session.sql(f"USE ROLE {_ROLE}").collect()
+            session.sql(f"USE WAREHOUSE {_WAREHOUSE}").collect()
+        except Exception:
+            pass
+        pref_json = json.dumps(prefs_dict).replace("'", "''")
+        user_esc = user.replace("'", "''")
+        session.sql(f"""
+            MERGE INTO TEMP.PPACHENCE.SD_DASHBOARD_USER_PREFS t
+            USING (SELECT '{user_esc}' AS USER_NAME, '{pref_json}' AS PREF_JSON) s
+            ON t.USER_NAME = s.USER_NAME
+            WHEN MATCHED THEN UPDATE SET PREF_JSON = s.PREF_JSON, UPDATED_AT = CURRENT_TIMESTAMP()
+            WHEN NOT MATCHED THEN INSERT (USER_NAME, PREF_JSON, UPDATED_AT)
+                VALUES (s.USER_NAME, s.PREF_JSON, CURRENT_TIMESTAMP())
+        """).collect()
+    except Exception:
+        pass
+
+
 def clear_all_caches():
     load_capacity_renewals.clear()
     load_capacity_pipeline.clear()
@@ -405,10 +505,14 @@ def load_capacity_pipeline():
             o.TYPE AS OPPORTUNITY_TYPE,
             o.STAGE_NAME,
             o.FORECAST_STATUS,
-            CAST(o.OPPORTUNITY_PRODUCT_ACV_TOTAL AS FLOAT) AS TOTAL_ACV,
-            CAST(o.OPPORTUNITY_RENEWAL_ACV AS FLOAT) AS RENEWAL_ACV,
-            CAST(o.OPPORTUNITY_GROWTH_ACV AS FLOAT) AS GROWTH_ACV,
-            CAST(o.OPPORTUNITY_PRODUCT_TCV_TOTAL AS FLOAT) AS TCV,
+            CAST(COALESCE(sf.FORECAST_ACV_C, 0) AS FLOAT) AS PRODUCT_FORECAST_ACV,
+            CAST(COALESCE(sf.PRODUCT_FORECAST_TCV_C, 0) AS FLOAT) AS PRODUCT_FORECAST_TCV,
+            CAST(
+                CASE WHEN COALESCE(sf.PRODUCT_FORECAST_TCV_C, 0) > 0
+                     THEN sf.PRODUCT_FORECAST_TCV_C
+                     ELSE COALESCE(sf.FORECAST_ACV_C, 0)
+                END AS FLOAT
+            ) AS CALCULATED_TCV,
             o.CLOSE_DATE,
             fc.FISCAL_PERIOD AS FISCAL_QUARTER,
             NULL AS DAYS_IN_STAGE,
@@ -418,6 +522,7 @@ def load_capacity_pipeline():
             o.DM
         FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
         LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = o.CLOSE_DATE
+        LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY sf ON sf.ID = o.OPP_ID
         WHERE o.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND o.DS = CURRENT_DATE()
         AND o.IS_CLOSED = FALSE
@@ -452,7 +557,8 @@ def load_use_cases():
             uc.TECHNICAL_USE_CASE_C AS TECHNICAL_USE_CASE,
             uc.ID AS USE_CASE_ID,
             uc.NAME AS USE_CASE_NUMBER,
-            uc.DECISION_DATE_C AS DECISION_DATE
+            uc.DECISION_DATE_C AS DECISION_DATE,
+            uc.IMPLEMENTER_C AS IMPLEMENTER
         FROM FIVETRAN.SALESFORCE.USE_CASE_C uc
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON uc.ACCOUNT_C = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
         LEFT JOIN FIVETRAN.SALESFORCE.USER u ON uc.OWNER_ID = u.ID
@@ -725,6 +831,7 @@ def load_action_planner_pipeline():
         SELECT
             sa.ACCOUNT_NAME,
             sa.ACCOUNT_ID AS ACCOUNT_ID,
+            sa.DM AS DM,
             u.DISTRICT_C AS DISTRICT,
             sa.REP_NAME AS AE_NAME,
             se_user.NAME AS SE_NAME,

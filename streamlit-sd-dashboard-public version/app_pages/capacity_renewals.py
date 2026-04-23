@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from data import load_capacity_renewals, load_capacity_pipeline, render_html_table
+from data import load_capacity_renewals, load_capacity_pipeline, render_html_table, render_nav_bar
 
 SFDC_BASE = "https://snowforce.lightning.force.com/lightning/r"
 
@@ -10,23 +10,26 @@ cap_pipe_df = load_capacity_pipeline()
 
 today = pd.Timestamp.now().normalize()
 
+render_nav_bar([
+    ("Active Capacity Contracts", "nav-cr-active"),
+    ("Capacity Conversion Candidates", "nav-cr-candidates"),
+    ("Capacity &amp; Renewal Pipeline", "nav-cr-pipeline"),
+    ("Investment Opportunities", "nav-cr-invest"),
+])
+
 # --- FILTERS ---
-st.markdown('<div class="tab-banner"><p class="tab-banner-title">Active Capacity Contracts</p></div>', unsafe_allow_html=True)
+st.markdown('<div id="nav-cr-active" class="tab-banner"><p class="tab-banner-title">Active Capacity Contracts</p></div>', unsafe_allow_html=True)
 
 if not df.empty:
-    fc1, fc2, fc3, fc4 = st.columns(4)
+    fc1, fc2, fc3 = st.columns(3)
     with fc1:
-        dm_filter = st.multiselect("DM", options=sorted(df["DM"].dropna().unique()), default=[], key="cap_dm")
-    with fc2:
         ae_filter = st.multiselect("AE", options=sorted(df["ACCOUNT_OWNER"].dropna().unique()), default=[], key="cap_ae")
-    with fc3:
+    with fc2:
         cap_filter = st.multiselect("Remaining Capacity", options=["$0 (No Data)", "< $1M", "$1M - $5M", "$5M - $10M", "> $10M"], default=[], key="cap_band")
-    with fc4:
+    with fc3:
         search = st.text_input("Search account", "", key="cap_search")
 
     filtered = df.copy()
-    if dm_filter:
-        filtered = filtered[filtered["DM"].isin(dm_filter)]
     if ae_filter:
         filtered = filtered[filtered["ACCOUNT_OWNER"].isin(ae_filter)]
     if cap_filter:
@@ -72,22 +75,23 @@ if not df.empty:
         remaining = filtered["CAPACITY_REMAINING"].sum()
         st.metric("Total Remaining", f"${remaining:,.0f}")
 
-    render_html_table(display, columns=[
-        {"col": "ACCOUNT_NAME", "label": "Account"},
-        {"col": "ACCOUNT_LINK", "label": "SFDC", "fmt": "link"},
-        {"col": "ACCOUNT_OWNER", "label": "AE"},
-        {"col": "DM", "label": "DM"},
-        {"col": "LEAD_SE", "label": "Lead SE"},
-        {"col": "CONTRACT_START_DATE", "label": "Start", "fmt": "date"},
-        {"col": "CONTRACT_END_DATE", "label": "End", "fmt": "date"},
-        {"col": "CAPACITY_USED", "label": "Cap Used YTD", "fmt": "dollar"},
-        {"col": "CAPACITY_REMAINING", "label": "Cap Remain", "fmt": "dollar"},
-        {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
-        {"col": "OVERAGE_DATE", "label": "Overage Date", "fmt": "date"},
-    ], height=600)
+    with st.expander(f"{len(filtered)} contracts", expanded=True):
+        render_html_table(display, columns=[
+            {"col": "ACCOUNT_NAME", "label": "Account"},
+            {"col": "ACCOUNT_LINK", "label": "SFDC", "fmt": "link"},
+            {"col": "ACCOUNT_OWNER", "label": "AE"},
+            {"col": "DM", "label": "DM"},
+            {"col": "LEAD_SE", "label": "Lead SE"},
+            {"col": "CONTRACT_START_DATE", "label": "Start", "fmt": "date"},
+            {"col": "CONTRACT_END_DATE", "label": "End", "fmt": "date"},
+            {"col": "CAPACITY_USED", "label": "Cap Used YTD", "fmt": "dollar"},
+            {"col": "CAPACITY_REMAINING", "label": "Cap Remain", "fmt": "dollar"},
+            {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
+            {"col": "OVERAGE_DATE", "label": "Overage Date", "fmt": "date"},
+        ], height=600)
 
-    csv = filtered.to_csv(index=False)
-    st.download_button(":material/download: Export CSV", csv, "capacity_contracts.csv", "text/csv", key="cap_csv")
+        csv = filtered.to_csv(index=False)
+        st.download_button(":material/download: Export CSV", csv, "capacity_contracts.csv", "text/csv", key="cap_csv")
 
     candidates = filtered[
         (filtered["CONTRACT_END_DATE"].notna())
@@ -105,7 +109,7 @@ if not df.empty:
     ].sort_values("OVERAGE_UNDERAGE_PREDICTION", ascending=True)
 
     st.divider()
-    st.markdown('<div class="tab-banner"><p class="tab-banner-title">Capacity Conversion Candidates</p></div>', unsafe_allow_html=True)
+    st.markdown('<div id="nav-cr-candidates" class="tab-banner"><p class="tab-banner-title">Capacity Conversion Candidates</p></div>', unsafe_allow_html=True)
 
     if not candidates.empty:
         with st.expander(f"{len(candidates)} accounts ending within 24 months with predicted underburn", expanded=True):
@@ -135,7 +139,7 @@ else:
 st.divider()
 
 # --- CAPACITY & RENEWAL PIPELINE ---
-st.markdown('<div class="tab-banner"><p class="tab-banner-title">Capacity &amp; Renewal Pipeline</p></div>', unsafe_allow_html=True)
+st.markdown('<div id="nav-cr-pipeline" class="tab-banner"><p class="tab-banner-title">Capacity &amp; Renewal Pipeline</p></div>', unsafe_allow_html=True)
 
 if not cap_pipe_df.empty:
     cap_pipe_df["CLOSE_DATE"] = pd.to_datetime(cap_pipe_df["CLOSE_DATE"])
@@ -181,11 +185,11 @@ if not cap_pipe_df.empty:
     with pk1:
         st.metric("Open Opps", len(filtered_p))
     with pk2:
-        total_acv = filtered_p["TOTAL_ACV"].sum()
-        st.metric("Total ACV", f"${total_acv:,.0f}")
+        total_acv = filtered_p["PRODUCT_FORECAST_ACV"].sum()
+        st.metric("Total Product Forecast ACV", f"${total_acv:,.0f}")
     with pk3:
-        total_tcv = filtered_p["TCV"].sum()
-        st.metric("Total TCV", f"${total_tcv:,.0f}")
+        total_tcv = filtered_p["CALCULATED_TCV"].sum()
+        st.metric("Total Calculated TCV", f"${total_tcv:,.0f}")
     with pk4:
         renewals_ct = len(filtered_p[filtered_p["OPPORTUNITY_TYPE"] == "Renewal"])
         st.metric("Renewals", renewals_ct)
@@ -194,24 +198,93 @@ if not cap_pipe_df.empty:
     display_p["OPP_LINK"] = display_p.apply(
         lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1)
 
-    render_html_table(display_p, columns=[
-        {"col": "ACCOUNT_NAME", "label": "Account"},
-        {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
-        {"col": "OPP_LINK", "label": "Opp SFDC", "fmt": "link"},
-        {"col": "OPPORTUNITY_TYPE", "label": "Type"},
-        {"col": "STAGE_NAME", "label": "Stage"},
-        {"col": "FORECAST_STATUS", "label": "Forecast"},
-        {"col": "TOTAL_ACV", "label": "Total ACV", "fmt": "dollar"},
-        {"col": "RENEWAL_ACV", "label": "Rnwl ACV", "fmt": "dollar"},
-        {"col": "GROWTH_ACV", "label": "Growth ACV", "fmt": "dollar"},
-        {"col": "TCV", "label": "TCV", "fmt": "dollar"},
-        {"col": "CLOSE_DATE", "label": "Close Date", "fmt": "date"},
-        {"col": "OWNER", "label": "Owner"},
-        {"col": "DM", "label": "DM"},
+    with st.expander(f"{len(filtered_p)} opportunities", expanded=True):
+        render_html_table(display_p, columns=[
+            {"col": "ACCOUNT_NAME", "label": "Account"},
+            {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
+            {"col": "OPP_LINK", "label": "Opp SFDC", "fmt": "link"},
+            {"col": "OPPORTUNITY_TYPE", "label": "Type"},
+            {"col": "STAGE_NAME", "label": "Stage"},
+            {"col": "FORECAST_STATUS", "label": "Forecast"},
+            {"col": "PRODUCT_FORECAST_ACV", "label": "Product Forecast ACV", "fmt": "dollar"},
+            {"col": "PRODUCT_FORECAST_TCV", "label": "Product Forecast TCV", "fmt": "dollar"},
+            {"col": "CALCULATED_TCV", "label": "Calculated TCV", "fmt": "dollar"},
+            {"col": "CLOSE_DATE", "label": "Close Date", "fmt": "date"},
+            {"col": "OWNER", "label": "Owner"},
+            {"col": "DM", "label": "DM"},
+        ], height=500)
 
-    ], height=500)
-
-    csv_p = filtered_p.to_csv(index=False)
-    st.download_button(":material/download: Export Pipeline CSV", csv_p, "capacity_pipeline.csv", "text/csv", key="cpipe_csv")
+        csv_p = filtered_p.to_csv(index=False)
+        st.download_button(":material/download: Export Pipeline CSV", csv_p, "capacity_pipeline.csv", "text/csv", key="cpipe_csv")
 else:
     st.info("No capacity pipeline opportunities found.")
+
+st.divider()
+
+st.markdown('<div id="nav-cr-invest" class="tab-banner"><p class="tab-banner-title">Investment Opportunities</p></div>', unsafe_allow_html=True)
+
+if not cap_pipe_df.empty:
+    invest_df = cap_pipe_df.copy()
+    invest_df["CLOSE_DATE"] = pd.to_datetime(invest_df["CLOSE_DATE"], errors="coerce")
+    invest_df = invest_df[invest_df["CLOSE_DATE"] > today]
+    invest_df = invest_df[invest_df["FORECAST_STATUS"].fillna("") != "Omitted"]
+
+    def _current_fq():
+        m = today.month
+        fy = today.year + 1 if m >= 2 else today.year
+        q = 1 if m in (2, 3, 4) else 2 if m in (5, 6, 7) else 3 if m in (8, 9, 10) else 4
+        return f"Q{q}-{fy}"
+
+    if1, if2, if3 = st.columns(3)
+    with if1:
+        fq_opts = sorted(invest_df["FISCAL_QUARTER"].dropna().unique())
+        _cfq = _current_fq()
+        fq_default = [_cfq] if _cfq in fq_opts else []
+        fq_filter = st.multiselect("Fiscal Quarter", options=fq_opts, default=fq_default, key="invest_fq")
+    with if2:
+        type_opts = sorted(invest_df["OPPORTUNITY_TYPE"].dropna().unique())
+        type_filter_inv = st.multiselect("Type", options=type_opts, default=type_opts, key="invest_type")
+    with if3:
+        _TCV_MAP = {"All": 0, "$250,000+": 250_000, "$500,000+": 500_000, "$1,000,000+": 1_000_000}
+        tcv_label = st.radio("Calculated TCV Threshold", list(_TCV_MAP.keys()), index=2, horizontal=True, key="invest_tcv_radio")
+        tcv_threshold = _TCV_MAP[tcv_label]
+    excl_segments = st.checkbox("Exclude Segments", value=True, key="invest_excl_segs")
+    if fq_filter:
+        invest_df = invest_df[invest_df["FISCAL_QUARTER"].isin(fq_filter)]
+    if type_filter_inv:
+        invest_df = invest_df[invest_df["OPPORTUNITY_TYPE"].isin(type_filter_inv)]
+    if excl_segments:
+        invest_df = invest_df[~invest_df["OPPORTUNITY_NAME"].str.contains(r"segment\s*\d+", case=False, na=False, regex=True)]
+    invest_df = invest_df[invest_df["CALCULATED_TCV"].fillna(0) >= tcv_threshold].copy()
+    invest_df["EST_INVESTMENT"] = invest_df["CALCULATED_TCV"].fillna(0) * 0.10
+    invest_df["OPP_LINK"] = invest_df.apply(
+        lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1)
+
+    ik1, ik2, ik3 = st.columns(3)
+    with ik1:
+        st.metric("Opportunities", len(invest_df))
+    with ik2:
+        st.metric("Total Calculated TCV", f"${invest_df['CALCULATED_TCV'].fillna(0).sum():,.0f}")
+    with ik3:
+        st.metric("Est. Total Investment", f"${invest_df['EST_INVESTMENT'].sum():,.0f}")
+
+    with st.expander(f"{len(invest_df)} opportunities", expanded=True):
+        render_html_table(invest_df, columns=[
+            {"col": "ACCOUNT_NAME", "label": "Account"},
+            {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
+            {"col": "OPP_LINK", "label": "Link", "fmt": "link"},
+            {"col": "OPPORTUNITY_TYPE", "label": "Type"},
+            {"col": "STAGE_NAME", "label": "Stage"},
+            {"col": "FORECAST_STATUS", "label": "Forecast"},
+            {"col": "PRODUCT_FORECAST_ACV", "label": "Product Forecast ACV", "fmt": "dollar"},
+            {"col": "PRODUCT_FORECAST_TCV", "label": "Product Forecast TCV", "fmt": "dollar"},
+            {"col": "CALCULATED_TCV", "label": "Calculated TCV", "fmt": "dollar"},
+            {"col": "CLOSE_DATE", "label": "Close Date", "fmt": "date"},
+            {"col": "OWNER", "label": "Opp Owner"},
+            {"col": "EST_INVESTMENT", "label": "Est. Investment", "fmt": "dollar"},
+        ], height=500)
+
+        csv_inv = invest_df.to_csv(index=False)
+        st.download_button(":material/download: Export Investment CSV", csv_inv, "investment_opps.csv", "text/csv", key="invest_csv")
+else:
+    st.info("No investment opportunity data found.")

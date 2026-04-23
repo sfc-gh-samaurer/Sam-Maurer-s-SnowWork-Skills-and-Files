@@ -1,9 +1,9 @@
 definition_version: 2
 entities:
-  sd_presales_pipeline_dashboard:
+  sd_presales_rtb_dashboard:
     type: streamlit
     identifier:
-      name: '"SD Presales Pipeline Dashboard"'
+      name: '"SD Presales Run the Business Dashboard"'
       database: TEMP
       schema: PPACHENCE
     query_warehouse: SNOWADHOC
@@ -20,5 +20,7 @@ entities:
       - app_pages/capacity_renewals.py
       - app_pages/use_cases_tab.py
       - app_pages/pst_tab.py
+      - app_pages/sd_opportunities_tab.py
       - app_pages/action_planner_tab.py
       - app_pages/pipeline_snowwork_tab.py
+      - app_pages/account_details_tab.py

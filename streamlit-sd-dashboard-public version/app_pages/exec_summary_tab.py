@@ -7,6 +7,7 @@ from data import (
     load_exec_new_opps,
     load_exec_new_use_cases,
     load_capacity_renewals,
+    load_capacity_pipeline,
     render_html_table,
 )
 
@@ -14,11 +15,16 @@ SFDC_BASE = "https://snowforce.lightning.force.com/lightning/r"
 
 today = pd.Timestamp.now().normalize()
 
-sw_renewals = load_exec_software_renewals()
+sw_renewals_raw = load_exec_software_renewals()
 svc_renewals = load_exec_services_renewals()
 new_opps_all = load_exec_new_opps()
 new_uc_all = load_exec_new_use_cases()
 cap_df = load_capacity_renewals()
+cap_pipe_df = load_capacity_pipeline()
+
+sw_renewals = sw_renewals_raw[
+    ~sw_renewals_raw["OPPORTUNITY_NAME"].str.contains("Segment", case=False, na=False)
+].copy()
 
 def _to_naive(series):
     s = pd.to_datetime(series, errors="coerce")
@@ -42,6 +48,32 @@ if not cap_df.empty:
         & (cap_df_copy["DAYS_LEFT"] > 0)
         & (cap_df_copy["OVERAGE_UNDERAGE_PREDICTION"] < 0)
     ].sort_values("OVERAGE_UNDERAGE_PREDICTION", ascending=True).head(15)
+
+def _current_and_next_fq():
+    m = today.month
+    fy = today.year + 1 if m >= 2 else today.year
+    q = 1 if m in (2, 3, 4) else 2 if m in (5, 6, 7) else 3 if m in (8, 9, 10) else 4
+    next_q = q + 1 if q < 4 else 1
+    next_fy = fy if q < 4 else fy + 1
+    return [f"Q{q}-{fy}", f"Q{next_q}-{next_fy}"]
+
+invest_fqs = _current_and_next_fq()
+invest_df = pd.DataFrame()
+if not cap_pipe_df.empty:
+    _ip = cap_pipe_df.copy()
+    _ip["CLOSE_DATE"] = pd.to_datetime(_ip["CLOSE_DATE"], errors="coerce")
+    _ip = _ip[_ip["CLOSE_DATE"] > today]
+    _ip = _ip[_ip["FORECAST_STATUS"].fillna("") != "Omitted"]
+    _ip = _ip[_ip["FISCAL_QUARTER"].isin(invest_fqs)]
+    invest_df = _ip[_ip["CALCULATED_TCV"].fillna(0) >= 500_000]
+
+if "exec_days_window" not in st.session_state:
+    st.session_state["exec_days_window"] = 15
+days_window = st.session_state["exec_days_window"]
+
+cutoff = today - pd.Timedelta(days=days_window)
+new_opps = new_opps_all[new_opps_all["CREATED_DATE"] >= cutoff].copy()
+new_uc = new_uc_all[new_uc_all["CREATED_DATE"] >= cutoff].copy()
 
 # ── STYLES ────────────────────────────────────────────────────────────────────
 st.markdown("""
@@ -123,25 +155,13 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── TIMEFRAME SELECTOR ────────────────────────────────────────────────────────
-days_window = st.radio(
-    "Select timeframe option to 30/60/90 days:",
-    options=[30, 60, 90],
-    format_func=lambda x: f"Last {x} days",
-    horizontal=True,
-    key="exec_days_window",
-)
-
-cutoff = today - pd.Timedelta(days=days_window)
-new_opps = new_opps_all[new_opps_all["CREATED_DATE"] >= cutoff].copy()
-new_uc = new_uc_all[new_uc_all["CREATED_DATE"] >= cutoff].copy()
-
 # ── KPI CARDS ─────────────────────────────────────────────────────────────────
-sw_n  = len(sw_renewals)
-svc_n = len(svc_renewals)
-opp_n = len(new_opps)
-uc_n  = len(new_uc)
-cv_n  = len(conv_candidates)
+sw_n      = len(sw_renewals)
+svc_n     = len(svc_renewals)
+opp_n     = len(new_opps)
+uc_n      = len(new_uc)
+cv_n      = len(conv_candidates)
+invest_n  = len(invest_df)
 
 st.markdown(f"""
 <div class="kpi-grid">
@@ -175,8 +195,23 @@ st.markdown(f"""
         <div class="kpi-label" style="color:#92400E;">Conv. Candidates</div>
         <div class="kpi-sub">Underburn &lt;24 months</div>
     </div>
+    <div class="kpi-card" style="background:linear-gradient(160deg,#FDF2F8,#FCE7F3);border-top-color:#d45b90;">
+        <span class="kpi-icon">💰</span>
+        <div class="kpi-value" style="color:#be185d;">{invest_n}</div>
+        <div class="kpi-label" style="color:#9d174d;">Invest Candidates</div>
+        <div class="kpi-sub">Cap deals &gt;500k, 2 Qtrs</div>
+    </div>
 </div>
 """, unsafe_allow_html=True)
+
+# ── TIMEFRAME SELECTOR (below KPI grid) ───────────────────────────────────────
+days_window = st.radio(
+    "Select timeframe for New Use Cases & Opps:",
+    options=[15, 30, 60, 90],
+    format_func=lambda x: f"Last {x} days",
+    horizontal=True,
+    key="exec_days_window",
+)
 
 st.divider()
 
@@ -202,23 +237,14 @@ with st.expander(
         sw_display["OPP_LINK"] = sw_display["OPPORTUNITY_ID"].apply(
             lambda x: f"{SFDC_BASE}/Opportunity/{x}/view" if pd.notna(x) and x else None
         )
-        sw_display["ACCT_LINK"] = sw_display["SALESFORCE_ACCOUNT_ID"].apply(
-            lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
-        )
         render_html_table(sw_display, columns=[
-            {"col": "ACCOUNT_NAME", "label": "Account"},
-            {"col": "ACCT_LINK", "label": "Acct", "fmt": "link"},
             {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
             {"col": "OPP_LINK", "label": "Opp", "fmt": "link"},
-            {"col": "STAGE_NAME", "label": "Stage"},
             {"col": "FORECAST_STATUS", "label": "Forecast"},
             {"col": "TOTAL_ACV", "label": "Total ACV", "fmt": "dollar"},
             {"col": "RENEWAL_ACV", "label": "Rnwl ACV", "fmt": "dollar"},
             {"col": "CLOSE_DATE", "label": "Close Date", "fmt": "date"},
-            {"col": "FISCAL_QUARTER", "label": "FQ"},
             {"col": "OWNER", "label": "Owner"},
-            {"col": "DM", "label": "DM"},
-            {"col": "NEXT_STEPS", "label": "Next Steps"},
         ], height=max(200, min(400, len(sw_display) * 35 + 60)))
 
 # ── SECTION 2: Services Renewals ──────────────────────────────────────────────
@@ -237,17 +263,12 @@ with st.expander(
             {"col": "ACCOUNT_NAME", "label": "Account"},
             {"col": "ACCT_LINK", "label": "SFDC", "fmt": "link"},
             {"col": "PROJECT_NAME", "label": "Project"},
-            {"col": "AGREEMENT_TYPE", "label": "Agreement"},
-            {"col": "SERVICE_TYPE", "label": "Service Type"},
             {"col": "PROJECT_STAGE", "label": "Stage"},
             {"col": "START_DATE", "label": "Start", "fmt": "date"},
             {"col": "END_DATE", "label": "End", "fmt": "date"},
             {"col": "DAYS_TO_END", "label": "Days Left", "fmt": "number"},
-            {"col": "REVENUE_AMOUNT", "label": "Revenue", "fmt": "dollar"},
             {"col": "PROJECT_MANAGER", "label": "PM"},
-            {"col": "DELIVERY_MANAGER", "label": "DM Eng"},
             {"col": "AE", "label": "AE"},
-            {"col": "DM", "label": "DM"},
         ], height=max(200, min(400, len(svc_display) * 35 + 60)))
 
 # ── SECTION 3: New Opportunities ──────────────────────────────────────────────
@@ -262,23 +283,16 @@ with st.expander(
         new_opps_display["OPP_LINK"] = new_opps_display["OPPORTUNITY_ID"].apply(
             lambda x: f"{SFDC_BASE}/Opportunity/{x}/view" if pd.notna(x) and x else None
         )
-        new_opps_display["ACCT_LINK"] = new_opps_display["SALESFORCE_ACCOUNT_ID"].apply(
-            lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
-        )
         render_html_table(new_opps_display, columns=[
-            {"col": "ACCOUNT_NAME", "label": "Account"},
-            {"col": "ACCT_LINK", "label": "Acct", "fmt": "link"},
             {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
             {"col": "OPP_LINK", "label": "Opp", "fmt": "link"},
             {"col": "OPPORTUNITY_TYPE", "label": "Type"},
             {"col": "AGREEMENT_TYPE", "label": "Agreement"},
-            {"col": "STAGE_NAME", "label": "Stage"},
             {"col": "FORECAST_STATUS", "label": "Forecast"},
             {"col": "TOTAL_ACV", "label": "ACV", "fmt": "dollar"},
             {"col": "CLOSE_DATE", "label": "Close", "fmt": "date"},
             {"col": "CREATED_DATE", "label": "Created", "fmt": "date"},
             {"col": "OWNER", "label": "Owner"},
-            {"col": "DM", "label": "DM"},
         ], height=max(200, min(500, len(new_opps_display) * 35 + 60)))
 
 # ── SECTION 4: New Use Cases ──────────────────────────────────────────────────
@@ -297,13 +311,10 @@ with st.expander(
             {"col": "ACCOUNT_NAME", "label": "Account"},
             {"col": "ACCT_LINK", "label": "SFDC", "fmt": "link"},
             {"col": "USE_CASE_NAME", "label": "Use Case"},
-            {"col": "USE_CASE_STATUS", "label": "Status"},
             {"col": "STAGE", "label": "Stage"},
             {"col": "ACV", "label": "eACV", "fmt": "dollar"},
             {"col": "CREATED_DATE", "label": "Created", "fmt": "date"},
             {"col": "OWNER", "label": "Owner"},
-            {"col": "DM", "label": "DM"},
-            {"col": "NEXT_STEPS", "label": "Next Steps"},
         ], height=max(200, min(500, len(uc_display) * 35 + 60)))
 
 # ── SECTION 5: Capacity Conversion Candidates ─────────────────────────────────
@@ -315,7 +326,7 @@ with st.expander(
         st.info("No capacity conversion candidates found.")
     else:
         st.caption("Accounts predicted to have significant unused capacity at contract end — consider converting remaining capacity into services contracts.")
-        conv_display = conv_candidates[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
+        conv_display = conv_candidates[["SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                                         "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAPACITY",
                                         "CAPACITY_REMAINING", "PCT_REMAINING",
                                         "OVERAGE_UNDERAGE_PREDICTION"]].copy()
@@ -323,7 +334,6 @@ with st.expander(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
         )
         render_html_table(conv_display, columns=[
-            {"col": "ACCOUNT_NAME", "label": "Account"},
             {"col": "ACCT_LINK", "label": "SFDC", "fmt": "link"},
             {"col": "ACCOUNT_OWNER", "label": "AE"},
             {"col": "DM", "label": "DM"},
@@ -334,3 +344,27 @@ with st.expander(
             {"col": "PCT_REMAINING", "label": "% Remain", "fmt": "pct"},
             {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Pred Under", "fmt": "dollar"},
         ], height=max(200, min(500, len(conv_display) * 35 + 60)))
+
+# ── SECTION 6: Investment Candidates ──────────────────────────────────────────
+with st.expander(
+    f"💰  **Investment Candidates** — {invest_n} cap deals ≥$500K in {' & '.join(invest_fqs)}",
+    expanded=False,
+):
+    if invest_df.empty:
+        st.info("No investment candidates found.")
+    else:
+        st.caption(f"Future capacity opportunities with Calculated TCV ≥$500K closing in {' or '.join(invest_fqs)}. Independent of filters on the Capacity & Renewals tab.")
+        inv_display = invest_df.copy()
+        inv_display["OPP_LINK"] = inv_display.apply(
+            lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1)
+        inv_display["EST_INVESTMENT"] = inv_display["CALCULATED_TCV"].fillna(0) * 0.10
+        render_html_table(inv_display, columns=[
+            {"col": "ACCOUNT_NAME", "label": "Account"},
+            {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
+            {"col": "OPP_LINK", "label": "Link", "fmt": "link"},
+            {"col": "OPPORTUNITY_TYPE", "label": "Type"},
+            {"col": "FORECAST_STATUS", "label": "Forecast"},
+            {"col": "CALCULATED_TCV", "label": "Calculated TCV", "fmt": "dollar"},
+            {"col": "CLOSE_DATE", "label": "Close Date", "fmt": "date"},
+            {"col": "EST_INVESTMENT", "label": "Est. Investment", "fmt": "dollar"},
+        ], height=max(200, min(500, len(inv_display) * 35 + 60)))

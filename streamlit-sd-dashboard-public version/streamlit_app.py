@@ -1,18 +1,27 @@
 import streamlit as st
-from data import clear_all_caches, _init_session, load_org_hierarchy
+from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs
 from datetime import datetime
 import os
 
 _APP_DIR = os.path.dirname(os.path.abspath(__file__))
 
 st.set_page_config(
-    page_title="SD Presales Pipeline",
+    page_title="SD Presales Run the Business",
     page_icon="❄️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
 _init_session()
+
+# ── USER PREFS: load once per browser session ─────────────────────────────────
+if "_prefs_loaded" not in st.session_state:
+    _saved = load_user_prefs()
+    for _k, _v in _saved.items():
+        if _k not in st.session_state:
+            st.session_state[_k] = _v
+    st.session_state["_prefs_loaded"] = True
+    st.session_state["_prefs_hash"] = ""
 
 st.markdown("""
 <style>
@@ -44,11 +53,96 @@ st.markdown("""
         font-size: 0.92rem;
         margin: 5px 0 0;
     }
+    .tab-nav {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 12px 20px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .tab-nav-label {
+        color: #11567F;
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        white-space: nowrap;
+        margin-right: 4px;
+    }
+    .tab-nav-link {
+        background: linear-gradient(135deg, #0C4A6E 0%, #0284C7 100%);
+        color: white !important;
+        text-decoration: none !important;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        white-space: nowrap;
+        display: inline-block;
+    }
+    .tab-nav-link:hover {
+        background: linear-gradient(135deg, #164E63 0%, #0369A1 100%);
+        color: white !important;
+        text-decoration: none !important;
+    }
+    section[data-testid="stSidebar"] [data-testid^="baseButton-"] {
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        font-size: 0.85rem !important;
+        text-align: left !important;
+        padding: 8px 14px !important;
+        margin-bottom: 2px !important;
+        transition: all 0.15s ease !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="baseButton-primary"] {
+        background: linear-gradient(135deg, #0C4A6E 0%, #0284C7 100%) !important;
+        border-color: #0284C7 !important;
+        color: white !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="baseButton-secondary"] {
+        background: white !important;
+        color: #334155 !important;
+        border: 1px solid #e2e8f0 !important;
+    }
+    section[data-testid="stSidebar"] [data-testid="baseButton-secondary"]:hover {
+        background: #f0f9ff !important;
+        color: #0C4A6E !important;
+        border-color: #93C5FD !important;
+    }
 </style>
 """, unsafe_allow_html=True)
 
+_NAV_PAGES = [
+    ":material/bar_chart: Executive Summary",
+    ":material/business_center: SD Opportunities",
+    ":material/trending_up: Capacity & Renewals",
+    ":material/rocket_launch: Use Cases",
+    ":material/support_agent: SD Projects",
+    ":material/manage_accounts: Account Details",
+]
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = _NAV_PAGES[0]
+
 # ── SIDEBAR ───────────────────────────────────────────────────────────────────
 with st.sidebar:
+    st.markdown("### :material/navigation: Navigation")
+    for _i, _pg in enumerate(_NAV_PAGES):
+        _active = st.session_state.get("current_page") == _pg
+        if st.button(
+            _pg,
+            key=f"_nav_btn_{_i}",
+            use_container_width=True,
+            type="primary" if _active else "secondary",
+        ):
+            st.session_state["current_page"] = _pg
+            st.rerun()
+    st.divider()
     st.markdown("### :material/filter_alt: Filters")
 
     org_df = load_org_hierarchy()
@@ -110,6 +204,21 @@ with st.sidebar:
     st.divider()
     st.caption(f"**{len(new_dms)}** District Manager(s) in scope")
 
+    # ── Save prefs when they change ───────────────────────────────────────────
+    import json as _json
+    _cur_prefs = {
+        "sf_theater": st.session_state.get("sf_theater", []),
+        "sf_region":  st.session_state.get("sf_region", []),
+        "sf_pm":      st.session_state.get("sf_pm", []),
+        "sf_district": st.session_state.get("sf_district", []),
+    }
+    _cur_hash = _json.dumps(
+        {k: sorted(v) for k, v in _cur_prefs.items()}, sort_keys=True
+    )
+    if _cur_hash != st.session_state.get("_prefs_hash", ""):
+        save_user_prefs(_cur_prefs)
+        st.session_state["_prefs_hash"] = _cur_hash
+
 # ── HEADER ────────────────────────────────────────────────────────────────────
 header_left, header_right = st.columns([3, 1])
 with header_left:
@@ -118,7 +227,7 @@ with header_left:
     pms_str = ", ".join(st.session_state.get("sf_pm", [])) or "All Practice Managers"
     n_dms = len(st.session_state.get("selected_dms", []))
 
-    st.markdown("## ❄️ SD Presales Pipeline")
+    st.markdown("## ❄️ SD Presales Run the Business")
     st.caption(
         f"Theater: **{theaters_str}** | Region: **{regions_str}** | "
         f"PM: **{pms_str}** | {n_dms} DM(s) in scope"
@@ -137,30 +246,15 @@ with header_right:
 
 st.divider()
 
-tab0, tab1, tab2, tab3, tab4 = st.tabs([
-    ":material/bar_chart: Executive Summary",
-    ":material/trending_up: Capacity & Renewals",
-    ":material/rocket_launch: Use Cases",
-    ":material/support_agent: SD Projects",
-    ":material/work: Pipeline in SnowWork",
-])
+_PAGE_FILES = {
+    ":material/bar_chart: Executive Summary": "exec_summary_tab.py",
+    ":material/business_center: SD Opportunities": "sd_opportunities_tab.py",
+    ":material/trending_up: Capacity & Renewals": "capacity_renewals.py",
+    ":material/rocket_launch: Use Cases": "use_cases_tab.py",
+    ":material/support_agent: SD Projects": "pst_tab.py",
+    ":material/manage_accounts: Account Details": "account_details_tab.py",
+}
 
-with tab0:
-    with open(os.path.join(_APP_DIR, "app_pages/exec_summary_tab.py")) as f:
-        exec(f.read())
-
-with tab1:
-    with open(os.path.join(_APP_DIR, "app_pages/capacity_renewals.py")) as f:
-        exec(f.read())
-
-with tab2:
-    with open(os.path.join(_APP_DIR, "app_pages/use_cases_tab.py")) as f:
-        exec(f.read())
-
-with tab3:
-    with open(os.path.join(_APP_DIR, "app_pages/pst_tab.py")) as f:
-        exec(f.read())
-
-with tab4:
-    with open(os.path.join(_APP_DIR, "app_pages/pipeline_snowwork_tab.py")) as f:
-        exec(f.read())
+_selected = st.session_state.get("current_page", ":material/bar_chart: Executive Summary")
+with open(os.path.join(_APP_DIR, f"app_pages/{_PAGE_FILES[_selected]}")) as f:
+    exec(f.read())
