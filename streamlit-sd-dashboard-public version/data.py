@@ -428,6 +428,7 @@ def load_capacity_renewals():
             WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
             AND a.ACCOUNT_STATUS_C = 'Active'
             AND fa.CAPACITY_COUNTER_C > 0
+            AND fa.CURRENT_CAPACITY_VALUE_C > 0
         ),
         dim_cap AS (
             SELECT
