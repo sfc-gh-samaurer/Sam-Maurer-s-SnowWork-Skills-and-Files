@@ -4,8 +4,8 @@ entities:
     type: streamlit
     identifier:
       name: '"SD Presales Run the Business Dashboard"'
-      database: TEMP
-      schema: PPACHENCE
+      database: SD_APPS_DB
+      schema: SD_Center
     query_warehouse: SNOWADHOC
     compute_pool: STREAMLIT_DEDICATED_POOL
     runtime_name: SYSTEM$ST_CONTAINER_RUNTIME_PY3_11
