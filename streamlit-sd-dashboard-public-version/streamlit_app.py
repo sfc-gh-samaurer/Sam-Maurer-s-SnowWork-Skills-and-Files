@@ -36,17 +36,17 @@ st.markdown("""
     .tab-banner {
         background: linear-gradient(135deg, #0C4A6E 0%, #0284C7 55%, #29B5E8 100%);
         border-radius: 16px;
-        padding: 24px 32px;
-        margin-bottom: 22px;
-        box-shadow: 0 6px 24px rgba(41,181,232,0.30);
+        padding: 14px 24px;
+        margin-bottom: 16px;
+        box-shadow: 0 4px 12px rgba(41,181,232,0.20);
     }
     .tab-banner-title {
         color: white !important;
-        font-size: 4.4rem;
-        font-weight: 800;
+        font-size: 1.5rem;
+        font-weight: 700;
         margin: 0;
-        letter-spacing: -0.02em;
-        line-height: 1.15;
+        letter-spacing: -0.01em;
+        line-height: 1.3;
     }
     .tab-banner-sub {
         color: rgba(255,255,255,0.78);
