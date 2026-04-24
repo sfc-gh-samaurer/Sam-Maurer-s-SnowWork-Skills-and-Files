@@ -286,6 +286,7 @@ with st.expander(
             lambda x: f"{SFDC_BASE}/Opportunity/{x}/view" if pd.notna(x) and x else None
         )
         render_html_table(new_opps_display, columns=[
+            {"col": "ACCOUNT_NAME", "label": "Account"},
             {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
             {"col": "OPP_LINK", "label": "Opp", "fmt": "link"},
             {"col": "OPPORTUNITY_TYPE", "label": "Type"},
