@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from data import load_ps_projects_active, render_html_table, render_nav_bar
 
-SFDC_BASE = "https://snowforce.lightning.force.com/lightning/r"
+from constants import SFDC_BASE
 
 active_df = load_ps_projects_active()
 if not active_df.empty and "PRACTICE" in active_df.columns:

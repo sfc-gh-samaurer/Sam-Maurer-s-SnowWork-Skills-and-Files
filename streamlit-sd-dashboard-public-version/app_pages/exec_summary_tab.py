@@ -11,7 +11,7 @@ from data import (
     render_html_table,
 )
 
-SFDC_BASE = "https://snowforce.lightning.force.com/lightning/r"
+from constants import SFDC_BASE
 
 today = pd.Timestamp.now().normalize()
 
@@ -76,74 +76,6 @@ new_opps = new_opps_all[new_opps_all["CREATED_DATE"] >= cutoff].copy()
 new_uc = new_uc_all[new_uc_all["CREATED_DATE"] >= cutoff].copy()
 
 # ── STYLES ────────────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-.exec-banner {
-    background: linear-gradient(135deg, #0C4A6E 0%, #0284C7 55%, #29B5E8 100%);
-    border-radius: 16px;
-    padding: 14px 24px;
-    margin-bottom: 16px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    box-shadow: 0 4px 12px rgba(41,181,232,0.20);
-}
-.exec-banner-icon { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
-.exec-banner-title {
-    color: white !important;
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 0;
-    letter-spacing: -0.01em;
-    line-height: 1.3;
-}
-.exec-banner-sub {
-    color: rgba(255,255,255,0.78);
-    font-size: 0.92rem;
-    margin: 5px 0 0;
-}
-.kpi-grid {
-    display: flex;
-    gap: 14px;
-    margin: 4px 0 20px 0;
-}
-.kpi-card {
-    flex: 1;
-    border-radius: 14px;
-    padding: 22px 14px 16px;
-    text-align: center;
-    box-shadow: 0 3px 14px rgba(0,0,0,0.09);
-    border-top: 5px solid;
-    transition: box-shadow 0.2s;
-}
-.kpi-icon { font-size: 2.4rem; margin-bottom: 10px; display: block; line-height: 1; }
-.kpi-value {
-    font-size: 2.2rem;
-    font-weight: 900;
-    line-height: 1.0;
-    margin-bottom: 7px;
-}
-.kpi-label {
-    font-size: 1rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 4px;
-}
-.kpi-sub { font-size: 0.7rem; opacity: 0.58; }
-.detail-header {
-    background: linear-gradient(135deg, #0C4A6E 0%, #0284C7 55%, #29B5E8 100%);
-    border-radius: 16px;
-    padding: 14px 24px;
-    margin: 16px 0 12px 0;
-    display: flex;
-    align-items: center;
-    box-shadow: 0 4px 12px rgba(41,181,232,0.20);
-}
-.detail-header-title { font-size: 1.5rem; font-weight: 700; color: white !important; margin: 0; letter-spacing: -0.01em; line-height: 1.3; }
-.detail-header-sub { font-size: 0.92rem; color: rgba(255,255,255,0.78); margin: 5px 0 0; }
-</style>
-""", unsafe_allow_html=True)
 
 # ── HEADER BANNER ─────────────────────────────────────────────────────────────
 st.markdown("""
@@ -246,7 +178,7 @@ with st.expander(
             {"col": "TOTAL_ACV", "label": "Total ACV", "fmt": "dollar"},
             {"col": "RENEWAL_ACV", "label": "Rnwl ACV", "fmt": "dollar"},
             {"col": "CLOSE_DATE", "label": "Close Date", "fmt": "date"},
-            {"col": "OWNER", "label": "Owner"},
+            {"col": "OWNER", "label": "AE"},
         ], height=max(200, min(400, len(sw_display) * 35 + 60)))
 
 # ── SECTION 2: Services Renewals ──────────────────────────────────────────────
@@ -295,7 +227,7 @@ with st.expander(
             {"col": "TOTAL_ACV", "label": "ACV", "fmt": "dollar"},
             {"col": "CLOSE_DATE", "label": "Close", "fmt": "date"},
             {"col": "CREATED_DATE", "label": "Created", "fmt": "date"},
-            {"col": "OWNER", "label": "Owner"},
+            {"col": "OWNER", "label": "AE"},
         ], height=max(200, min(500, len(new_opps_display) * 35 + 60)))
 
 # ── SECTION 4: New Use Cases ──────────────────────────────────────────────────
@@ -317,7 +249,7 @@ with st.expander(
             {"col": "STAGE", "label": "Stage"},
             {"col": "ACV", "label": "eACV", "fmt": "dollar"},
             {"col": "CREATED_DATE", "label": "Created", "fmt": "date"},
-            {"col": "OWNER", "label": "Owner"},
+            {"col": "OWNER", "label": "AE"},
         ], height=max(200, min(500, len(uc_display) * 35 + 60)))
 
 # ── SECTION 5: Capacity Conversion Candidates ─────────────────────────────────

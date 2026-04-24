@@ -3,17 +3,10 @@ import pandas as pd
 import re
 from data import load_use_cases, load_action_planner_pipeline, render_html_table, render_nav_bar
 
-SFDC_BASE = "https://snowforce.lightning.force.com/lightning/r"
+from constants import SFDC_BASE
 
 df = load_use_cases()
 ap_df = load_action_planner_pipeline()
-
-_sel_dms = st.session_state.get("selected_dms", ["Erik Schneider", "Raymond Navarro"])
-if _sel_dms:
-    if "DM" in df.columns:
-        df = df[df["DM"].isin(_sel_dms)]
-    if "DM" in ap_df.columns:
-        ap_df = ap_df[ap_df["DM"].isin(_sel_dms)]
 
 render_nav_bar([
     ("All Use Cases", "nav-uc-all"),
@@ -101,7 +94,7 @@ if not df.empty:
             {"col": "USE_CASE_NAME", "label": "Use Case"},
             {"col": "UC_LINK", "label": "UC #", "fmt": "link", "display_col": "UC_DISPLAY"},
             {"col": "USE_CASE_STATUS", "label": "Status"},
-            {"col": "ACV", "label": "EACV", "fmt": "dollar"},
+            {"col": "ACV", "label": "eACV", "fmt": "dollar"},
             {"col": "STAGE", "label": "Stage"},
             {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
             {"col": "CREATED_DATE", "label": "Created", "fmt": "date"},

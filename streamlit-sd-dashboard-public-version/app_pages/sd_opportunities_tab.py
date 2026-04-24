@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 from data import load_ps_pipeline, load_ps_history, render_html_table, render_nav_bar
 
-SFDC_BASE = "https://snowforce.lightning.force.com/lightning/r"
+from constants import SFDC_BASE
 
 pipeline_df = load_ps_pipeline()
 history_df = load_ps_history()

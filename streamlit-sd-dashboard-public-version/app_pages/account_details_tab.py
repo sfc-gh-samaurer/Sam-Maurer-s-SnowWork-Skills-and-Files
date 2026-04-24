@@ -8,7 +8,7 @@ from data import (
     load_exec_software_renewals,
 )
 
-SFDC_BASE = "https://snowforce.lightning.force.com/lightning/r"
+from constants import SFDC_BASE
 
 
 st.markdown("""

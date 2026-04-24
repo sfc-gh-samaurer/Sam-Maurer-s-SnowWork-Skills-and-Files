@@ -385,7 +385,6 @@ def clear_all_caches():
     load_product_usage.clear()
     load_ps_history.clear()
     load_action_planner_pipeline.clear()
-    load_account_consumption_summary.clear()
     load_exec_software_renewals.clear()
     load_exec_services_renewals.clear()
     load_exec_new_opps.clear()
@@ -795,11 +794,12 @@ def load_ps_pipeline():
             JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON opp.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
             LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
             LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc2 ON fc2._DATE = opp.CLOSE_DATE
+            LEFT JOIN (SELECT OPPORTUNITY_ID FROM sda_opps) sda_excl ON opp.ID = sda_excl.OPPORTUNITY_ID
             WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
             AND a.ACCOUNT_STATUS = 'Active'
             AND opp.IS_CLOSED = FALSE
             AND opp.IS_DELETED = FALSE
-            AND opp.ID NOT IN (SELECT OPPORTUNITY_ID FROM sda_opps)
+            AND sda_excl.OPPORTUNITY_ID IS NULL
         ),
         all_opps AS (
             SELECT * FROM sda_opps
@@ -955,34 +955,6 @@ def load_action_planner_pipeline():
         ORDER BY sa.ACCOUNT_NAME, uc.ACV_C DESC NULLS LAST
     """).to_pandas()
     return _fix_decimals(df)
-
-
-@st.cache_data(ttl=86400)
-def load_account_consumption_summary(account_name):
-    session = _get_session()
-    df = session.sql(_sql(f"""
-        SELECT
-            DATE_TRUNC('MONTH', CURRENT_DATE()) AS MONTH,
-            c.PRODUCT_CATEGORY,
-            NULL AS USE_CASE,
-            NULL AS PRIMARY_FEATURE,
-            CAST(SUM(c.CREDITS) AS FLOAT) AS CREDITS
-        FROM SNOWHOUSE.PS_TAM.CSP_ACCOUNT_CONSUMPTION c
-        WHERE UPPER(c.ACCOUNT_NAME) = UPPER('{account_name.replace("'", "''")}')
-        GROUP BY c.PRODUCT_CATEGORY
-        HAVING SUM(c.CREDITS) > 0
-        ORDER BY PRODUCT_CATEGORY
-    """)).to_pandas()
-    return _fix_decimals(df)
-
-
-def generate_cortex_response(prompt_text, model="claude-3-5-sonnet"):
-    session = _get_session()
-    escaped = prompt_text.replace("'", "''")
-    result = session.sql(
-        f"SELECT SNOWFLAKE.CORTEX.COMPLETE('{model}', '{escaped}') AS response"
-    ).to_pandas()
-    return result.iloc[0]["RESPONSE"]
 
 
 @st.cache_data(ttl=86400)
@@ -1158,7 +1130,7 @@ def load_exec_new_use_cases():
     return _fix_decimals(df)
 
 
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=86400)
 def load_org_hierarchy():
     session = _get_session()
     df = session.sql("""

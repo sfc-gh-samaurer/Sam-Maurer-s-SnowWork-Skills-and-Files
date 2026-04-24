@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 from data import load_capacity_renewals, load_capacity_pipeline, render_html_table, render_nav_bar
 
-SFDC_BASE = "https://snowforce.lightning.force.com/lightning/r"
+from constants import SFDC_BASE
 
 df = load_capacity_renewals()
 cap_pipe_df = load_capacity_pipeline()
@@ -174,7 +174,7 @@ if not cap_pipe_df.empty:
             {"col": "PRODUCT_FORECAST_TCV", "label": "Product Forecast TCV", "fmt": "dollar"},
             {"col": "CALCULATED_TCV", "label": "Calculated TCV", "fmt": "dollar"},
             {"col": "CLOSE_DATE", "label": "Close Date", "fmt": "date"},
-            {"col": "OWNER", "label": "Owner"},
+            {"col": "OWNER", "label": "AE"},
             {"col": "DM", "label": "DM"},
         ], height=500)
 
