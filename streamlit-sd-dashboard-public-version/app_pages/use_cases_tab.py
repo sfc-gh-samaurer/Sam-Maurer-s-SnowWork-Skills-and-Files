@@ -179,14 +179,14 @@ if not ap_df.empty:
 
             if not ap_acct_ucs.empty:
                 ap_disp = ap_acct_ucs[["USE_CASE_NAME", "USE_CASE_ID", "USE_CASE_NUMBER", "STAGE", "EACV",
-                                       "WORKLOADS", "TECHNICAL_UC", "USE_CASE_DESCRIPTION",
+                                       "TECHNICAL_UC", "IMPLEMENTER", "USE_CASE_COMMENTS",
                                        "NEXT_STEPS", "SE_COMMENTS_FULL"]].copy()
                 ap_disp["SE_COMMENTS"] = ap_disp["SE_COMMENTS_FULL"].apply(_latest_se_comment_uc)
                 ap_disp["SFDC"] = ap_disp.apply(
                     lambda r: f"{SFDC_BASE}/{r['USE_CASE_ID']}/view" if pd.notna(r.get("USE_CASE_ID")) else None, axis=1
                 )
                 ap_disp = ap_disp[["USE_CASE_NAME", "SFDC", "USE_CASE_ID", "USE_CASE_NUMBER", "STAGE", "EACV",
-                                   "WORKLOADS", "TECHNICAL_UC", "USE_CASE_DESCRIPTION",
+                                   "TECHNICAL_UC", "IMPLEMENTER", "USE_CASE_COMMENTS",
                                    "NEXT_STEPS", "SE_COMMENTS", "SE_COMMENTS_FULL"]]
                 ap_disp["EACV"] = ap_disp["EACV"].apply(lambda x: f"${x:,.0f}" if pd.notna(x) else "$0")
                 st.data_editor(
@@ -198,15 +198,15 @@ if not ap_df.empty:
                         "USE_CASE_NUMBER": None,
                         "STAGE": st.column_config.TextColumn("Stage", width="medium"),
                         "EACV": st.column_config.TextColumn("EACV", width="small"),
-                        "WORKLOADS": st.column_config.TextColumn("Workloads", width="medium"),
                         "TECHNICAL_UC": st.column_config.TextColumn("Technical UC", width="medium"),
-                        "USE_CASE_DESCRIPTION": st.column_config.TextColumn("Description", width="large"),
+                        "IMPLEMENTER": st.column_config.TextColumn("Implementer", width="medium"),
+                        "USE_CASE_COMMENTS": st.column_config.TextColumn("Comments", width="large"),
                         "NEXT_STEPS": st.column_config.TextColumn("Next Steps", width="medium"),
                         "SE_COMMENTS": st.column_config.TextColumn("SE Comments", width="large"),
                         "SE_COMMENTS_FULL": None,
                     },
-                    column_order=["USE_CASE_NAME", "SFDC", "STAGE", "EACV", "WORKLOADS",
-                                  "TECHNICAL_UC", "USE_CASE_DESCRIPTION", "NEXT_STEPS", "SE_COMMENTS"],
+                    column_order=["USE_CASE_NAME", "SFDC", "STAGE", "EACV",
+                                  "TECHNICAL_UC", "IMPLEMENTER", "USE_CASE_COMMENTS", "NEXT_STEPS", "SE_COMMENTS"],
                     use_container_width=True,
                     hide_index=True,
                     disabled=True,

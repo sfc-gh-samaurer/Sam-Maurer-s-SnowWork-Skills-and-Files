@@ -19,10 +19,11 @@ _ACCOUNT_SQL = """(
         a.INDUSTRY,
         a.SUB_INDUSTRY AS SUBINDUSTRY,
         a.ACCOUNT_TIER AS TIER_C,
-        se.NAME AS LEAD_SALES_ENGINEER_NAME_C,
+        lead_se.NAME AS LEAD_SALES_ENGINEER_NAME_C,
         a.ACCOUNT_STATUS AS ACCOUNT_STATUS_C
     FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
-    LEFT JOIN FIVETRAN.SALESFORCE.USER se ON a.SALES_ENGINEER = se.ID
+    JOIN FIVETRAN.SALESFORCE.ACCOUNT fa ON a.ACCOUNT_ID = fa.ID
+    LEFT JOIN FIVETRAN.SALESFORCE.USER lead_se ON fa.LEAD_SALES_ENGINEER_C = lead_se.ID
     WHERE a.DS = CURRENT_DATE()
 )"""
 
@@ -394,7 +395,7 @@ def clear_all_caches():
 @st.cache_data(ttl=86400)
 def load_accounts_base():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         SELECT
             a.ACCOUNT_NAME,
             a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
@@ -412,7 +413,7 @@ def load_accounts_base():
             a.BILLING_COUNTRY,
             a.NUMBER_OF_EMPLOYEES,
             a.LAST_ACTIVITY_DATE,
-            u.NAME AS LEAD_SE,
+            lead_se.NAME AS LEAD_SE,
             a.MATURITY_SCORE_C,
             a.CONSUMPTION_RISK_C,
             a.ACCOUNT_STRATEGY_C,
@@ -426,12 +427,13 @@ def load_accounts_base():
             a.AZURE_ACCOUNTS,
             a.GCP_ACCOUNTS
         FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
-        LEFT JOIN FIVETRAN.SALESFORCE.USER u ON a.SALES_ENGINEER = u.ID
+        JOIN FIVETRAN.SALESFORCE.ACCOUNT fa ON a.ACCOUNT_ID = fa.ID
+        LEFT JOIN FIVETRAN.SALESFORCE.USER lead_se ON fa.LEAD_SALES_ENGINEER_C = lead_se.ID
         WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND a.ACCOUNT_STATUS = 'Active'
         AND a.DS = CURRENT_DATE()
         ORDER BY a.ARR DESC
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
@@ -463,9 +465,6 @@ def load_capacity_renewals():
         contracts AS (
             SELECT
                 c.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
-                NULL::FLOAT AS CAPACITY_PURCHASED,
-                NULL::FLOAT AS TOTAL_CAPACITY,
-                NULL::FLOAT AS CAPACITY_REMAINING,
                 MIN(c.START_DATE) AS CONTRACT_START_DATE,
                 MAX(c.END_DATE) AS CONTRACT_END_DATE
             FROM FIVETRAN.SALESFORCE.CONTRACT c
@@ -502,8 +501,6 @@ def load_capacity_renewals():
             b.LEAD_SE,
             contracts.CONTRACT_START_DATE AS CONTRACT_START_DATE,
             contracts.CONTRACT_END_DATE AS CONTRACT_END_DATE,
-            contracts.CAPACITY_PURCHASED,
-            contracts.TOTAL_CAPACITY,
             b.CURRENT_CAPACITY_VALUE_C AS TOTAL_CAP,
             b.CURRENT_CAPACITY_VALUE_C - b.ACTUAL_CONSUMPTION_YTD_C AS CAPACITY_REMAINING,
             b.OVERAGE_UNDERAGE_AMOUNT_C AS OVERAGE_UNDERAGE_PREDICTION,
@@ -546,7 +543,6 @@ def load_capacity_pipeline():
             ) AS CALCULATED_TCV,
             o.CLOSE_DATE,
             fc.FISCAL_PERIOD AS FISCAL_QUARTER,
-            NULL AS DAYS_IN_STAGE,
             o.REP_NAME AS OWNER,
             o.SE_COMMENTS_C AS SE_COMMENTS,
             o.NEXT_STEPS,
@@ -603,7 +599,7 @@ def load_accounts_for_scope(district_name: str):
             a.BILLING_COUNTRY,
             a.NUMBER_OF_EMPLOYEES,
             a.LAST_ACTIVITY_DATE,
-            u.NAME AS LEAD_SE,
+            lead_se.NAME AS LEAD_SE,
             a.MATURITY_SCORE_C,
             a.CONSUMPTION_RISK_C,
             a.ACCOUNT_STRATEGY_C,
@@ -617,7 +613,8 @@ def load_accounts_for_scope(district_name: str):
             a.AZURE_ACCOUNTS,
             a.GCP_ACCOUNTS
         FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
-        LEFT JOIN FIVETRAN.SALESFORCE.USER u ON a.SALES_ENGINEER = u.ID
+        JOIN FIVETRAN.SALESFORCE.ACCOUNT fa ON a.ACCOUNT_ID = fa.ID
+        LEFT JOIN FIVETRAN.SALESFORCE.USER lead_se ON fa.LEAD_SALES_ENGINEER_C = lead_se.ID
         WHERE a.DISTRICT_NAME = '{district_name.replace(chr(39), chr(39)*2)}'
         AND a.ACCOUNT_STATUS = 'Active'
         AND a.DS = CURRENT_DATE()
@@ -718,11 +715,6 @@ def load_ps_projects_active():
             ps_seller.NAME AS PS_SELLER_NAME,
             fo.PS_FORECAST_CATEGORY_C AS PS_FORECAST_CATEGORY,
             fo.PS_T_COMMENTS_C AS PS_COMMENTS,
-            NULL AS OPPORTUNITY_USE_CASES,
-            NULL AS IS_PS_CROSS_SELL,
-            NULL AS ETL_TOOL,
-            NULL AS BI_TOOL,
-            NULL AS DW_TOOL,
             o.OPP_NAME AS OPPORTUNITY_NAME,
             o.STAGE_NAME AS OPP_STAGE,
             fc2.FISCAL_PERIOD AS FISCAL_QUARTER,
@@ -769,7 +761,6 @@ def load_ps_pipeline():
                 o.DM,
                 o.CREATED_DATE,
                 CAST(o.PROBABILITY AS FLOAT) AS OPP_PROBABILITY,
-                NULL AS MEDDPICC_SCORE,
                 o.SALES_QUALIFIED_DATE,
                 o.SE_COMMENTS_C AS SE_COMMENTS,
                 o.NEXT_STEPS
@@ -797,7 +788,6 @@ def load_ps_pipeline():
                 a.DM AS DM,
                 opp.CREATED_DATE,
                 CAST(opp.PROBABILITY AS FLOAT) AS OPP_PROBABILITY,
-                NULL AS MEDDPICC_SCORE,
                 NULL AS SALES_QUALIFIED_DATE,
                 NULL AS SE_COMMENTS,
                 opp.NEXT_STEP AS NEXT_STEPS
@@ -854,7 +844,6 @@ def load_ps_pipeline():
             tf.DM,
             tf.CREATED_DATE,
             tf.OPP_PROBABILITY,
-            tf.MEDDPICC_SCORE,
             tf.SALES_QUALIFIED_DATE,
             tf.SE_COMMENTS,
             tf.NEXT_STEPS,
@@ -940,29 +929,23 @@ def load_action_planner_pipeline():
             sa.DM AS DM,
             u.DISTRICT_C AS DISTRICT,
             sa.REP_NAME AS AE_NAME,
-            se_user.NAME AS SE_NAME,
+            lead_se.NAME AS SE_NAME,
             uc.ID AS USE_CASE_ID,
             uc.NAME_C AS USE_CASE_NAME,
             uc.STAGE_C AS STAGE,
             uc.USE_CASE_STATUS_C AS USE_CASE_STATUS,
             CAST(uc.ACV_C AS FLOAT) AS EACV,
             uc.TECHNICAL_USE_CASE_C AS TECHNICAL_UC,
-            NULL AS USE_CASE_DESCRIPTION,
-            NULL AS WORKLOADS,
             uc.COMPETITORS_C AS COMPETITORS,
-            NULL AS INCUMBENT_VENDOR,
-            NULL AS IMPLEMENTER,
-            NULL AS USE_CASE_COMMENTS,
+            uc.IMPLEMENTER_C AS IMPLEMENTER,
+            uc.USE_CASE_COMMENTS_C AS USE_CASE_COMMENTS,
             uc.NEXT_STEPS_C AS NEXT_STEPS,
-            NULL AS USE_CASE_RISK,
             uc.NAME AS USE_CASE_NUMBER,
-            NULL AS PARTNERS,
-            NULL AS INDUSTRY_UC,
             uc.SPECIALIST_COMMENTS_C AS SE_COMMENTS_FULL
         FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY sa
         JOIN FIVETRAN.SALESFORCE.ACCOUNT a ON sa.ACCOUNT_ID = a.ID
         JOIN FIVETRAN.SALESFORCE.USER u ON a.OWNER_ID = u.ID
-        LEFT JOIN FIVETRAN.SALESFORCE.USER se_user ON sa.SALES_ENGINEER = se_user.ID
+        LEFT JOIN FIVETRAN.SALESFORCE.USER lead_se ON a.LEAD_SALES_ENGINEER_C = lead_se.ID
         JOIN FIVETRAN.SALESFORCE.USE_CASE_C uc ON uc.ACCOUNT_C = a.ID AND uc._FIVETRAN_DELETED = FALSE
         WHERE sa.DS = CURRENT_DATE()
         AND sa.DM IN ('Erik Schneider', 'Raymond Navarro')

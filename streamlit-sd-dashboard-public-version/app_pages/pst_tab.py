@@ -132,7 +132,6 @@ if not active_df.empty:
             {"col": "ASSIGNED_RESOURCES", "label": "Resources"},
             {"col": "ASSIGNED_ROLES", "label": "Roles"},
             {"col": "PS_FORECAST_CATEGORY", "label": "Fcast Cat"},
-            {"col": "STATUS_NOTES", "label": "Status Notes"},
         ], height=500)
 
         csv_a = filtered_a.to_csv(index=False)

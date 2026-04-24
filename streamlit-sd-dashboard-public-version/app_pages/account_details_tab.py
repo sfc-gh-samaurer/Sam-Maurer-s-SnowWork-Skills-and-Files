@@ -5,20 +5,11 @@ from data import (
     load_hierarchy,
     load_accounts_for_scope,
     load_capacity_renewals,
-    load_use_cases,
     load_exec_software_renewals,
 )
 
 SFDC_BASE = "https://snowforce.lightning.force.com/lightning/r"
 
-PURSUIT_STAGES = {
-    "1 - Discovery",
-    "2 - Scoping",
-    "3 - Technical / Business Validation",
-    "4 - Use Case Won / Migration Plan",
-    "5 - Implementation In Progress",
-    "6 - Implementation Complete",
-}
 
 st.markdown("""
 <style>
@@ -144,24 +135,6 @@ st.markdown("""
 .stat-value { font-size: 0.86rem; font-weight: 700; color: #0f172a; text-align: right; }
 .none-msg { color: #94a3b8; font-size: 0.82rem; font-style: italic; padding: 4px 0; }
 
-/* ── Use Case Stages ── */
-.uc-stage-pill {
-    display: inline-block;
-    border-radius: 4px;
-    padding: 1px 7px;
-    font-size: 0.66rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    white-space: nowrap;
-}
-.stage-1 { background: #eff6ff; color: #1d4ed8; }
-.stage-2 { background: #f0fdf4; color: #15803d; }
-.stage-3 { background: #fefce8; color: #854d0e; }
-.stage-4 { background: #fef3c7; color: #92400e; }
-.stage-5 { background: #fff7ed; color: #9a3412; }
-.stage-6 { background: #dcfce7; color: #166534; }
-.stage-default { background: #f1f5f9; color: #475569; }
 
 /* ── Stage distribution bar ── */
 .stage-dist { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
@@ -286,13 +259,6 @@ def esc(s):
     return (str(s) or "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def stage_class(stage):
-    if not stage:
-        return "stage-default"
-    n = stage.split(" - ")[0].strip()
-    return f"stage-{n}" if n in {"1","2","3","4","5","6"} else "stage-default"
-
-
 STAGE_DOTS = {"1":"#3b82f6","2":"#22c55e","3":"#eab308","4":"#f97316","5":"#f97316","6":"#10b981"}
 
 # ── Load hierarchy metadata (lightweight, cached) ────────────────────────────
@@ -388,12 +354,10 @@ if not selected:
 
 # ── Load per-account datasets ─────────────────────────────────────────────────
 cap_df     = load_capacity_renewals()
-uc_df      = load_use_cases()
 renewal_df = load_exec_software_renewals()
 
 acct_row  = accounts_df[accounts_df["ACCOUNT_NAME"] == selected]
 acct_cap  = cap_df[cap_df["ACCOUNT_NAME"] == selected]
-acct_uc   = uc_df[(uc_df["ACCOUNT_NAME"] == selected) & (uc_df["STAGE"].isin(PURSUIT_STAGES))].sort_values("STAGE")
 acct_ren  = renewal_df[renewal_df["ACCOUNT_NAME"] == selected]
 
 if acct_row.empty:
@@ -559,67 +523,7 @@ with col3:
 
 st.markdown('<div style="margin-top:16px"></div>', unsafe_allow_html=True)
 
-# ── ROW 2: Open Use Cases (full width) ────────────────────────────────────────
-uc_count = len(acct_uc)
-
-if uc_count > 0:
-    uc_rows_html = ""
-    for _, uc in acct_uc.iterrows():
-        name      = str(uc.get("USE_CASE_NAME") or uc.get("USE_CASE_NUMBER") or "—")
-        stage     = str(uc.get("STAGE") or "—")
-        tgl       = fmt_date(uc.get("TARGET_GO_LIVE"), "—")
-        sc        = stage_class(stage)
-        raw_notes = str(uc.get("KEY_NOTES") or "")
-        note_trunc = raw_notes[:220].strip()
-        note_suffix = "…" if len(raw_notes) > 220 else ""
-        note_html = f'<div class="uc-note">{esc(note_trunc)}{note_suffix}</div>' if note_trunc else ""
-        uc_rows_html += f"""
-        <tr>
-          <td style="width:40%">
-            <span class="uc-name">{esc(name)}</span>
-            {note_html}
-          </td>
-          <td style="width:20%"><span class="uc-stage-pill {sc}">{esc(stage)}</span></td>
-          <td style="width:20%">{tgl}</td>
-        </tr>"""
-
-    total_eacv = fmt_currency(acct_uc["ACV"].fillna(0).sum())
-    uc_body = f"""
-    <div class="kpi-strip">
-      <div class="kpi-strip-item"><div class="kpi-strip-label">In Pursuit</div><div class="kpi-strip-value">{uc_count}</div></div>
-      <div class="kpi-strip-item"><div class="kpi-strip-label">Total eACV</div><div class="kpi-strip-value">{total_eacv}</div></div>
-    </div>
-    <table class="data-table">
-      <thead><tr><th style="width:40%">Use Case</th><th style="width:20%">Stage</th><th style="width:20%">Target Go-Live</th></tr></thead>
-      <tbody>{uc_rows_html}</tbody>
-    </table>"""
-else:
-    uc_body = '<p class="none-msg">No active use cases in pursuit.</p>'
-
-st.markdown(f"""
-<style>
-.uc-name {{ font-weight: 700; font-size: 0.85rem; color: #0f172a; }}
-.uc-note {{
-  margin-top: 4px;
-  font-size: 0.75rem;
-  color: #64748b;
-  line-height: 1.45;
-  border-left: 2px solid #e2e8f0;
-  padding-left: 8px;
-}}
-</style>
-<div class="snapshot-card">
-  <div class="card-header">
-    <span>Open Use Cases in Pursuit</span>
-    {"<span class='card-count'>" + str(uc_count) + "</span>" if uc_count > 0 else ""}
-  </div>
-  <div class="card-body">{uc_body}</div>
-</div>
-""", unsafe_allow_html=True)
-
-st.markdown('<div style="margin-top:16px"></div>', unsafe_allow_html=True)
-
-# ── ROW 3: Account Intelligence (full width, conditional) ─────────────────────
+# ── ROW 2: Account Intelligence (full width, conditional) ─────────────────────
 has_intel = any([strategy, risk_note, comments, risk_mit])
 if has_intel:
     intel_parts = []

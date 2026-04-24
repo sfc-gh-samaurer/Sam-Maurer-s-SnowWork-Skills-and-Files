@@ -176,14 +176,13 @@ def _build_prompt(account_name, ae_name, se_name, district, use_cases_df, se_not
     for _, row in use_cases_df.iterrows():
         parts = [f"- **{row['USE_CASE_NAME']}** | Stage: {row['STAGE']} | EACV: ${row['EACV']:,.0f}"]
         for field, label in [
-            ("WORKLOADS", "Workloads"), ("USE_CASE_DESCRIPTION", "Description"),
             ("TECHNICAL_UC", "Technical UC"), ("COMPETITORS", "Competitors"),
-            ("INCUMBENT_VENDOR", "Incumbent"), ("IMPLEMENTER", "Implementer"),
-            ("NEXT_STEPS", "Next Steps"), ("USE_CASE_RISK", "Risk"),
+            ("IMPLEMENTER", "Implementer"), ("USE_CASE_COMMENTS", "Comments"),
+            ("NEXT_STEPS", "Next Steps"),
         ]:
             val = row.get(field)
             if pd.notna(val) and str(val).strip():
-                text = str(val)[:300] if field == "USE_CASE_DESCRIPTION" else str(val)[:200]
+                text = str(val)[:200]
                 parts.append(f"  {label}: {text}")
         se_cmts = _recent_se_comments(row.get("SE_COMMENTS_FULL"), n=3)
         if se_cmts:
@@ -331,12 +330,12 @@ with ap_col_main:
 
     st.markdown("##### Select use cases for action plan")
 
-    ap_display = ap_account_df_ucs[["USE_CASE_NAME", "USE_CASE_ID", "USE_CASE_NUMBER", "STAGE", "EACV", "WORKLOADS", "TECHNICAL_UC", "USE_CASE_DESCRIPTION", "NEXT_STEPS", "SE_COMMENTS_FULL"]].copy()
+    ap_display = ap_account_df_ucs[["USE_CASE_NAME", "USE_CASE_ID", "USE_CASE_NUMBER", "STAGE", "EACV", "TECHNICAL_UC", "IMPLEMENTER", "USE_CASE_COMMENTS", "NEXT_STEPS", "SE_COMMENTS_FULL"]].copy()
     ap_display["SE_COMMENTS"] = ap_display["SE_COMMENTS_FULL"].apply(_latest_se_comment)
     ap_display["SFDC"] = ap_display.apply(
         lambda r: f"{SFDC_BASE}/{r['USE_CASE_ID']}/view" if pd.notna(r.get("USE_CASE_ID")) else None, axis=1
     )
-    ap_display = ap_display[["USE_CASE_NAME", "SFDC", "USE_CASE_ID", "USE_CASE_NUMBER", "STAGE", "EACV", "WORKLOADS", "TECHNICAL_UC", "USE_CASE_DESCRIPTION", "NEXT_STEPS", "SE_COMMENTS", "SE_COMMENTS_FULL"]]
+    ap_display = ap_display[["USE_CASE_NAME", "SFDC", "USE_CASE_ID", "USE_CASE_NUMBER", "STAGE", "EACV", "TECHNICAL_UC", "IMPLEMENTER", "USE_CASE_COMMENTS", "NEXT_STEPS", "SE_COMMENTS", "SE_COMMENTS_FULL"]]
     ap_display["EACV"] = ap_display["EACV"].apply(lambda x: f"${x:,.0f}" if pd.notna(x) else "$0")
 
     ap_edited = st.data_editor(
@@ -349,17 +348,17 @@ with ap_col_main:
             "USE_CASE_NUMBER": None,
             "STAGE": st.column_config.TextColumn("Stage", width="medium"),
             "EACV": st.column_config.TextColumn("EACV", width="small"),
-            "WORKLOADS": st.column_config.TextColumn("Workloads", width="medium"),
             "TECHNICAL_UC": st.column_config.TextColumn("Technical UC", width="medium"),
-            "USE_CASE_DESCRIPTION": st.column_config.TextColumn("Description", width="large"),
+            "IMPLEMENTER": st.column_config.TextColumn("Implementer", width="medium"),
+            "USE_CASE_COMMENTS": st.column_config.TextColumn("Comments", width="large"),
             "NEXT_STEPS": st.column_config.TextColumn("Next Steps", width="medium"),
             "SE_COMMENTS": st.column_config.TextColumn("SE Comments", width="large"),
             "SE_COMMENTS_FULL": None,
         },
-        column_order=["USE_CASE_NAME", "SFDC", "Select", "STAGE", "EACV", "WORKLOADS", "TECHNICAL_UC", "USE_CASE_DESCRIPTION", "NEXT_STEPS", "SE_COMMENTS"],
+        column_order=["USE_CASE_NAME", "SFDC", "Select", "STAGE", "EACV", "TECHNICAL_UC", "IMPLEMENTER", "USE_CASE_COMMENTS", "NEXT_STEPS", "SE_COMMENTS"],
         use_container_width=True,
         hide_index=True,
-        disabled=["USE_CASE_NAME", "SFDC", "STAGE", "EACV", "WORKLOADS", "TECHNICAL_UC", "USE_CASE_DESCRIPTION", "NEXT_STEPS", "SE_COMMENTS"],
+        disabled=["USE_CASE_NAME", "SFDC", "STAGE", "EACV", "TECHNICAL_UC", "IMPLEMENTER", "USE_CASE_COMMENTS", "NEXT_STEPS", "SE_COMMENTS"],
         key=f"ap_editor_{ap_selected_account}",
     )
 
