@@ -5,7 +5,7 @@ from decimal import Decimal
 import html as html_mod
 import json
 
-_ROLE = "SALES_ENGINEER"
+_ROLE = "TECHNICAL_ACCOUNT_MANAGER"
 _WAREHOUSE = "SNOWADHOC"
 
 _ACCOUNT_SQL = """(
