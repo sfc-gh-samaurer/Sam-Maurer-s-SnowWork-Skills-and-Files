@@ -52,8 +52,6 @@ if not df.empty:
     with kpi2:
         used_ytd = filtered["CAPACITY_USED"].sum()
         st.metric("Total Used YTD", f"${used_ytd:,.0f}")
-    with kpi3:
-
     with st.expander(f"{len(filtered)} contracts", expanded=True):
         render_html_table(display, columns=[
             {"col": "ACCOUNT_NAME", "label": "Account"},
