@@ -41,7 +41,7 @@ conv_candidates = pd.DataFrame()
 if not cap_df.empty:
     cap_df_copy = cap_df.copy()
     cap_df_copy["DAYS_LEFT"] = (pd.to_datetime(cap_df_copy["CONTRACT_END_DATE"]) - today).dt.days
-    cap_df_copy["PCT_REMAINING"] = (cap_df_copy["CAPACITY_REMAINING"] / cap_df_copy["TOTAL_CAPACITY"] * 100).round(1)
+    cap_df_copy["PCT_REMAINING"] = (cap_df_copy["CAPACITY_REMAINING"] / cap_df_copy["TOTAL_CAP"] * 100).round(1)
     conv_candidates = cap_df_copy[
         (cap_df_copy["CONTRACT_END_DATE"].notna())
         & (cap_df_copy["DAYS_LEFT"] <= 730)
@@ -328,20 +328,21 @@ with st.expander(
         st.info("No capacity conversion candidates found.")
     else:
         st.caption("Accounts predicted to have significant unused capacity at contract end — consider converting remaining capacity into services contracts.")
-        conv_display = conv_candidates[["SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
-                                        "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAPACITY",
+        conv_display = conv_candidates[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
+                                        "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP",
                                         "CAPACITY_REMAINING", "PCT_REMAINING",
                                         "OVERAGE_UNDERAGE_PREDICTION"]].copy()
         conv_display["ACCT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
         )
         render_html_table(conv_display, columns=[
+            {"col": "ACCOUNT_NAME", "label": "Account"},
             {"col": "ACCT_LINK", "label": "SFDC", "fmt": "link"},
             {"col": "ACCOUNT_OWNER", "label": "AE"},
             {"col": "DM", "label": "DM"},
             {"col": "CONTRACT_END_DATE", "label": "End Date", "fmt": "date"},
             {"col": "DAYS_LEFT", "label": "Days Left", "fmt": "number"},
-            {"col": "TOTAL_CAPACITY", "label": "Total Cap", "fmt": "dollar"},
+            {"col": "TOTAL_CAP", "label": "Total Cap", "fmt": "dollar"},
             {"col": "CAPACITY_REMAINING", "label": "Cap Remain", "fmt": "dollar"},
             {"col": "PCT_REMAINING", "label": "% Remain", "fmt": "pct"},
             {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Pred Under", "fmt": "dollar"},

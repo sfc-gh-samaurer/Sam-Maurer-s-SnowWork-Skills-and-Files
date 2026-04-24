@@ -42,7 +42,7 @@ if not df.empty:
                         "LEAD_SE",
                         "CONTRACT_START_DATE", "CONTRACT_END_DATE",
                         "TOTAL_CAP",
-                        "OVERAGE_UNDERAGE_PREDICTION", "OVERAGE_DATE"]].copy()
+                        "OVERAGE_UNDERAGE_PREDICTION", "OVERAGE_DATE", "DAYS_TO_CAPACITY"]].copy()
 
     display["ACCOUNT_LINK"] = display.apply(lambda r: sfdc_account_link(r["ACCOUNT_NAME"], r["SALESFORCE_ACCOUNT_ID"]), axis=1)
 
@@ -64,6 +64,7 @@ if not df.empty:
             {"col": "TOTAL_CAP", "label": "Total Cap", "fmt": "dollar"},
             {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
             {"col": "OVERAGE_DATE", "label": "Overage Date", "fmt": "date"},
+            {"col": "DAYS_TO_CAPACITY", "label": "Days to Cap", "fmt": "number"},
         ], height=600)
 
         csv = filtered.to_csv(index=False)
