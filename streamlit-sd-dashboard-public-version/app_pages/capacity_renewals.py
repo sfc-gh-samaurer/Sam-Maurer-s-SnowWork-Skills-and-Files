@@ -63,7 +63,7 @@ if not df.empty:
             {"col": "CONTRACT_END_DATE", "label": "End", "fmt": "date"},
             {"col": "TOTAL_CAP", "label": "Total Cap", "fmt": "dollar"},
             {"col": "OVERAGE_DATE", "label": "Overage Date", "fmt": "date"},
-            {"col": "DAYS_TO_CAPACITY", "label": "Days to Cap", "fmt": "number"},
+            {"col": "DAYS_TO_CAPACITY", "label": "Days til Overage", "fmt": "number"},
         ], height=600)
 
         csv = filtered.to_csv(index=False)
