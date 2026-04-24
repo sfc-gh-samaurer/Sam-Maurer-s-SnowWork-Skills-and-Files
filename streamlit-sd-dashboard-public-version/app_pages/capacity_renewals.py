@@ -63,7 +63,7 @@ if not df.empty:
             {"col": "CONTRACT_START_DATE", "label": "Start", "fmt": "date"},
             {"col": "CONTRACT_END_DATE", "label": "End", "fmt": "date"},
             {"col": "TOTAL_CAP", "label": "Total Cap", "fmt": "dollar"},
-            {"col": "CAPACITY_USED", "label": "Cap Used (YTD)", "fmt": "dollar"},
+            {"col": "CAPACITY_USED", "label": "Cap Used", "fmt": "dollar"},
             {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
             {"col": "OVERAGE_DATE", "label": "Overage Date", "fmt": "date"},
         ], height=600)
