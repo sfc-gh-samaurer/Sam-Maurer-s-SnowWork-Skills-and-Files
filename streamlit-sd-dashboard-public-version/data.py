@@ -387,22 +387,44 @@ def clear_all_caches():
 @st.cache_data(ttl=86400)
 def load_accounts_base():
     session = _get_session()
-    df = session.sql(_sql("""
+    df = session.sql("""
         SELECT
-            NAME AS ACCOUNT_NAME,
-            SALESFORCE_ACCOUNT_ID,
-            ACCOUNT_OWNER_NAME AS ACCOUNT_OWNER,
-            ACCOUNT_OWNER_MANAGER_C AS DM,
-            CAST(ARR_C AS FLOAT) AS ARR,
-            INDUSTRY,
-            SUBINDUSTRY,
-            TIER_C AS TIER,
-            LEAD_SALES_ENGINEER_NAME_C AS LEAD_SE
-        FROM SALES.RAVEN.ACCOUNT
-        WHERE ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
-        AND ACCOUNT_STATUS_C = 'Active'
-        ORDER BY ARR_C DESC
-    """)).to_pandas()
+            a.ACCOUNT_NAME,
+            a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
+            a.REP_NAME AS ACCOUNT_OWNER,
+            a.DM,
+            a.RVP,
+            CAST(a.ARR AS FLOAT) AS ARR,
+            CAST(a.APS AS FLOAT) AS APS,
+            a.INDUSTRY,
+            a.SUB_INDUSTRY AS SUBINDUSTRY,
+            a.ACCOUNT_TIER AS TIER,
+            a.SEGMENT,
+            a.BILLING_CITY,
+            a.BILLING_STATE,
+            a.BILLING_COUNTRY,
+            a.NUMBER_OF_EMPLOYEES,
+            a.LAST_ACTIVITY_DATE,
+            u.NAME AS LEAD_SE,
+            a.MATURITY_SCORE_C,
+            a.CONSUMPTION_RISK_C,
+            a.ACCOUNT_STRATEGY_C,
+            a.ACCOUNT_RISK_C,
+            a.ACCOUNT_COMMENTS_C,
+            a.CONSUMPTION_RISK_MITIGATION_STEPS_C,
+            CAST(a.PREDICTED_1_YV_C AS FLOAT) AS PREDICTED_1YV,
+            CAST(a.PREDICTED_3_YV_C AS FLOAT) AS PREDICTED_3YV,
+            a.TOTAL_ACCOUNTS,
+            a.AWS_ACCOUNTS,
+            a.AZURE_ACCOUNTS,
+            a.GCP_ACCOUNTS
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+        LEFT JOIN FIVETRAN.SALESFORCE.USER u ON a.SALES_ENGINEER = u.ID
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
+        AND a.ACCOUNT_STATUS = 'Active'
+        AND a.DS = CURRENT_DATE()
+        ORDER BY a.ARR DESC
+    """).to_pandas()
     return _fix_decimals(df)
 
 
