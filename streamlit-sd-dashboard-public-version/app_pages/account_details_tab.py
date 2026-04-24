@@ -2,7 +2,8 @@ import streamlit as st
 import pandas as pd
 
 from data import (
-    load_accounts_base,
+    load_hierarchy,
+    load_accounts_for_scope,
     load_capacity_renewals,
     load_use_cases,
     load_ps_pipeline,
@@ -296,19 +297,81 @@ def stage_class(stage):
 
 STAGE_DOTS = {"1":"#3b82f6","2":"#22c55e","3":"#eab308","4":"#f97316","5":"#f97316","6":"#10b981"}
 
-# ── Load all data ─────────────────────────────────────────────────────────────
-accounts_df = load_accounts_base()
-cap_df      = load_capacity_renewals()
-uc_df       = load_use_cases()
-pipe_df     = load_ps_pipeline()
-proj_df     = load_ps_projects_active()
-renewal_df  = load_exec_software_renewals()
-
-# ── Account selector ──────────────────────────────────────────────────────────
-account_names = sorted(accounts_df["ACCOUNT_NAME"].dropna().unique())
+# ── Load hierarchy metadata (lightweight, cached) ────────────────────────────
+hierarchy_df = load_hierarchy()
 
 st.markdown('<div class="tab-banner"><p class="tab-banner-title">Account Details</p></div>', unsafe_allow_html=True)
 
+# ── Cascading filters ─────────────────────────────────────────────────────────
+st.markdown('<div style="margin-bottom:4px"></div>', unsafe_allow_html=True)
+f1, f2, f3, f4 = st.columns([1, 1, 1, 1])
+
+theaters = sorted(hierarchy_df["THEATER"].dropna().unique())
+
+with f1:
+    theater = st.selectbox(
+        "Theater",
+        options=[""] + theaters,
+        key="acct_theater",
+        placeholder="All Theaters",
+        index=0,
+    )
+
+regions_avail = sorted(
+    hierarchy_df[hierarchy_df["THEATER"] == theater]["REGION"].dropna().unique()
+) if theater else sorted(hierarchy_df["REGION"].dropna().unique())
+
+with f2:
+    region = st.selectbox(
+        "Region",
+        options=[""] + regions_avail,
+        key="acct_region",
+        placeholder="All Regions",
+        index=0,
+    )
+
+_dis_mask = pd.Series([True] * len(hierarchy_df), index=hierarchy_df.index)
+if theater:
+    _dis_mask = _dis_mask & (hierarchy_df["THEATER"] == theater)
+if region:
+    _dis_mask = _dis_mask & (hierarchy_df["REGION"] == region)
+districts_avail = sorted(hierarchy_df[_dis_mask]["DISTRICT"].dropna().unique())
+
+with f3:
+    district = st.selectbox(
+        "District",
+        options=[""] + districts_avail,
+        key="acct_district",
+        placeholder="Select a District",
+        index=0,
+    )
+
+# ── Load accounts only once a district is selected ───────────────────────────
+if not district:
+    st.markdown('<p style="color:#94a3b8;font-size:0.95rem;margin-top:12px;">Select a Theater and District above to load accounts.</p>', unsafe_allow_html=True)
+    st.stop()
+
+accounts_df = load_accounts_for_scope(district)
+
+aes_avail = ["All AEs"] + sorted(accounts_df["ACCOUNT_OWNER"].dropna().unique())
+
+with f4:
+    selected_ae = st.selectbox(
+        "Account Executive",
+        options=aes_avail,
+        key="acct_ae",
+        index=0,
+    )
+
+if selected_ae and selected_ae != "All AEs":
+    filtered_accounts = accounts_df[accounts_df["ACCOUNT_OWNER"] == selected_ae]
+else:
+    filtered_accounts = accounts_df
+
+account_names = sorted(filtered_accounts["ACCOUNT_NAME"].dropna().unique())
+
+# ── Account selector ──────────────────────────────────────────────────────────
+st.markdown('<div style="margin-top:6px;margin-bottom:2px"></div>', unsafe_allow_html=True)
 selected = st.selectbox(
     "account_select",
     options=[""] + account_names,
@@ -319,10 +382,19 @@ selected = st.selectbox(
 )
 
 if not selected:
-    st.markdown('<p style="color:#94a3b8;font-size:0.95rem;margin-top:12px;">Select an account above to view its full snapshot.</p>', unsafe_allow_html=True)
+    st.markdown(
+        f'<p style="color:#94a3b8;font-size:0.88rem;margin-top:6px;">{len(account_names)} accounts in {district}{" — " + selected_ae if selected_ae != "All AEs" else ""}. Select one to view its snapshot.</p>',
+        unsafe_allow_html=True,
+    )
     st.stop()
 
-# ── Filter datasets ───────────────────────────────────────────────────────────
+# ── Load per-account datasets ─────────────────────────────────────────────────
+cap_df     = load_capacity_renewals()
+uc_df      = load_use_cases()
+pipe_df    = load_ps_pipeline()
+proj_df    = load_ps_projects_active()
+renewal_df = load_exec_software_renewals()
+
 acct_row  = accounts_df[accounts_df["ACCOUNT_NAME"] == selected]
 acct_cap  = cap_df[cap_df["ACCOUNT_NAME"] == selected]
 acct_uc   = uc_df[(uc_df["ACCOUNT_NAME"] == selected) & (uc_df["STAGE"].isin(PURSUIT_STAGES))].sort_values("STAGE")

@@ -556,6 +556,70 @@ def load_capacity_pipeline():
 
 
 @st.cache_data(ttl=86400)
+def load_hierarchy():
+    session = _get_session()
+    df = session.sql("""
+        SELECT DISTINCT
+            GEO_NAME    AS THEATER,
+            REGION_NAME AS REGION,
+            DISTRICT_NAME AS DISTRICT,
+            DM
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
+        WHERE ACCOUNT_STATUS = 'Active'
+        AND DS = CURRENT_DATE()
+        AND GEO_NAME IS NOT NULL
+        AND DM IS NOT NULL
+        AND DISTRICT_NAME IS NOT NULL
+        ORDER BY GEO_NAME, REGION_NAME, DISTRICT_NAME
+    """).to_pandas()
+    return df
+
+
+@st.cache_data(ttl=86400)
+def load_accounts_for_scope(district_name: str):
+    session = _get_session()
+    df = session.sql(f"""
+        SELECT
+            a.ACCOUNT_NAME,
+            a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
+            a.REP_NAME AS ACCOUNT_OWNER,
+            a.DM,
+            a.RVP,
+            CAST(a.ARR AS FLOAT) AS ARR,
+            CAST(a.APS AS FLOAT) AS APS,
+            a.INDUSTRY,
+            a.SUB_INDUSTRY AS SUBINDUSTRY,
+            a.ACCOUNT_TIER AS TIER,
+            a.SEGMENT,
+            a.BILLING_CITY,
+            a.BILLING_STATE,
+            a.BILLING_COUNTRY,
+            a.NUMBER_OF_EMPLOYEES,
+            a.LAST_ACTIVITY_DATE,
+            u.NAME AS LEAD_SE,
+            a.MATURITY_SCORE_C,
+            a.CONSUMPTION_RISK_C,
+            a.ACCOUNT_STRATEGY_C,
+            a.ACCOUNT_RISK_C,
+            a.ACCOUNT_COMMENTS_C,
+            a.CONSUMPTION_RISK_MITIGATION_STEPS_C,
+            CAST(a.PREDICTED_1_YV_C AS FLOAT) AS PREDICTED_1YV,
+            CAST(a.PREDICTED_3_YV_C AS FLOAT) AS PREDICTED_3YV,
+            a.TOTAL_ACCOUNTS,
+            a.AWS_ACCOUNTS,
+            a.AZURE_ACCOUNTS,
+            a.GCP_ACCOUNTS
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+        LEFT JOIN FIVETRAN.SALESFORCE.USER u ON a.SALES_ENGINEER = u.ID
+        WHERE a.DISTRICT_NAME = '{district_name.replace(chr(39), chr(39)*2)}'
+        AND a.ACCOUNT_STATUS = 'Active'
+        AND a.DS = CURRENT_DATE()
+        ORDER BY a.ARR DESC
+    """).to_pandas()
+    return _fix_decimals(df)
+
+
+@st.cache_data(ttl=86400)
 def load_use_cases():
     session = _get_session()
     df = session.sql("""
