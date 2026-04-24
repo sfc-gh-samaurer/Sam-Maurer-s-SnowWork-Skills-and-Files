@@ -6,8 +6,6 @@ from data import (
     load_accounts_for_scope,
     load_capacity_renewals,
     load_use_cases,
-    load_ps_pipeline,
-    load_ps_projects_active,
     load_exec_software_renewals,
 )
 
@@ -391,15 +389,11 @@ if not selected:
 # ── Load per-account datasets ─────────────────────────────────────────────────
 cap_df     = load_capacity_renewals()
 uc_df      = load_use_cases()
-pipe_df    = load_ps_pipeline()
-proj_df    = load_ps_projects_active()
 renewal_df = load_exec_software_renewals()
 
 acct_row  = accounts_df[accounts_df["ACCOUNT_NAME"] == selected]
 acct_cap  = cap_df[cap_df["ACCOUNT_NAME"] == selected]
 acct_uc   = uc_df[(uc_df["ACCOUNT_NAME"] == selected) & (uc_df["STAGE"].isin(PURSUIT_STAGES))].sort_values("STAGE")
-acct_pipe = pipe_df[pipe_df["ACCOUNT_NAME"] == selected]
-acct_proj = proj_df[proj_df["ACCOUNT_NAME"] == selected]
 acct_ren  = renewal_df[renewal_df["ACCOUNT_NAME"] == selected]
 
 if acct_row.empty:
@@ -502,233 +496,159 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── ROW 1: Contract & Capacity | Use Cases | Renewal ──────────────────────────
-col1, col2, col3 = st.columns([1, 2, 1])
+# ── ROW 1: Contract & Capacity | Software Renewal | Snowflake Footprint ────────
+col1, col2, col3 = st.columns(3)
 
 # --- Contract & Capacity ---
 with col1:
     if not acct_cap.empty:
         r = acct_cap.iloc[0]
-        total_cap = fmt_currency(r.get("TOTAL_CAP"))
-        c_start   = fmt_date(r.get("CONTRACT_START_DATE"))
-        c_end     = fmt_date(r.get("CONTRACT_END_DATE"))
-        ov_date   = fmt_date(r.get("OVERAGE_DATE"))
-        cap_html  = f"""
-        <div class="stat-row"><span class="stat-label">Total Capacity</span><span class="stat-value">{total_cap}</span></div>
-        <div class="stat-row"><span class="stat-label">Contract Start</span><span class="stat-value">{c_start}</span></div>
-        <div class="stat-row"><span class="stat-label">Contract End</span><span class="stat-value">{c_end}</span></div>
-        <div class="stat-row"><span class="stat-label">Overage Date</span><span class="stat-value">{ov_date}</span></div>
+        cap_html = f"""
+        <div class="stat-row"><span class="stat-label">Total Capacity</span><span class="stat-value">{fmt_currency(r.get("TOTAL_CAP"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Contract Start</span><span class="stat-value">{fmt_date(r.get("CONTRACT_START_DATE"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Contract End</span><span class="stat-value">{fmt_date(r.get("CONTRACT_END_DATE"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Overage Date</span><span class="stat-value">{fmt_date(r.get("OVERAGE_DATE"))}</span></div>
         """
     else:
         cap_html = '<p class="none-msg">Not a capacity customer.</p>'
-
     st.markdown(f"""<div class="snapshot-card">
       <div class="card-header">Contract &amp; Capacity</div>
       <div class="card-body">{cap_html}</div>
-    </div><div class="section-spacer"></div>""", unsafe_allow_html=True)
-
-# --- Use Cases ---
-with col2:
-    uc_count = len(acct_uc)
-    if uc_count > 0:
-        stage_counts = acct_uc["STAGE"].value_counts()
-        dist_html = '<div class="stage-dist">'
-        for stg, cnt in stage_counts.items():
-            n = str(stg).split(" - ")[0].strip()
-            dot_color = STAGE_DOTS.get(n, "#94a3b8")
-            dist_html += f'<span class="stage-dist-item"><span class="stage-dot" style="background:{dot_color}"></span>{esc(str(stg))} ({cnt})</span>'
-        dist_html += '</div>'
-
-        uc_rows = ""
-        for _, uc in acct_uc.iterrows():
-            name  = str(uc.get("USE_CASE_NAME") or uc.get("USE_CASE_NUMBER") or "—")
-            stage = str(uc.get("STAGE") or "—")
-            acv   = fmt_currency(uc.get("ACV"), "—")
-            owner = str(uc.get("OWNER") or "—")
-            dd    = fmt_date(uc.get("DECISION_DATE"), "—")
-            ns    = str(uc.get("NEXT_STEPS") or "")[:90]
-            ns_html = f'<br><span style="color:#94a3b8;font-size:0.72rem">{esc(ns)}{"…" if len(str(uc.get("NEXT_STEPS") or "")) > 90 else ""}</span>' if ns else ""
-            sc    = stage_class(stage)
-            uc_rows += f"""<tr>
-              <td>{esc(name)}{ns_html}</td>
-              <td><span class="uc-stage-pill {sc}">{esc(stage)}</span></td>
-              <td>{acv}</td>
-              <td>{esc(owner)}</td>
-              <td>{dd}</td>
-            </tr>"""
-
-        total_eacv = fmt_currency(acct_uc["ACV"].sum())
-        uc_body = f"""
-        <div class="kpi-strip">
-          <div class="kpi-strip-item"><div class="kpi-strip-label">In Pursuit</div><div class="kpi-strip-value">{uc_count}</div></div>
-          <div class="kpi-strip-item"><div class="kpi-strip-label">Total eACV</div><div class="kpi-strip-value">{total_eacv}</div></div>
-        </div>
-        {dist_html}
-        <table class="data-table">
-          <thead><tr><th>Use Case</th><th>Stage</th><th>eACV</th><th>Owner</th><th>Decision Date</th></tr></thead>
-          <tbody>{uc_rows}</tbody>
-        </table>"""
-    else:
-        uc_body = '<p class="none-msg">No active use cases in pursuit.</p>'
-
-    st.markdown(f"""<div class="snapshot-card">
-      <div class="card-header">
-        <span>Open Use Cases</span>
-        {"<span class='card-count'>" + str(uc_count) + "</span>" if uc_count > 0 else ""}
-      </div>
-      <div class="card-body">{uc_body}</div>
-    </div><div class="section-spacer"></div>""", unsafe_allow_html=True)
+    </div>""", unsafe_allow_html=True)
 
 # --- Software Renewal ---
-with col3:
+with col2:
     if not acct_ren.empty:
         r = acct_ren.iloc[0]
-        opp_name  = str(r.get("OPPORTUNITY_NAME") or "—")[:45]
-        ren_stage = str(r.get("STAGE_NAME") or "—")
-        ren_fc    = str(r.get("FORECAST_STATUS") or "—")
-        ren_acv   = fmt_currency(r.get("TOTAL_ACV"))
-        ren_close = fmt_date(r.get("CLOSE_DATE"))
-        ren_html  = f"""
-        <div class="stat-row"><span class="stat-label">Opportunity</span><span class="stat-value" style="font-size:0.76rem">{esc(opp_name)}</span></div>
-        <div class="stat-row"><span class="stat-label">Stage</span><span class="stat-value">{esc(ren_stage)}</span></div>
-        <div class="stat-row"><span class="stat-label">Forecast</span><span class="stat-value">{esc(ren_fc)}</span></div>
-        <div class="stat-row"><span class="stat-label">ACV</span><span class="stat-value">{ren_acv}</span></div>
-        <div class="stat-row"><span class="stat-label">Close Date</span><span class="stat-value">{ren_close}</span></div>
+        ren_html = f"""
+        <div class="stat-row"><span class="stat-label">Opportunity</span><span class="stat-value" style="font-size:0.76rem">{esc(str(r.get("OPPORTUNITY_NAME") or "—")[:45])}</span></div>
+        <div class="stat-row"><span class="stat-label">Stage</span><span class="stat-value">{esc(str(r.get("STAGE_NAME") or "—"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Forecast</span><span class="stat-value">{esc(str(r.get("FORECAST_STATUS") or "—"))}</span></div>
+        <div class="stat-row"><span class="stat-label">ACV</span><span class="stat-value">{fmt_currency(r.get("TOTAL_ACV"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Close Date</span><span class="stat-value">{fmt_date(r.get("CLOSE_DATE"))}</span></div>
         """
     else:
         ren_html = '<p class="none-msg">No upcoming software renewal found.</p>'
-
     st.markdown(f"""<div class="snapshot-card">
       <div class="card-header">Software Renewal</div>
       <div class="card-body">{ren_html}</div>
-    </div><div class="section-spacer"></div>""", unsafe_allow_html=True)
+    </div>""", unsafe_allow_html=True)
 
-# ── ROW 2: PS&T Pipeline | Active PS Projects ─────────────────────────────────
-col4, col5 = st.columns([3, 2])
-
-# --- PS&T Pipeline ---
-with col4:
-    if not acct_pipe.empty:
-        total_tcv = acct_pipe["TOTAL_PST_TCV"].fillna(0).sum()
-        pipe_rows = ""
-        for _, p in acct_pipe.iterrows():
-            opp_name = str(p.get("OPPORTUNITY_NAME") or "—")[:50]
-            opp_id   = str(p.get("OPPORTUNITY_ID") or "")
-            opp_link = f'<a class="td-link" href="{SFDC_BASE}/Opportunity/{opp_id}/view" target="_blank">{esc(opp_name)}</a>' if opp_id else esc(opp_name)
-            tcv      = fmt_currency(p.get("TOTAL_PST_TCV"))
-            fc       = str(p.get("PS_FORECAST_CATEGORY") or p.get("FORECAST_STATUS") or "—")
-            seller   = str(p.get("PS_SELLER_NAME") or "—")
-            comm_raw = str(p.get("PS_COMMENTS") or "")[:120]
-            comm_html = f'<div class="comment-block">{esc(comm_raw)}{"…" if len(str(p.get("PS_COMMENTS") or "")) > 120 else ""}</div>' if comm_raw else ""
-            pipe_rows += f"""<tr>
-              <td>{opp_link}{comm_html}</td>
-              <td>{tcv}</td>
-              <td>{esc(fc)}</td>
-              <td>{esc(seller)}</td>
-            </tr>"""
-        pipe_body = f"""
-        <div class="kpi-strip">
-          <div class="kpi-strip-item"><div class="kpi-strip-label">Open Opps</div><div class="kpi-strip-value">{len(acct_pipe)}</div></div>
-          <div class="kpi-strip-item"><div class="kpi-strip-label">Total PST TCV</div><div class="kpi-strip-value">{fmt_currency(total_tcv)}</div></div>
-        </div>
-        <table class="data-table">
-          <thead><tr><th>Opportunity</th><th>TCV</th><th>PS Forecast</th><th>PS Seller</th></tr></thead>
-          <tbody>{pipe_rows}</tbody>
-        </table>"""
-    else:
-        pipe_body = '<p class="none-msg">No open PS&amp;T pipeline opportunities.</p>'
-
+# --- Snowflake Footprint & Signals ---
+with col3:
+    footprint_rows = ""
+    if total_acc:
+        footprint_rows += f'<div class="stat-row"><span class="stat-label">Snowflake Accounts</span><span class="stat-value">{int(total_acc)}</span></div>'
+    if aws_acc:
+        footprint_rows += f'<div class="stat-row"><span class="stat-label">AWS</span><span class="stat-value">{int(aws_acc)}</span></div>'
+    if az_acc:
+        footprint_rows += f'<div class="stat-row"><span class="stat-label">Azure</span><span class="stat-value">{int(az_acc)}</span></div>'
+    if gcp_acc:
+        footprint_rows += f'<div class="stat-row"><span class="stat-label">GCP</span><span class="stat-value">{int(gcp_acc)}</span></div>'
+    if pred_1yv != "—":
+        footprint_rows += f'<div class="stat-row"><span class="stat-label">Predicted 1-Yr Value</span><span class="stat-value">{pred_1yv}</span></div>'
+    if pred_3yv != "—":
+        footprint_rows += f'<div class="stat-row"><span class="stat-label">Predicted 3-Yr Value</span><span class="stat-value">{pred_3yv}</span></div>'
+    if maturity:
+        footprint_rows += f'<div class="stat-row"><span class="stat-label">Maturity Score</span><span class="stat-value">{maturity}</span></div>'
+    fp_body = footprint_rows if footprint_rows else '<p class="none-msg">No footprint data available.</p>'
     st.markdown(f"""<div class="snapshot-card">
-      <div class="card-header">
-        <span>PS&amp;T Pipeline</span>
-        {"<span class='card-count'>" + str(len(acct_pipe)) + "</span>" if not acct_pipe.empty else ""}
-      </div>
-      <div class="card-body">{pipe_body}</div>
-    </div><div class="section-spacer"></div>""", unsafe_allow_html=True)
+      <div class="card-header">Snowflake Footprint &amp; Signals</div>
+      <div class="card-body">{fp_body}</div>
+    </div>""", unsafe_allow_html=True)
 
-# --- Active PS Projects ---
-with col5:
-    if not acct_proj.empty:
-        proj_rows = ""
-        for _, p in acct_proj.iterrows():
-            pname  = str(p.get("PROJECT_NAME") or "—")[:42]
-            pid    = str(p.get("PROJECT_ID") or "")
-            plink  = f'<a class="td-link" href="{SFDC_BASE}/pse__Proj__c/{pid}/view" target="_blank">{esc(pname)}</a>' if pid else esc(pname)
-            stage  = str(p.get("PROJECT_STAGE") or "—")
-            pm     = str(p.get("PROJECT_MANAGER") or "—")
-            end_dt = fmt_date(p.get("END_DATE"))
-            rev    = fmt_currency(p.get("REVENUE_AMOUNT"))
-            proj_rows += f"""<tr>
-              <td>{plink}</td>
-              <td>{esc(stage)}</td>
-              <td>{esc(pm)}</td>
-              <td>{end_dt}</td>
-              <td>{rev}</td>
-            </tr>"""
-        proj_body = f"""
-        <div class="kpi-strip">
-          <div class="kpi-strip-item"><div class="kpi-strip-label">Active Projects</div><div class="kpi-strip-value">{len(acct_proj)}</div></div>
-        </div>
-        <table class="data-table">
-          <thead><tr><th>Project</th><th>Stage</th><th>PM</th><th>End Date</th><th>Revenue</th></tr></thead>
-          <tbody>{proj_rows}</tbody>
-        </table>"""
-    else:
-        proj_body = '<p class="none-msg">No active PS projects.</p>'
+st.markdown('<div style="margin-top:16px"></div>', unsafe_allow_html=True)
 
-    st.markdown(f"""<div class="snapshot-card">
-      <div class="card-header">
-        <span>Active PS Projects</span>
-        {"<span class='card-count'>" + str(len(acct_proj)) + "</span>" if not acct_proj.empty else ""}
-      </div>
-      <div class="card-body">{proj_body}</div>
-    </div><div class="section-spacer"></div>""", unsafe_allow_html=True)
+# ── ROW 2: Open Use Cases (full width) ────────────────────────────────────────
+uc_count = len(acct_uc)
 
-# ── ROW 3: Account Intelligence | Snowflake Footprint ─────────────────────────
-has_intel = any([strategy, risk_note, comments, risk_mit, cons_risk])
-has_footprint = any([total_acc, aws_acc, az_acc, gcp_acc, pred_1yv != "—", maturity])
+if uc_count > 0:
+    uc_rows_html = ""
+    for _, uc in acct_uc.iterrows():
+        name      = str(uc.get("USE_CASE_NAME") or uc.get("USE_CASE_NUMBER") or "—")
+        stage     = str(uc.get("STAGE") or "—")
+        tgl       = fmt_date(uc.get("TARGET_GO_LIVE"), "—")
+        sc        = stage_class(stage)
+        raw_notes = str(uc.get("KEY_NOTES") or "")
+        note_trunc = raw_notes[:220].strip()
+        note_suffix = "…" if len(raw_notes) > 220 else ""
+        note_html = f'<div class="uc-note">{esc(note_trunc)}{note_suffix}</div>' if note_trunc else ""
+        uc_rows_html += f"""
+        <tr>
+          <td style="width:40%">
+            <span class="uc-name">{esc(name)}</span>
+            {note_html}
+          </td>
+          <td style="width:20%"><span class="uc-stage-pill {sc}">{esc(stage)}</span></td>
+          <td style="width:20%">{tgl}</td>
+        </tr>"""
 
-if has_intel or has_footprint:
-    col6, col7 = st.columns([3, 2])
+    total_eacv = fmt_currency(acct_uc["ACV"].fillna(0).sum())
+    uc_body = f"""
+    <div class="kpi-strip">
+      <div class="kpi-strip-item"><div class="kpi-strip-label">In Pursuit</div><div class="kpi-strip-value">{uc_count}</div></div>
+      <div class="kpi-strip-item"><div class="kpi-strip-label">Total eACV</div><div class="kpi-strip-value">{total_eacv}</div></div>
+    </div>
+    <table class="data-table">
+      <thead><tr><th style="width:40%">Use Case</th><th style="width:20%">Stage</th><th style="width:20%">Target Go-Live</th></tr></thead>
+      <tbody>{uc_rows_html}</tbody>
+    </table>"""
+else:
+    uc_body = '<p class="none-msg">No active use cases in pursuit.</p>'
 
-    # --- Account Intelligence ---
-    with col6:
-        intel_parts = []
-        if strategy:
-            intel_parts.append(f'<div style="margin-bottom:8px"><div class="kpi-strip-label" style="margin-bottom:3px">Account Strategy</div><div class="comment-block">{esc(strategy)}</div></div>')
-        if risk_note:
-            intel_parts.append(f'<div style="margin-bottom:8px"><div class="kpi-strip-label" style="margin-bottom:3px">Account Risk</div><div class="risk-block">{esc(risk_note)}</div></div>')
-        if risk_mit:
-            intel_parts.append(f'<div style="margin-bottom:8px"><div class="kpi-strip-label" style="margin-bottom:3px">Risk Mitigation</div><div class="notes-block">{esc(risk_mit)}</div></div>')
-        if comments:
-            intel_parts.append(f'<div style="margin-bottom:8px"><div class="kpi-strip-label" style="margin-bottom:3px">Account Comments</div><div class="comment-block">{esc(comments)}</div></div>')
+st.markdown(f"""
+<style>
+.uc-name {{ font-weight: 700; font-size: 0.85rem; color: #0f172a; }}
+.uc-note {{
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #64748b;
+  line-height: 1.45;
+  border-left: 2px solid #e2e8f0;
+  padding-left: 8px;
+}}
+</style>
+<div class="snapshot-card">
+  <div class="card-header">
+    <span>Open Use Cases in Pursuit</span>
+    {"<span class='card-count'>" + str(uc_count) + "</span>" if uc_count > 0 else ""}
+  </div>
+  <div class="card-body">{uc_body}</div>
+</div>
+""", unsafe_allow_html=True)
 
-        intel_body = "".join(intel_parts) if intel_parts else '<p class="none-msg">No account intelligence notes.</p>'
-        st.markdown(f"""<div class="snapshot-card">
-          <div class="card-header">Account Intelligence</div>
-          <div class="card-body">{intel_body}</div>
-        </div>""", unsafe_allow_html=True)
+st.markdown('<div style="margin-top:16px"></div>', unsafe_allow_html=True)
 
-    # --- Snowflake Footprint ---
-    with col7:
-        footprint_rows = ""
-        if total_acc:
-            footprint_rows += f'<div class="stat-row"><span class="stat-label">Total Snowflake Accounts</span><span class="stat-value">{int(total_acc)}</span></div>'
-        if aws_acc:
-            footprint_rows += f'<div class="stat-row"><span class="stat-label">AWS Accounts</span><span class="stat-value">{int(aws_acc)}</span></div>'
-        if az_acc:
-            footprint_rows += f'<div class="stat-row"><span class="stat-label">Azure Accounts</span><span class="stat-value">{int(az_acc)}</span></div>'
-        if gcp_acc:
-            footprint_rows += f'<div class="stat-row"><span class="stat-label">GCP Accounts</span><span class="stat-value">{int(gcp_acc)}</span></div>'
-        if pred_1yv != "—":
-            footprint_rows += f'<div class="stat-row"><span class="stat-label">Predicted 1-Yr Value</span><span class="stat-value">{pred_1yv}</span></div>'
-        if pred_3yv != "—":
-            footprint_rows += f'<div class="stat-row"><span class="stat-label">Predicted 3-Yr Value</span><span class="stat-value">{pred_3yv}</span></div>'
-        if maturity:
-            footprint_rows += f'<div class="stat-row"><span class="stat-label">Maturity Score</span><span class="stat-value">{maturity}</span></div>'
+# ── ROW 3: Account Intelligence (full width, conditional) ─────────────────────
+has_intel = any([strategy, risk_note, comments, risk_mit])
+if has_intel:
+    intel_parts = []
+    if strategy:
+        intel_parts.append(f'<div class="intel-block"><div class="intel-label">Account Strategy</div><div class="comment-block">{esc(strategy)}</div></div>')
+    if risk_note:
+        intel_parts.append(f'<div class="intel-block"><div class="intel-label">Account Risk</div><div class="risk-block">{esc(risk_note)}</div></div>')
+    if risk_mit:
+        intel_parts.append(f'<div class="intel-block"><div class="intel-label">Risk Mitigation</div><div class="notes-block">{esc(risk_mit)}</div></div>')
+    if comments:
+        intel_parts.append(f'<div class="intel-block"><div class="intel-label">Account Comments</div><div class="comment-block">{esc(comments)}</div></div>')
 
-        footprint_body = footprint_rows if footprint_rows else '<p class="none-msg">No footprint data available.</p>'
-        st.markdown(f"""<div class="snapshot-card">
-          <div class="card-header">Snowflake Footprint &amp; Signals</div>
-          <div class="card-body">{footprint_body}</div>
-        </div>""", unsafe_allow_html=True)
+    n = len(intel_parts)
+    cols_per_row = 2
+    grid_html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">'
+    for part in intel_parts:
+        grid_html += part
+    if n % 2 == 1:
+        grid_html += '<div></div>'
+    grid_html += '</div>'
+
+    st.markdown(f"""
+    <style>
+    .intel-block {{ }}
+    .intel-label {{ font-size: 0.63rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: #94a3b8; margin-bottom: 4px; }}
+    </style>
+    <div class="snapshot-card">
+      <div class="card-header">Account Intelligence</div>
+      <div class="card-body">{grid_html}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
