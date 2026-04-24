@@ -331,8 +331,7 @@ with st.expander(
         st.caption("Accounts predicted to have significant unused capacity at contract end — consider converting remaining capacity into services contracts.")
         conv_display = conv_candidates[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                                         "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP",
-                                        "CAPACITY_REMAINING", "PCT_REMAINING",
-                                        "OVERAGE_UNDERAGE_PREDICTION"]].copy()
+                                        "CAPACITY_REMAINING", "PCT_REMAINING"]].copy()
         conv_display["ACCT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
         )
@@ -346,7 +345,6 @@ with st.expander(
             {"col": "TOTAL_CAP", "label": "Total Cap", "fmt": "dollar"},
             {"col": "CAPACITY_REMAINING", "label": "Cap Remain", "fmt": "dollar"},
             {"col": "PCT_REMAINING", "label": "% Remain", "fmt": "pct"},
-            {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Pred Under", "fmt": "dollar"},
         ], height=max(200, min(500, len(conv_display) * 35 + 60)))
 
 # ── SECTION 6: Investment Candidates ──────────────────────────────────────────

@@ -42,7 +42,7 @@ if not df.empty:
                         "LEAD_SE",
                         "CONTRACT_START_DATE", "CONTRACT_END_DATE",
                         "TOTAL_CAP",
-                        "OVERAGE_UNDERAGE_PREDICTION", "OVERAGE_DATE", "DAYS_TO_CAPACITY"]].copy()
+                        "OVERAGE_DATE", "DAYS_TO_CAPACITY"]].copy()
 
     display["ACCOUNT_LINK"] = display.apply(lambda r: sfdc_account_link(r["ACCOUNT_NAME"], r["SALESFORCE_ACCOUNT_ID"]), axis=1)
 
@@ -62,7 +62,6 @@ if not df.empty:
             {"col": "CONTRACT_START_DATE", "label": "Start", "fmt": "date"},
             {"col": "CONTRACT_END_DATE", "label": "End", "fmt": "date"},
             {"col": "TOTAL_CAP", "label": "Total Cap", "fmt": "dollar"},
-            {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
             {"col": "OVERAGE_DATE", "label": "Overage Date", "fmt": "date"},
             {"col": "DAYS_TO_CAPACITY", "label": "Days to Cap", "fmt": "number"},
         ], height=600)
@@ -87,8 +86,7 @@ if not df.empty:
         with st.expander(f"{len(candidates)} accounts ending within 24 months with predicted underburn", expanded=True):
             st.caption("These accounts are predicted to have significant unused capacity at contract end — consider converting remaining capacity into services contracts.")
             conv_display = candidates[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
-                                       "CONTRACT_END_DATE", "DAYS_LEFT",
-                                       "OVERAGE_UNDERAGE_PREDICTION"]].copy()
+                                       "CONTRACT_END_DATE", "DAYS_LEFT"]].copy()
             conv_display["ACCOUNT_LINK"] = conv_display.apply(
                 lambda r: f'{SFDC_BASE}/Account/{r["SALESFORCE_ACCOUNT_ID"]}/view' if pd.notna(r.get("SALESFORCE_ACCOUNT_ID")) else None, axis=1)
             render_html_table(conv_display, columns=[
@@ -98,7 +96,6 @@ if not df.empty:
                 {"col": "DM", "label": "DM"},
                 {"col": "CONTRACT_END_DATE", "label": "End Date", "fmt": "date"},
                 {"col": "DAYS_LEFT", "label": "Days Left", "fmt": "number"},
-                {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Pred Under", "fmt": "dollar"},
             ])
 
 else:
