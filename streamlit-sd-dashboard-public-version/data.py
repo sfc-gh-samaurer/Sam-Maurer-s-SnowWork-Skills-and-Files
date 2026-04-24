@@ -619,7 +619,8 @@ def load_ps_projects_active():
             asn.RESOURCES AS ASSIGNED_RESOURCES,
             asn.ROLES AS ASSIGNED_ROLES,
             asn.LAST_RESOURCE_END_DATE,
-            fo.PS_T_SELLER_C AS PS_SELLER_NAME,
+            fo.PS_T_SELLER_C AS PS_SELLER_ID,
+            ps_seller.NAME AS PS_SELLER_NAME,
             fo.PS_FORECAST_CATEGORY_C AS PS_FORECAST_CATEGORY,
             fo.PS_T_COMMENTS_C AS PS_COMMENTS,
             NULL AS OPPORTUNITY_USE_CASES,
@@ -694,7 +695,7 @@ def load_ps_pipeline():
                 opp.FORECAST_CATEGORY_NAME AS FORECAST_STATUS,
                 CAST(opp.AMOUNT AS FLOAT) AS TOTAL_ACV,
                 opp.CLOSE_DATE,
-                CAST(opp.FISCAL_QUARTER AS VARCHAR) AS FISCAL_QUARTER,
+                fc2.FISCAL_PERIOD AS FISCAL_QUARTER,
                 opp.LEAN_DATA_DAYS_IN_STAGE_C AS DAYS_IN_STAGE,
                 u.NAME AS OWNER,
                 a.DM AS DM,
@@ -707,6 +708,7 @@ def load_ps_pipeline():
             FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
             JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON opp.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
             LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
+            LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc2 ON fc2._DATE = opp.CLOSE_DATE
             WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
             AND a.ACCOUNT_STATUS = 'Active'
             AND opp.IS_CLOSED = FALSE
@@ -773,6 +775,7 @@ def load_ps_pipeline():
             pr.PRODUCT_NAMES
         FROM ts_filtered tf
         LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY fo ON tf.OPPORTUNITY_ID = fo.ID
+        LEFT JOIN FIVETRAN.SALESFORCE.USER ps_seller ON fo.PS_T_SELLER_C = ps_seller.ID
         LEFT JOIN products pr ON tf.OPPORTUNITY_ID = pr.OPPORTUNITY_ID
         ORDER BY tf.CLOSE_DATE ASC
     """).to_pandas()
@@ -809,7 +812,8 @@ def load_ps_history():
             opp.SERVICE_TYPE_C AS PS_SERVICE_TYPE,
             opp.INVESTMENT_TYPE_C AS PS_INVESTMENT_TYPE,
             CAST(opp.PS_INVESTMENT_AMOUNT_C AS FLOAT) AS PS_INVESTMENT_AMOUNT,
-            opp.PS_T_SELLER_C AS PS_SELLER_NAME,
+            opp.PS_T_SELLER_C AS PS_SELLER_ID,
+            ps_seller.NAME AS PS_SELLER_NAME,
             ops.PS_SERVICES_ACV,
             ops.EDU_SERVICES_ACV,
             ops.TOTAL_PST_AMOUNT,
@@ -818,6 +822,7 @@ def load_ps_history():
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON opp.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
         JOIN opp_ps_summary ops ON opp.ID = ops.OPPORTUNITY_ID
         LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
+        LEFT JOIN FIVETRAN.SALESFORCE.USER ps_seller ON opp.PS_T_SELLER_C = ps_seller.ID
         WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND a.ACCOUNT_STATUS = 'Active'
         AND opp.IS_WON = TRUE
