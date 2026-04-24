@@ -41,6 +41,7 @@ if not df.empty:
     display = filtered[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                         "LEAD_SE",
                         "CONTRACT_START_DATE", "CONTRACT_END_DATE",
+                        "TOTAL_CAP",
                         "CAPACITY_USED",
                         "OVERAGE_UNDERAGE_PREDICTION", "OVERAGE_DATE"]].copy()
 
@@ -61,6 +62,7 @@ if not df.empty:
             {"col": "LEAD_SE", "label": "Lead SE"},
             {"col": "CONTRACT_START_DATE", "label": "Start", "fmt": "date"},
             {"col": "CONTRACT_END_DATE", "label": "End", "fmt": "date"},
+            {"col": "TOTAL_CAP", "label": "Total Cap", "fmt": "dollar"},
             {"col": "CAPACITY_USED", "label": "Cap Used (YTD)", "fmt": "dollar"},
             {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
             {"col": "OVERAGE_DATE", "label": "Overage Date", "fmt": "date"},
