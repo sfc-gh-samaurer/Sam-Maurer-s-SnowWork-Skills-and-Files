@@ -81,21 +81,21 @@ st.markdown("""
 .exec-banner {
     background: linear-gradient(135deg, #0C4A6E 0%, #0284C7 55%, #29B5E8 100%);
     border-radius: 16px;
-    padding: 24px 32px;
-    margin-bottom: 22px;
+    padding: 14px 24px;
+    margin-bottom: 16px;
     display: flex;
     align-items: center;
-    gap: 20px;
-    box-shadow: 0 6px 24px rgba(41,181,232,0.30);
+    gap: 14px;
+    box-shadow: 0 4px 12px rgba(41,181,232,0.20);
 }
-.exec-banner-icon { font-size: 3.4rem; line-height: 1; flex-shrink: 0; }
+.exec-banner-icon { font-size: 1.6rem; line-height: 1; flex-shrink: 0; }
 .exec-banner-title {
     color: white !important;
-    font-size: 4.4rem;
-    font-weight: 800;
+    font-size: 1.5rem;
+    font-weight: 700;
     margin: 0;
-    letter-spacing: -0.02em;
-    line-height: 1.15;
+    letter-spacing: -0.01em;
+    line-height: 1.3;
 }
 .exec-banner-sub {
     color: rgba(255,255,255,0.78);
@@ -134,13 +134,13 @@ st.markdown("""
 .detail-header {
     background: linear-gradient(135deg, #0C4A6E 0%, #0284C7 55%, #29B5E8 100%);
     border-radius: 16px;
-    padding: 24px 32px;
-    margin: 24px 0 14px 0;
+    padding: 14px 24px;
+    margin: 16px 0 12px 0;
     display: flex;
     align-items: center;
-    box-shadow: 0 6px 24px rgba(41,181,232,0.30);
+    box-shadow: 0 4px 12px rgba(41,181,232,0.20);
 }
-.detail-header-title { font-size: 4.4rem; font-weight: 800; color: white !important; margin: 0; letter-spacing: -0.02em; line-height: 1.15; }
+.detail-header-title { font-size: 1.5rem; font-weight: 700; color: white !important; margin: 0; letter-spacing: -0.01em; line-height: 1.3; }
 .detail-header-sub { font-size: 0.92rem; color: rgba(255,255,255,0.78); margin: 5px 0 0; }
 </style>
 """, unsafe_allow_html=True)
