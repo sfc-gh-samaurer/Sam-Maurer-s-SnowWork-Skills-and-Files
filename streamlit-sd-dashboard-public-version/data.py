@@ -4,6 +4,7 @@ import pandas as pd
 from decimal import Decimal
 import html as html_mod
 import json
+import os
 
 _ROLE = "TECHNICAL_ACCOUNT_MANAGER"
 _WAREHOUSE = "SNOWADHOC"
@@ -88,12 +89,18 @@ class _SessionWrapper:
         return getattr(self._s, name)
 
 
+def _local_session():
+    from snowflake.snowpark import Session
+    conn = os.getenv("SNOWFLAKE_CONNECTION_NAME", "sfcogsops-snowhouse_aws_us_west_2")
+    return Session.builder.config("connection_name", conn).create()
+
+
 def _get_session():
     try:
         from snowflake.snowpark.context import get_active_session
         session = get_active_session()
     except Exception:
-        session = st.connection("snowflake").session()
+        session = _local_session()
     try:
         session.sql(f"USE ROLE {_ROLE}").collect()
     except Exception:
@@ -308,7 +315,7 @@ def get_current_user():
         from snowflake.snowpark.context import get_active_session
         session = get_active_session()
     except Exception:
-        session = st.connection("snowflake").session()
+        session = _local_session()
     try:
         result = session.sql("SELECT CURRENT_USER() AS U").collect()
         return result[0]["U"]
@@ -323,7 +330,7 @@ def load_user_prefs():
         try:
             session = get_active_session()
         except Exception:
-            session = st.connection("snowflake").session()
+            session = _local_session()
         try:
             session.sql(f"USE ROLE {_ROLE}").collect()
             session.sql(f"USE WAREHOUSE {_WAREHOUSE}").collect()
@@ -347,7 +354,7 @@ def save_user_prefs(prefs_dict):
         try:
             session = get_active_session()
         except Exception:
-            session = st.connection("snowflake").session()
+            session = _local_session()
         try:
             session.sql(f"USE ROLE {_ROLE}").collect()
             session.sql(f"USE WAREHOUSE {_WAREHOUSE}").collect()
