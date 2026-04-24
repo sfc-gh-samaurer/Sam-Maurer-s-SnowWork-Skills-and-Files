@@ -77,6 +77,7 @@ if not pipeline_df.empty:
             {"col": "DM", "label": "DM"},
             {"col": "OWNER", "label": "AE"},
             {"col": "PS_SELLER_NAME", "label": "PS Seller"},
+            {"col": "PS_COMMENTS", "label": "PS Comments"},
             {"col": "OPP_PROBABILITY", "label": "Prob %", "fmt": "pct"},
         ], height=450)
 
