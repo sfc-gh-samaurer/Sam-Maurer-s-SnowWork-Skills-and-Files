@@ -343,6 +343,17 @@ _acct_district = _scoped_df.loc[_scoped_df["ACCOUNT_NAME"] == selected, "DISTRIC
 _acct_district = _acct_district.iloc[0] if not _acct_district.empty else ""
 accounts_df = load_accounts_for_scope(_acct_district) if _acct_district else pd.DataFrame()
 
+cap_df     = load_capacity_renewals()
+renewal_df = load_exec_software_renewals()
+
+acct_row  = accounts_df[accounts_df["ACCOUNT_NAME"] == selected]
+acct_cap  = cap_df[cap_df["ACCOUNT_NAME"] == selected]
+acct_ren  = renewal_df[renewal_df["ACCOUNT_NAME"] == selected]
+
+if acct_row.empty:
+    st.warning("Account not found in dataset.")
+    st.stop()
+
 a = acct_row.iloc[0]
 sfdc_id   = str(a.get("SALESFORCE_ACCOUNT_ID") or "")
 sfdc_url  = f"{SFDC_BASE}/Account/{sfdc_id}/view" if sfdc_id else "#"
