@@ -393,6 +393,7 @@ def clear_all_caches():
     load_exec_new_use_cases.clear()
     load_wow_use_cases.clear()
     load_wow_projects.clear()
+    load_fq_closed_sd.clear()
 
 
 @st.cache_data(ttl=3600)
