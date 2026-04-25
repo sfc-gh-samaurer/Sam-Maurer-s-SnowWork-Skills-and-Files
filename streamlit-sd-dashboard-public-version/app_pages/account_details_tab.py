@@ -5,6 +5,7 @@ import json
 from data import (
     load_hierarchy,
     load_accounts_for_scope,
+    load_account_search_list,
     load_capacity_renewals,
     load_exec_software_renewals,
     load_use_cases,
@@ -313,6 +314,30 @@ def health_badge(score):
 hierarchy_df = load_hierarchy()
 
 section_banner("Account Details", "Account snapshot — select a Theater, District, and Account")
+
+# ── Quick Search ──────────────────────────────────────────────────────────────
+_search_list = load_account_search_list()
+_qs_col, _qs_toggle_col = st.columns([4, 1])
+with _qs_col:
+    _qs_account = st.selectbox(
+        "Quick Search",
+        options=[""] + sorted(_search_list["ACCOUNT_NAME"].dropna().unique().tolist()),
+        key="acct_quick_search",
+        placeholder="🔍 Type to search any account across all regions…",
+        label_visibility="collapsed",
+    )
+with _qs_toggle_col:
+    _use_browse = st.toggle("Browse", value=False, key="acct_browse_toggle", help="Use Theater / Region / District filters instead")
+
+if _qs_account and not _use_browse:
+    _qs_row = _search_list[_search_list["ACCOUNT_NAME"] == _qs_account]
+    if not _qs_row.empty:
+        _qr = _qs_row.iloc[0]
+        st.session_state["acct_theater"]       = _qr.get("THEATER", "")
+        st.session_state["acct_region"]        = _qr.get("REGION_NAME", "")
+        st.session_state["acct_district"]      = _qr.get("DISTRICT_NAME", "")
+        st.session_state["acct_detail_select"] = _qs_account
+        st.session_state["acct_ae"]            = "All AEs"
 
 # ── Pinned Accounts ───────────────────────────────────────────────────────────
 _pinned = st.session_state.get("_pinned_accounts", [])

@@ -504,6 +504,32 @@ def load_data_freshness():
 
 
 @st.cache_data(ttl=86400)
+def load_account_search_list():
+    session = _get_session()
+    df = session.sql("""
+        SELECT DISTINCT
+            a.ACCOUNT_NAME,
+            a.DISTRICT_NAME,
+            a.REGION_NAME,
+            a.GEO_NAME AS THEATER,
+            a.DM
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+        WHERE a.DS = CURRENT_DATE()
+        AND a.REGION_NAME IN (
+            'LATAM','MajorsAcq',
+            'CommAcqEast','CommAcqWest',
+            'EntAcqCentral','EntAcqEast','EntAcqWest',
+            'NortheastExp','SoutheastExp','CentralExp','Commercial',
+            'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp'
+        )
+        AND a.ACCOUNT_STATUS = 'Active'
+        AND a.ACCOUNT_NAME IS NOT NULL
+        ORDER BY a.ACCOUNT_NAME
+    """).to_pandas()
+    return df
+
+
+@st.cache_data(ttl=86400)
 def load_accounts_base():
     session = _get_session()
     df = session.sql(_sql("""
