@@ -54,7 +54,7 @@ if not cap_df.empty:
         (_cap["CONTRACT_END_DATE"].notna())
         & (_cap["DAYS_LEFT"] <= 730)
         & (_cap["DAYS_LEFT"] > 0)
-        & (_cap["OVERAGE_UNDERAGE_PREDICTION"] < 0)
+        & (_cap["OVERAGE_UNDERAGE_PREDICTION"] < -75000)
     ].sort_values("OVERAGE_UNDERAGE_PREDICTION", ascending=True).head(15)
 
 

@@ -75,7 +75,7 @@ with tab_candidates:
             (candidates["CONTRACT_END_DATE"].notna())
             & (candidates["DAYS_LEFT"] <= 730)
             & (candidates["DAYS_LEFT"] > 0)
-            & (candidates["OVERAGE_UNDERAGE_PREDICTION"] < 0)
+            & (candidates["OVERAGE_UNDERAGE_PREDICTION"] < -75000)
         ].sort_values("OVERAGE_UNDERAGE_PREDICTION", ascending=True)
 
         if candidates.empty:
