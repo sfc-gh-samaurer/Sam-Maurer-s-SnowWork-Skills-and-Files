@@ -415,16 +415,28 @@ st.markdown('<p class="sf-section-label">Quarter Summary</p>', unsafe_allow_html
 
 _sd_pipe = load_ps_pipeline()
 
-_fq_all = sorted(set(
+def _valid_fq(q):
+    try:
+        parts = str(q).split("-FY")
+        return len(parts) == 2 and len(parts[1]) in (2, 4) and parts[1].isdigit()
+    except Exception:
+        return False
+
+_fq_raw = (
     list(cap_pipe_df["FISCAL_QUARTER"].dropna().unique()) +
     list(_sd_pipe["FISCAL_QUARTER"].dropna().unique() if not _sd_pipe.empty else [])
-))
+)
+_fq_all = sorted(set(q for q in _fq_raw if _valid_fq(q)))
 if _cfq_current not in _fq_all:
     _fq_all = [_cfq_current] + _fq_all
 _fq_all = sorted(set(_fq_all))
 
-_cur_fy  = int("20" + _cfq_current.split("-FY")[1])
-_fq_3yr  = [q for q in _fq_all if int("20" + q.split("-FY")[1]) <= _cur_fy + 3]
+def _fq_fy(q):
+    suffix = q.split("-FY")[1]
+    return int(suffix) if len(suffix) == 4 else int("20" + suffix)
+
+_cur_fy  = _fq_fy(_cfq_current)
+_fq_3yr  = [q for q in _fq_all if _fq_fy(q) <= _cur_fy + 3] or [_cfq_current]
 _cfq_idx = _fq_3yr.index(_cfq_current) if _cfq_current in _fq_3yr else 0
 
 selected_fq = st.selectbox(
