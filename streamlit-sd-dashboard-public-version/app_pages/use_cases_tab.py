@@ -128,7 +128,7 @@ tab_all, tab_summary = st.tabs(["All Use Cases", "Account Summary"])
 # ── All Use Cases ─────────────────────────────────────────────────────────────
 with tab_all:
     if not df.empty:
-        fc1, fc2, fc3, fc4, fc5, fc6 = st.columns(6)
+        fc1, fc2, fc3, fc4, fc5, fc6, fc7 = st.columns(7)
         with fc1:
             acct_filter = st.multiselect("Account", options=sorted(df["ACCOUNT_NAME"].dropna().unique()), default=[], key="uc_acct")
         with fc2:
@@ -138,8 +138,12 @@ with tab_all:
         with fc4:
             stage_filter = st.multiselect("Stage", options=sorted(df["STAGE"].dropna().unique()), default=[], key="uc_stage")
         with fc5:
-            impl_filter = st.multiselect("Implementer", options=["PS", "Partner", "Both", "None"], default=[], key="uc_impl")
+            impl_opts = sorted(df["IMPLEMENTER"].dropna().replace("", pd.NA).dropna().unique().tolist())
+            impl_filter = st.multiselect("Implementer", options=impl_opts, default=[], key="uc_impl")
         with fc6:
+            ps_eng_opts = sorted(df["PS_ENGAGEMENT"].dropna().replace("", pd.NA).dropna().unique().tolist())
+            ps_eng_filter = st.multiselect("PS Engagement", options=ps_eng_opts, default=[], key="uc_ps_eng")
+        with fc7:
             search = st.text_input("Search", "", key="uc_search", placeholder="Use case name…")
 
         filtered = df.copy()
@@ -152,23 +156,9 @@ with tab_all:
         if stage_filter:
             filtered = filtered[filtered["STAGE"].isin(stage_filter)]
         if impl_filter:
-            _IMPL_PS     = {"Snowflake SD Prime", "Customer Prime + Snowflake SD"}
-            _IMPL_PARTNER = {"Partner Only"}
-            _IMPL_BOTH   = {"Partner Prime + Snowflake SD", "Snowflake SD Prime + Partner"}
-            impl_masks = []
-            if "PS" in impl_filter:
-                impl_masks.append(filtered["IMPLEMENTER"].isin(_IMPL_PS))
-            if "Partner" in impl_filter:
-                impl_masks.append(filtered["IMPLEMENTER"].isin(_IMPL_PARTNER))
-            if "Both" in impl_filter:
-                impl_masks.append(filtered["IMPLEMENTER"].isin(_IMPL_BOTH))
-            if "None" in impl_filter:
-                impl_masks.append(filtered["IMPLEMENTER"].isnull() | filtered["IMPLEMENTER"].isin({"Customer Only", "Unknown", ""}))
-            if impl_masks:
-                combined = impl_masks[0]
-                for m in impl_masks[1:]:
-                    combined = combined | m
-                filtered = filtered[combined]
+            filtered = filtered[filtered["IMPLEMENTER"].isin(impl_filter)]
+        if ps_eng_filter:
+            filtered = filtered[filtered["PS_ENGAGEMENT"].isin(ps_eng_filter)]
         if search:
             filtered = filtered[filtered["USE_CASE_NAME"].str.contains(search, case=False, na=False)]
 
@@ -183,13 +173,12 @@ with tab_all:
             "ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "USE_CASE_NAME", "USE_CASE_ID",
             "USE_CASE_NUMBER", "USE_CASE_STATUS", "ACV", "STAGE", "DECISION_DATE",
             "CREATED_DATE", "LAST_MODIFIED_DATE", "DAYS_IN_STAGE", "OWNER",
-            "NEXT_STEPS", "IS_PS_ENGAGED"
+            "IMPLEMENTER", "PS_ENGAGEMENT"
         ]].copy()
         display["UC_LINK"] = display.apply(
             lambda r: f'{SFDC_BASE}/{r["USE_CASE_ID"]}/view' if pd.notna(r.get("USE_CASE_ID")) else None, axis=1
         )
         display["UC_DISPLAY"] = display["USE_CASE_NUMBER"].fillna("")
-        display["PS_ENGAGED"] = display["IS_PS_ENGAGED"].map({True: "Yes", False: "No"})
 
         with st.expander(f"{len(filtered)} use cases", expanded=True):
             render_html_table(display, columns=[
@@ -204,8 +193,8 @@ with tab_all:
                 {"col": "LAST_MODIFIED_DATE","label": "Modified",      "fmt": "date"},
                 {"col": "DAYS_IN_STAGE",    "label": "Days Since Mod", "fmt": "number"},
                 {"col": "OWNER",            "label": "AE"},
-                {"col": "NEXT_STEPS",       "label": "Next Steps"},
-                {"col": "PS_ENGAGED",       "label": "PS Engaged"},
+                {"col": "IMPLEMENTER",      "label": "Implementer"},
+                {"col": "PS_ENGAGEMENT",    "label": "PS Engagement"},
             ], height=600)
             st.download_button(":material/download: Export CSV", filtered.to_csv(index=False), "use_cases.csv", "text/csv", key="uc_csv")
     else:
