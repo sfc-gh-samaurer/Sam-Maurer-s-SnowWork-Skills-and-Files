@@ -49,12 +49,28 @@ _proj_wow_label = (
     f"{_comp_n} completed · {_kick_n} kicked off · {_stall_n} stalled · {_exp_n} expiring <14d"
 )
 
+def _proj_link(row):
+    pid = row.get("PROJECT_ID")
+    return f"{SFDC_BASE}/pse__Proj__c/{pid}/view" if pid and str(pid).strip() else None
+
+def _add_proj_links(df_in):
+    d = df_in.copy()
+    d["PROJ_LINK"] = d.apply(_proj_link, axis=1)
+    return d
+
 _stage_cols = [
     {"col": "ACCOUNT_NAME",  "label": "Account"},
     {"col": "PROJECT_NAME",  "label": "Project"},
+    {"col": "PROJ_LINK",     "label": "SFDC",        "fmt": "link"},
     {"col": "OLD_VALUE",     "label": "From Stage"},
     {"col": "NEW_VALUE",     "label": "To Stage"},
-    {"col": "CHANGED_AT",   "label": "When", "fmt": "date"},
+    {"col": "BILLING_TYPE",  "label": "Billing"},
+    {"col": "SERVICE_TYPE",  "label": "Service Type"},
+    {"col": "START_DATE",    "label": "Start",       "fmt": "date"},
+    {"col": "END_DATE",      "label": "End",         "fmt": "date"},
+    {"col": "REVENUE_AMOUNT","label": "Revenue",     "fmt": "dollar"},
+    {"col": "PCT_COMPLETE",  "label": "% Complete",  "fmt": "pct"},
+    {"col": "CHANGED_AT",   "label": "When",        "fmt": "date"},
 ]
 
 with st.expander(_proj_wow_label, expanded=False):
@@ -69,32 +85,35 @@ with st.expander(_proj_wow_label, expanded=False):
         if wow_completed.empty:
             empty_state("No projects completed this week.")
         else:
-            render_html_table(wow_completed, columns=_stage_cols, height=max(140, min(400, _comp_n * 40 + 60)))
+            render_html_table(_add_proj_links(wow_completed), columns=_stage_cols, height=max(140, min(500, _comp_n * 40 + 60)))
 
     with _pt2:
         if wow_kicked_off.empty:
             empty_state("No projects kicked off this week.")
         else:
-            render_html_table(wow_kicked_off, columns=_stage_cols, height=max(140, min(400, _kick_n * 40 + 60)))
+            render_html_table(_add_proj_links(wow_kicked_off), columns=_stage_cols, height=max(140, min(500, _kick_n * 40 + 60)))
 
     with _pt3:
         if wow_stalled.empty:
             empty_state("No projects went stalled this week.")
         else:
-            render_html_table(wow_stalled, columns=_stage_cols, height=max(140, min(400, _stall_n * 40 + 60)))
+            render_html_table(_add_proj_links(wow_stalled), columns=_stage_cols, height=max(140, min(500, _stall_n * 40 + 60)))
 
     with _pt4:
         if _expiring.empty:
             empty_state("No projects expiring in the next 14 days.")
         else:
-            _exp_cols = [
+            _expiring_linked = _add_proj_links(_expiring)
+            render_html_table(_expiring_linked, columns=[
                 {"col": "ACCOUNT_NAME", "label": "Account"},
                 {"col": "PROJECT_NAME", "label": "Project"},
+                {"col": "PROJ_LINK",    "label": "SFDC",        "fmt": "link"},
                 {"col": "PROJECT_STAGE","label": "Stage"},
-                {"col": "END_DATE",     "label": "End Date", "fmt": "date"},
-                {"col": "REVENUE_AMOUNT","label": "Revenue",  "fmt": "dollar"},
-            ]
-            render_html_table(_expiring, columns=_exp_cols, height=max(140, min(400, _exp_n * 40 + 60)))
+                {"col": "BILLING_TYPE", "label": "Billing"},
+                {"col": "END_DATE",     "label": "End Date",    "fmt": "date"},
+                {"col": "REVENUE_AMOUNT","label": "Revenue",    "fmt": "dollar"},
+                {"col": "PCT_COMPLETE", "label": "% Complete",  "fmt": "pct"},
+            ], height=max(140, min(500, _exp_n * 40 + 60)))
 
 
 def _extract_base_name(project_name):

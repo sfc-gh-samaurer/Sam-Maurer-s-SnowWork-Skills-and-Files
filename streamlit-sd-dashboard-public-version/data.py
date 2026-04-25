@@ -399,10 +399,14 @@ def load_wow_use_cases():
     df = session.sql(_sql("""
         SELECT
             a.ACCOUNT_NAME,
-            uc.NAME_C    AS USE_CASE_NAME,
-            uc.ID        AS USE_CASE_ID,
-            uc.NAME      AS USE_CASE_NUMBER,
-            uc.STAGE_C   AS CURRENT_STAGE,
+            uc.NAME_C                        AS USE_CASE_NAME,
+            uc.ID                            AS USE_CASE_ID,
+            uc.NAME                          AS USE_CASE_NUMBER,
+            uc.STAGE_C                       AS CURRENT_STAGE,
+            CAST(uc.ACV_C AS FLOAT)          AS ACV,
+            uc.DECISION_DATE_C               AS DECISION_DATE,
+            uc.TECHNICAL_WIN_DATE_FORECAST_C AS TARGET_GO_LIVE,
+            uc.USE_CASE_STATUS_C             AS UC_STATUS,
             h.FIELD,
             h.OLD_VALUE,
             h.NEW_VALUE,
@@ -425,13 +429,20 @@ def load_wow_projects():
     df = session.sql(_sql("""
         SELECT
             a.ACCOUNT_NAME,
-            p.NAME          AS PROJECT_NAME,
-            p.ID            AS PROJECT_ID,
-            p.PSE_STAGE_C   AS CURRENT_STAGE,
+            p.NAME                               AS PROJECT_NAME,
+            p.ID                                 AS PROJECT_ID,
+            p.PSE_STAGE_C                        AS CURRENT_STAGE,
+            p.PSE_PROJECT_STATUS_C               AS PROJECT_STATUS,
+            p.PSE_BILLING_TYPE_C                 AS BILLING_TYPE,
+            p.SERVICE_TYPE_C                     AS SERVICE_TYPE,
+            p.PSE_START_DATE_C                   AS START_DATE,
+            p.PSE_END_DATE_C                     AS END_DATE,
+            CAST(p.PROJECT_REVENUE_AMOUNT_C AS FLOAT) AS REVENUE_AMOUNT,
+            CAST(p.PSE_PERCENT_HOURS_COMPLETE_C AS FLOAT) AS PCT_COMPLETE,
             h.FIELD,
             h.OLD_VALUE,
             h.NEW_VALUE,
-            h.CREATED_DATE  AS CHANGED_AT
+            h.CREATED_DATE AS CHANGED_AT
         FROM FIVETRAN.SALESFORCE.PSE_PROJ_HISTORY h
         JOIN FIVETRAN.SALESFORCE.PSE_PROJ_C p ON h.PARENT_ID = p.ID
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON p.PSE_ACCOUNT_C = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()

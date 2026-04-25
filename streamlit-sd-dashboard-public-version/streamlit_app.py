@@ -450,40 +450,6 @@ with st.sidebar:
             st.rerun()
 
     # ── Global Account Search ─────────────────────────────────────────────────
-    st.divider()
-    st.markdown("### :material/search: Find Account")
-    _ga_search = st.text_input("Account name", key="_global_acct_search", placeholder="Search any account…", label_visibility="collapsed")
-    if _ga_search and len(_ga_search) >= 2:
-        try:
-            from data import load_accounts_base as _load_ab
-            _all_accts = _load_ab()
-            _ga_matches = _all_accts[_all_accts["ACCOUNT_NAME"].str.contains(_ga_search, case=False, na=False)].head(10)
-            if not _ga_matches.empty:
-                _ga_pick = st.selectbox(
-                    "Matches",
-                    options=_ga_matches["ACCOUNT_NAME"].tolist(),
-                    key="_global_acct_pick",
-                    label_visibility="collapsed",
-                )
-                if st.button("Open in Account Details →", key="_global_acct_go", type="primary", use_container_width=True):
-                    _ga_row = _ga_matches[_ga_matches["ACCOUNT_NAME"] == _ga_pick].iloc[0]
-                    from data import load_hierarchy as _load_hier
-                    _hier = _load_hier()
-                    _ga_district_rows = _hier[_hier["DM"] == _ga_row.get("DM", "")]
-                    if not _ga_district_rows.empty:
-                        _ga_district = _ga_district_rows.iloc[0]
-                        st.session_state["acct_theater"]      = _ga_district.get("THEATER", "")
-                        st.session_state["acct_region"]       = _ga_district.get("REGION", "")
-                        st.session_state["acct_district"]     = _ga_district.get("DISTRICT", "")
-                    st.session_state["acct_ae"]           = "All AEs"
-                    st.session_state["acct_detail_select"]= _ga_pick
-                    st.session_state["current_page"]      = ":material/manage_accounts: Account Details"
-                    st.rerun()
-            else:
-                st.caption("No accounts found.")
-        except Exception:
-            st.caption("Search unavailable.")
-
     _cur_prefs = {
         "sf_theater": st.session_state.get("sf_theater", []),
         "sf_region":  st.session_state.get("sf_region", []),
