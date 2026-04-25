@@ -130,7 +130,7 @@ with tab_pipeline:
         with fp1:
             dm_filter_p = st.multiselect("DM", options=sorted(cap_pipe_df["DM"].dropna().unique()), default=[], key="cpipe_dm")
         with fp2:
-            type_filter = st.multiselect("Type", options=sorted(cap_pipe_df["OPPORTUNITY_TYPE"].dropna().unique()), default=[], key="cpipe_type")
+            type_filter = st.multiselect("Agreement Type", options=sorted(cap_pipe_df["AGREEMENT_TYPE"].dropna().unique()), default=[], key="cpipe_type")
         with fp3:
             ae_filter_p = st.multiselect("AE", options=sorted(cap_pipe_df["OWNER"].dropna().unique()), default=[], key="cpipe_ae")
         with fp4:
@@ -151,7 +151,7 @@ with tab_pipeline:
         if dm_filter_p:
             filtered_p = filtered_p[filtered_p["DM"].isin(dm_filter_p)]
         if type_filter:
-            filtered_p = filtered_p[filtered_p["OPPORTUNITY_TYPE"].isin(type_filter)]
+            filtered_p = filtered_p[filtered_p["AGREEMENT_TYPE"].isin(type_filter)]
         if ae_filter_p:
             filtered_p = filtered_p[filtered_p["OWNER"].isin(ae_filter_p)]
         if stage_filter_p:
@@ -187,7 +187,7 @@ with tab_pipeline:
                 {"col": "ACCOUNT_NAME",        "label": "Account"},
                 {"col": "OPPORTUNITY_NAME",    "label": "Opportunity"},
                 {"col": "OPP_LINK",            "label": "SFDC",       "fmt": "link"},
-                {"col": "OPPORTUNITY_TYPE",    "label": "Type"},
+                {"col": "AGREEMENT_TYPE",      "label": "Agreement Type"},
                 {"col": "STAGE_NAME",          "label": "Stage"},
                 {"col": "FORECAST_STATUS",     "label": "Forecast"},
                 {"col": "PRODUCT_FORECAST_ACV","label": "Fcst ACV",   "fmt": "dollar"},
@@ -222,7 +222,7 @@ with tab_invest:
             fq_default = [_cfq] if _cfq in fq_opts else []
             fq_filter = st.multiselect("Fiscal Quarter", options=fq_opts, default=fq_default, key="invest_fq")
         with if2:
-            type_opts = sorted(invest_df["OPPORTUNITY_TYPE"].dropna().unique())
+            type_opts = sorted(invest_df["AGREEMENT_TYPE"].dropna().unique())
             type_filter_inv = st.multiselect("Type", options=type_opts, default=type_opts, key="invest_type")
         with if3:
             _TCV_MAP = {"All": 0, "$250K+": 250_000, "$500K+": 500_000, "$1M+": 1_000_000}
@@ -234,7 +234,7 @@ with tab_invest:
         if fq_filter:
             invest_df = invest_df[invest_df["FISCAL_QUARTER"].isin(fq_filter)]
         if type_filter_inv:
-            invest_df = invest_df[invest_df["OPPORTUNITY_TYPE"].isin(type_filter_inv)]
+            invest_df = invest_df[invest_df["AGREEMENT_TYPE"].isin(type_filter_inv)]
         if excl_segments:
             invest_df = invest_df[~invest_df["OPPORTUNITY_NAME"].str.contains(r"segment\s*\d+", case=False, na=False, regex=True)]
         invest_df = invest_df[invest_df["CALCULATED_TCV"].fillna(0) >= tcv_threshold].copy()
@@ -253,7 +253,7 @@ with tab_invest:
                 {"col": "ACCOUNT_NAME",    "label": "Account"},
                 {"col": "OPPORTUNITY_NAME","label": "Opportunity"},
                 {"col": "OPP_LINK",        "label": "SFDC",       "fmt": "link"},
-                {"col": "OPPORTUNITY_TYPE","label": "Type"},
+                {"col": "AGREEMENT_TYPE",  "label": "Agreement Type"},
                 {"col": "STAGE_NAME",      "label": "Stage"},
                 {"col": "FORECAST_STATUS", "label": "Forecast"},
                 {"col": "PRODUCT_FORECAST_ACV","label": "Fcst ACV","fmt": "dollar"},

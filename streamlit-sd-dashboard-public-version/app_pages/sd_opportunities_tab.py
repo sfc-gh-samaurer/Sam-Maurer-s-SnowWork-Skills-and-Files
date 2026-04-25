@@ -27,7 +27,7 @@ if not pipeline_df.empty:
     with fc3:
         stage_filter_p = st.multiselect("Stage", options=sorted(pipeline_df["STAGE_NAME"].dropna().unique()), default=[], key="psp_stage")
     with fc4:
-        type_filter_p = st.multiselect("Type", options=sorted(pipeline_df["OPPORTUNITY_TYPE"].dropna().unique()), default=[], key="psp_type")
+        type_filter_p = st.multiselect("Agreement Type", options=sorted(pipeline_df["AGREEMENT_TYPE"].dropna().unique()), default=[], key="psp_type")
     with fc5:
         fc_filter_p = st.multiselect("Forecast", options=sorted(pipeline_df["FORECAST_STATUS"].dropna().unique()), default=[], key="psp_fc")
     search_p = st.text_input("Search opportunity name", "", key="psp_search", placeholder="Type to filter…")
@@ -40,7 +40,7 @@ if not pipeline_df.empty:
     if stage_filter_p:
         filtered_p = filtered_p[filtered_p["STAGE_NAME"].isin(stage_filter_p)]
     if type_filter_p:
-        filtered_p = filtered_p[filtered_p["OPPORTUNITY_TYPE"].isin(type_filter_p)]
+        filtered_p = filtered_p[filtered_p["AGREEMENT_TYPE"].isin(type_filter_p)]
     if fc_filter_p:
         filtered_p = filtered_p[filtered_p["FORECAST_STATUS"].isin(fc_filter_p)]
     if search_p:
@@ -56,13 +56,12 @@ if not pipeline_df.empty:
             {"col": "ACCOUNT_NAME",              "label": "Account"},
             {"col": "OPPORTUNITY_NAME",           "label": "Opportunity"},
             {"col": "OPP_LINK",                   "label": "SFDC",         "fmt": "link"},
-            {"col": "OPPORTUNITY_TYPE",           "label": "Type"},
+            {"col": "AGREEMENT_TYPE",             "label": "Agreement Type"},
             {"col": "PRODUCT_NAMES",              "label": "Products"},
             {"col": "STAGE_NAME",                 "label": "Stage"},
             {"col": "FORECAST_STATUS",            "label": "Forecast"},
             {"col": "PS_FORECAST_CATEGORY",       "label": "PS Fcast Cat"},
             {"col": "PS_INVESTMENT_TYPE",         "label": "Invest"},
-            {"col": "QUOTE_SUB_AGREEMENT_TYPE",   "label": "Agreement"},
             {"col": "CLOSE_DATE",                 "label": "Close",        "fmt": "date"},
             {"col": "CREATED_DATE",               "label": "Created",      "fmt": "date"},
             {"col": "SALES_QUALIFIED_DATE",       "label": "SQ Date",      "fmt": "date"},
@@ -93,7 +92,7 @@ if not history_df.empty:
     with hc3:
         pf_filter_h = st.multiselect("Product Family", options=sorted(history_df["PRODUCT_FAMILIES"].dropna().unique()), default=[], key="psh_pf")
     with hc4:
-        type_filter_h = st.multiselect("Opp Type", options=sorted(history_df["OPPORTUNITY_TYPE"].dropna().unique()), default=[], key="psh_type")
+        type_filter_h = st.multiselect("Agreement Type", options=sorted(history_df["AGREEMENT_TYPE"].dropna().unique()), default=[], key="psh_type")
     with hc5:
         search_h = st.text_input("Search", "", key="psh_search", placeholder="Account or opportunity…")
 
@@ -105,7 +104,7 @@ if not history_df.empty:
     if pf_filter_h:
         filtered_h = filtered_h[filtered_h["PRODUCT_FAMILIES"].isin(pf_filter_h)]
     if type_filter_h:
-        filtered_h = filtered_h[filtered_h["OPPORTUNITY_TYPE"].isin(type_filter_h)]
+        filtered_h = filtered_h[filtered_h["AGREEMENT_TYPE"].isin(type_filter_h)]
     if search_h:
         filtered_h = filtered_h[
             filtered_h["OPPORTUNITY_NAME"].str.contains(search_h, case=False, na=False)
@@ -130,7 +129,7 @@ if not history_df.empty:
             {"col": "DM",               "label": "DM"},
             {"col": "AE",               "label": "AE"},
             {"col": "OPP_OWNER",        "label": "Opp Owner"},
-            {"col": "OPPORTUNITY_TYPE", "label": "Type"},
+            {"col": "AGREEMENT_TYPE",   "label": "Agreement Type"},
             {"col": "CLOSE_DATE",       "label": "Close Date",   "fmt": "date"},
             {"col": "PRODUCT_FAMILIES", "label": "Product Family"},
             {"col": "PS_SERVICES_ACV",  "label": "PS Svc $",     "fmt": "dollar"},

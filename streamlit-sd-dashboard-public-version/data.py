@@ -470,6 +470,7 @@ def load_fq_closed_sd(fiscal_quarter: str):
             a.REP_NAME        AS AE,
             opp.CLOSE_DATE,
             opp.TYPE          AS OPP_TYPE,
+            opp.AGREEMENT_TYPE_C AS AGREEMENT_TYPE,
             CAST(COALESCE(NULLIF(opp.SERVICES_TCV_LOOKER_C, 0), opp.SERVICES_FORECAST_C, 0) AS FLOAT) AS PS_SERVICES_ACV,
             CAST(COALESCE(NULLIF(opp.SERVICES_TCV_LOOKER_C, 0), opp.SERVICES_FORECAST_C, 0) AS FLOAT) AS TOTAL_PST
         FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
@@ -641,6 +642,7 @@ def load_capacity_pipeline():
             o.OPP_NAME AS OPPORTUNITY_NAME,
             o.OPP_ID AS OPPORTUNITY_ID,
             o.TYPE AS OPPORTUNITY_TYPE,
+            o.AGREEMENT_TYPE AS AGREEMENT_TYPE,
             o.STAGE_NAME,
             o.FORECAST_STATUS,
             CAST(COALESCE(sf.FORECAST_ACV_C, 0) AS FLOAT) AS PRODUCT_FORECAST_ACV,
@@ -863,6 +865,7 @@ def load_ps_pipeline():
                 o.OPP_NAME AS OPPORTUNITY_NAME,
                 o.OPP_ID AS OPPORTUNITY_ID,
                 o.TYPE AS OPPORTUNITY_TYPE,
+                o.AGREEMENT_TYPE AS AGREEMENT_TYPE,
                 o.STAGE_NAME,
                 o.FORECAST_STATUS,
                 CAST(COALESCE(fv.PRODUCT_ACV_LOOKER_C, fv.ACV_C, o.OPPORTUNITY_PRODUCT_ACV_TOTAL) AS FLOAT) AS TOTAL_ACV,
@@ -1008,6 +1011,7 @@ def load_ps_history():
             u.NAME AS OPP_OWNER,
             opp.STAGE_NAME,
             opp.TYPE AS OPPORTUNITY_TYPE,
+            opp.AGREEMENT_TYPE_C AS AGREEMENT_TYPE,
             opp.CLOSE_DATE,
             opp.SERVICE_TYPE_C AS PS_SERVICE_TYPE,
             opp.INVESTMENT_TYPE_C AS PS_INVESTMENT_TYPE,
@@ -1167,14 +1171,14 @@ def load_exec_new_opps():
                 o.OPP_NAME AS OPPORTUNITY_NAME,
                 o.OPP_ID AS OPPORTUNITY_ID,
                 o.TYPE AS OPPORTUNITY_TYPE,
+                o.AGREEMENT_TYPE AS AGREEMENT_TYPE,
                 o.STAGE_NAME,
                 o.FORECAST_STATUS,
                 CAST(COALESCE(fv.PRODUCT_ACV_LOOKER_C, fv.ACV_C, o.OPPORTUNITY_PRODUCT_ACV_TOTAL) AS FLOAT) AS TOTAL_ACV,
                 o.CLOSE_DATE,
                 o.CREATED_DATE,
                 o.REP_NAME AS OWNER,
-                o.DM,
-                o.AGREEMENT_TYPE
+                o.DM
             FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
             LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY fv ON fv.ID = o.OPP_ID
             WHERE o.DM IN ('Erik Schneider', 'Raymond Navarro')
