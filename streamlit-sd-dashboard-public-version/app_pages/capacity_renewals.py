@@ -7,6 +7,8 @@ from components import section_banner, empty_state
 
 df          = load_capacity_renewals()
 cap_pipe_df = load_capacity_pipeline()
+if "AGREEMENT_TYPE" not in cap_pipe_df.columns:
+    cap_pipe_df["AGREEMENT_TYPE"] = cap_pipe_df.get("OPPORTUNITY_TYPE", "")
 today       = pd.Timestamp.now().normalize()
 
 section_banner("Capacity & Renewals", "Active contracts, conversion candidates, pipeline, and investment opportunities")

@@ -6,6 +6,9 @@ from components import section_banner, empty_state
 
 pipeline_df = load_ps_pipeline()
 history_df  = load_ps_history()
+for _df in [pipeline_df, history_df]:
+    if "AGREEMENT_TYPE" not in _df.columns:
+        _df["AGREEMENT_TYPE"] = _df.get("OPPORTUNITY_TYPE", "")
 
 section_banner("SD Opportunities", "Open pipeline and historical sold services & training")
 
