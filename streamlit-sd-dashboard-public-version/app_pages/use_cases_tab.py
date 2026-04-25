@@ -249,21 +249,6 @@ with tab_summary:
                 m3.metric("Pipeline UCs",  len(ap_acct_ucs))
                 m4.metric("Pipeline eACV", f"${ap_acct_ucs['EACV'].sum():,.0f}")
 
-                if st.button("Open in Account Details →", key=f"uc_nav_acct_{ap_sel_account}", type="primary"):
-                    from data import load_hierarchy as _lh_uc
-                    _hier_uc = _lh_uc()
-                    _dm_uc   = ap_acct_df["DM"].iloc[0] if not ap_acct_df.empty else ""
-                    _d_uc    = _hier_uc[_hier_uc["DM"] == _dm_uc]
-                    if not _d_uc.empty:
-                        _dr = _d_uc.iloc[0]
-                        st.session_state["acct_theater"]   = _dr.get("THEATER", "")
-                        st.session_state["acct_region"]    = _dr.get("REGION", "")
-                        st.session_state["acct_district"]  = _dr.get("DISTRICT", "")
-                    st.session_state["acct_ae"]            = "All AEs"
-                    st.session_state["acct_detail_select"] = ap_sel_account
-                    st.session_state["current_page"]       = ":material/manage_accounts: Account Details"
-                    st.rerun()
-
                 if not ap_acct_ucs.empty:
                     ap_disp = ap_acct_ucs[[
                         "USE_CASE_NAME", "USE_CASE_ID", "USE_CASE_NUMBER", "STAGE", "EACV",
