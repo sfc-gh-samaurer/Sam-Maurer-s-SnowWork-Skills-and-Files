@@ -601,6 +601,7 @@ def load_capacity_renewals():
             AND o.TYPE = 'Renewal'
             AND o.IS_CLOSED = FALSE
             AND o.IS_DELETED = FALSE
+            AND o.AMOUNT > 0
         )
         SELECT
             b.ACCOUNT_NAME,
