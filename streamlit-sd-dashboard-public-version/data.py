@@ -68,7 +68,7 @@ function scrollParent(id){{
 def _get_dm_in_clause():
     dms = st.session_state.get("selected_dms") or []
     if not dms:
-        dms = list(load_org_hierarchy()["DISTRICT_MANAGER"].dropna().unique())
+        return "('__no_scope__')"
     escaped = ", ".join(f"'{d.replace(chr(39), chr(39)*2)}'" for d in sorted(dms))
     return f"({escaped})"
 
@@ -1262,11 +1262,15 @@ def load_org_hierarchy():
             DM              AS DISTRICT_MANAGER
         FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
         WHERE DS = CURRENT_DATE()
-        AND GEO_NAME IN ('AMSAcquisition', 'AMSExpansion')
+        AND REGION_NAME IN (
+            'LATAM','MajorsAcq',
+            'CommAcqEast','CommAcqWest',
+            'EntAcqCentral','EntAcqEast','EntAcqWest',
+            'NortheastExp','SoutheastExp','CentralExp','Commercial',
+            'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp'
+        )
         AND DISTRICT_NAME IS NOT NULL
         AND DM IS NOT NULL
-        AND DISTRICT_NAME NOT LIKE '%_Hold'
-        AND REGION_NAME NOT LIKE '%_Rgn_Hold%'
         ORDER BY THEATRE, REGION, DISTRICT
     """).to_pandas()
     return df

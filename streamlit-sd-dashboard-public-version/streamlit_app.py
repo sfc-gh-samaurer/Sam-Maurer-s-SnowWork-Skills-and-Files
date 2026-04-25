@@ -438,6 +438,8 @@ with st.sidebar:
 
     h4 = h3[h3["DISTRICT"].isin(sel_district)] if sel_district else h3
     new_dms = sorted(h4["DISTRICT_MANAGER"].dropna().unique().tolist())
+    if not sel_theater and not sel_region and not sel_district:
+        new_dms = []
 
     prev_dms = st.session_state.get("selected_dms", None)
     if prev_dms is not None and set(new_dms) != set(prev_dms):
@@ -602,8 +604,24 @@ if st.session_state.get("_last_seen_at") != _today_str[:10]:
     st.session_state["_last_seen_at"] = _today_str[:10]
 
 _selected = st.session_state.get("current_page", ":material/bar_chart: Executive Summary")
-with open(os.path.join(_APP_DIR, f"app_pages/{_PAGE_FILES[_selected]}")) as f:
-    exec(f.read())
+_no_scope = not st.session_state.get("selected_dms")
+
+if _no_scope:
+    st.markdown("""
+    <div style="background:linear-gradient(135deg,#EFF8FF,#F0FAFF);border:2px solid #29B5E8;
+                border-radius:12px;padding:28px 32px;margin:40px auto;max-width:520px;text-align:center">
+      <div style="font-size:1.4rem;margin-bottom:8px">🗺️</div>
+      <div style="font-weight:700;font-size:1.05rem;color:#11567F;margin-bottom:6px">Select a Scope to Get Started</div>
+      <div style="color:#475569;font-size:0.88rem;line-height:1.6">
+        Use the <strong>Theater</strong>, <strong>Region</strong>, or <strong>District</strong> filters
+        in the sidebar to narrow your view.<br><br>
+        Tip: selecting a Region loads data for all districts within it.
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+else:
+    with open(os.path.join(_APP_DIR, f"app_pages/{_PAGE_FILES[_selected]}")) as f:
+        exec(f.read())
 
 # ── DATA FRESHNESS FOOTER ─────────────────────────────────────────────────────
 try:
