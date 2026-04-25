@@ -1192,14 +1192,14 @@ def load_exec_new_opps():
                 opp.NAME AS OPPORTUNITY_NAME,
                 opp.ID AS OPPORTUNITY_ID,
                 opp.TYPE AS OPPORTUNITY_TYPE,
+                opp.AGREEMENT_TYPE_C AS AGREEMENT_TYPE,
                 opp.STAGE_NAME,
                 opp.FORECAST_CATEGORY_NAME AS FORECAST_STATUS,
                 CAST(opp.AMOUNT AS FLOAT) AS TOTAL_ACV,
                 opp.CLOSE_DATE,
                 opp.CREATED_DATE,
                 u.NAME AS OWNER,
-                a.ACCOUNT_OWNER_MANAGER_C AS DM,
-                opp.AGREEMENT_TYPE_C AS AGREEMENT_TYPE
+                a.ACCOUNT_OWNER_MANAGER_C AS DM
             FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
             JOIN SALES.RAVEN.ACCOUNT a ON opp.ACCOUNT_ID = a.SALESFORCE_ACCOUNT_ID
             LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
