@@ -1145,6 +1145,7 @@ def load_exec_software_renewals():
         AND o.IS_CLOSED = FALSE
         AND o.IS_DELETED = FALSE
         AND o.TYPE = 'Renewal'
+        AND o.AMOUNT > 0
         AND o.CLOSE_DATE BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 6, CURRENT_DATE())
         ORDER BY o.CLOSE_DATE ASC
     """)).to_pandas()
