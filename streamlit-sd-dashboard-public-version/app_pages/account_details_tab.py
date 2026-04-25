@@ -6,6 +6,7 @@ from data import (
     load_accounts_for_scope,
     load_capacity_renewals,
     load_exec_software_renewals,
+    save_user_prefs,
 )
 
 from constants import SFDC_BASE
@@ -267,6 +268,23 @@ hierarchy_df = load_hierarchy()
 
 section_banner("Account Details", "Account snapshot — select a Theater, District, and Account")
 
+# ── Pinned Accounts ───────────────────────────────────────────────────────────
+_pinned = st.session_state.get("_pinned_accounts", [])
+if _pinned:
+    st.markdown('<p class="sf-section-label">⭐ Pinned Accounts</p>', unsafe_allow_html=True)
+    _pin_cols = st.columns(min(len(_pinned), 6))
+    for _pi, _pa in enumerate(_pinned[:6]):
+        with _pin_cols[_pi]:
+            if st.button(_pa["name"][:22] + ("…" if len(_pa["name"]) > 22 else ""),
+                         key=f"_pin_btn_{_pi}", use_container_width=True,
+                         help=_pa["name"], type="secondary"):
+                st.session_state["acct_theater"]      = _pa.get("theater", "")
+                st.session_state["acct_region"]       = _pa.get("region", "")
+                st.session_state["acct_district"]     = _pa.get("district", "")
+                st.session_state["acct_ae"]           = "All AEs"
+                st.session_state["acct_detail_select"]= _pa["name"]
+                st.rerun()
+
 # ── Cascading filters ─────────────────────────────────────────────────────────
 st.markdown('<div style="margin-bottom:4px"></div>', unsafe_allow_html=True)
 f1, f2, f3, f4 = st.columns([1, 1, 1, 1])
@@ -461,7 +479,33 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ── ROW 1: Contract & Capacity | Software Renewal | Snowflake Footprint ────────
+# ── Pin / Unpin ───────────────────────────────────────────────────────────────
+_pinned_names = [p["name"] for p in st.session_state.get("_pinned_accounts", [])]
+_is_pinned    = selected in _pinned_names
+_pin_label    = "⭐ Unpin Account" if _is_pinned else "☆ Pin Account"
+if st.button(_pin_label, key="acct_pin_btn", type="secondary"):
+    _cur_pins = st.session_state.get("_pinned_accounts", [])
+    if _is_pinned:
+        _cur_pins = [p for p in _cur_pins if p["name"] != selected]
+    else:
+        _cur_pins.append({
+            "name":     selected,
+            "theater":  st.session_state.get("acct_theater", ""),
+            "region":   st.session_state.get("acct_region", ""),
+            "district": district,
+        })
+    st.session_state["_pinned_accounts"] = _cur_pins
+    _pin_prefs = {
+        "sf_theater": st.session_state.get("sf_theater", []),
+        "sf_region":  st.session_state.get("sf_region", []),
+        "sf_pm":      st.session_state.get("sf_pm", []),
+        "sf_district":st.session_state.get("sf_district", []),
+        "filter_presets": st.session_state.get("_filter_presets", []),
+        "pinned_accounts": _cur_pins,
+        "last_seen_at": st.session_state.get("_last_seen_at", ""),
+    }
+    save_user_prefs(_pin_prefs)
+    st.rerun()
 col1, col2, col3 = st.columns(3)
 
 # --- Contract & Capacity ---

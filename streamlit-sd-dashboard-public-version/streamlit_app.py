@@ -1,5 +1,5 @@
 import streamlit as st
-from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs
+from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness
 from datetime import datetime
 import json
 import os
@@ -22,6 +22,10 @@ if "_prefs_loaded" not in st.session_state:
             st.session_state[_k] = _v
     st.session_state["_prefs_loaded"] = True
     st.session_state["_prefs_hash"] = ""
+    st.session_state["_last_seen_at"] = _saved.get("last_seen_at", None)
+    st.session_state["_whats_new_shown"] = False
+    st.session_state["_filter_presets"]  = _saved.get("filter_presets", [])
+    st.session_state["_pinned_accounts"] = _saved.get("pinned_accounts", [])
 
 st.markdown("""
 <style>
@@ -388,6 +392,98 @@ with st.sidebar:
         st.session_state.last_refresh = datetime.now()
         st.rerun()
 
+    # ── Saved Views ───────────────────────────────────────────────────────────
+    st.divider()
+    st.markdown("### :material/bookmark: Saved Views")
+    _saved_presets = st.session_state.get("_filter_presets", [])
+
+    def _load_preset(p):
+        st.session_state["sf_theater"] = p.get("sf_theater", [])
+        st.session_state["sf_region"]  = p.get("sf_region", [])
+        st.session_state["sf_pm"]      = p.get("sf_pm", [])
+        st.session_state["sf_district"]= p.get("sf_district", [])
+        clear_all_caches()
+
+    if _saved_presets:
+        for _pi, _pr in enumerate(_saved_presets):
+            _pc1, _pc2 = st.columns([3, 1])
+            with _pc1:
+                if st.button(_pr["name"], key=f"_preset_load_{_pi}", use_container_width=True, type="secondary"):
+                    _load_preset(_pr)
+                    st.rerun()
+            with _pc2:
+                if st.button("✕", key=f"_preset_del_{_pi}", help="Delete this view"):
+                    _saved_presets.pop(_pi)
+                    st.session_state["_filter_presets"] = _saved_presets
+                    save_user_prefs({
+                        "sf_theater": st.session_state.get("sf_theater", []),
+                        "sf_region":  st.session_state.get("sf_region", []),
+                        "sf_pm":      st.session_state.get("sf_pm", []),
+                        "sf_district":st.session_state.get("sf_district", []),
+                        "filter_presets": _saved_presets,
+                        "last_seen_at": st.session_state.get("_last_seen_at", ""),
+                    })
+                    st.rerun()
+    else:
+        st.caption("No saved views yet.")
+
+    _new_preset_name = st.text_input("Save current scope as…", key="_new_preset_name", placeholder="e.g. My District")
+    if st.button(":material/save: Save View", key="_preset_save", use_container_width=True, type="secondary"):
+        if _new_preset_name.strip():
+            _new_preset = {
+                "name":        _new_preset_name.strip(),
+                "sf_theater":  st.session_state.get("sf_theater", []),
+                "sf_region":   st.session_state.get("sf_region", []),
+                "sf_pm":       st.session_state.get("sf_pm", []),
+                "sf_district": st.session_state.get("sf_district", []),
+            }
+            _saved_presets.append(_new_preset)
+            st.session_state["_filter_presets"] = _saved_presets
+            save_user_prefs({
+                "sf_theater": st.session_state.get("sf_theater", []),
+                "sf_region":  st.session_state.get("sf_region", []),
+                "sf_pm":      st.session_state.get("sf_pm", []),
+                "sf_district":st.session_state.get("sf_district", []),
+                "filter_presets": _saved_presets,
+                "last_seen_at": st.session_state.get("_last_seen_at", ""),
+            })
+            st.rerun()
+
+    # ── Global Account Search ─────────────────────────────────────────────────
+    st.divider()
+    st.markdown("### :material/search: Find Account")
+    _ga_search = st.text_input("Account name", key="_global_acct_search", placeholder="Search any account…", label_visibility="collapsed")
+    if _ga_search and len(_ga_search) >= 2:
+        try:
+            from data import load_accounts_base as _load_ab
+            _all_accts = _load_ab()
+            _ga_matches = _all_accts[_all_accts["ACCOUNT_NAME"].str.contains(_ga_search, case=False, na=False)].head(10)
+            if not _ga_matches.empty:
+                _ga_pick = st.selectbox(
+                    "Matches",
+                    options=_ga_matches["ACCOUNT_NAME"].tolist(),
+                    key="_global_acct_pick",
+                    label_visibility="collapsed",
+                )
+                if st.button("Open in Account Details →", key="_global_acct_go", type="primary", use_container_width=True):
+                    _ga_row = _ga_matches[_ga_matches["ACCOUNT_NAME"] == _ga_pick].iloc[0]
+                    from data import load_hierarchy as _load_hier
+                    _hier = _load_hier()
+                    _ga_district_rows = _hier[_hier["DM"] == _ga_row.get("DM", "")]
+                    if not _ga_district_rows.empty:
+                        _ga_district = _ga_district_rows.iloc[0]
+                        st.session_state["acct_theater"]      = _ga_district.get("THEATER", "")
+                        st.session_state["acct_region"]       = _ga_district.get("REGION", "")
+                        st.session_state["acct_district"]     = _ga_district.get("DISTRICT", "")
+                    st.session_state["acct_ae"]           = "All AEs"
+                    st.session_state["acct_detail_select"]= _ga_pick
+                    st.session_state["current_page"]      = ":material/manage_accounts: Account Details"
+                    st.rerun()
+            else:
+                st.caption("No accounts found.")
+        except Exception:
+            st.caption("Search unavailable.")
+
     _cur_prefs = {
         "sf_theater": st.session_state.get("sf_theater", []),
         "sf_region":  st.session_state.get("sf_region", []),
@@ -434,6 +530,61 @@ _PAGE_FILES = {
     ":material/manage_accounts: Account Details": "account_details_tab.py",
 }
 
+# ── WHAT'S NEW BANNER ─────────────────────────────────────────────────────────
+_last_seen = st.session_state.get("_last_seen_at")
+if _last_seen and not st.session_state.get("_whats_new_shown"):
+    try:
+        from data import load_exec_new_opps, load_exec_new_use_cases
+        import pandas as _pd_wn
+        _ls_dt  = _pd_wn.to_datetime(_last_seen)
+        _wn_opps = load_exec_new_opps()
+        _wn_ucs  = load_exec_new_use_cases()
+        _wn_opps["CREATED_DATE"] = _pd_wn.to_datetime(_wn_opps["CREATED_DATE"], errors="coerce")
+        _wn_ucs["CREATED_DATE"]  = _pd_wn.to_datetime(_wn_ucs["CREATED_DATE"],  errors="coerce")
+        _new_opp_ct = len(_wn_opps[_wn_opps["CREATED_DATE"] > _ls_dt])
+        _new_uc_ct  = len(_wn_ucs[_wn_ucs["CREATED_DATE"]   > _ls_dt])
+        if _new_opp_ct > 0 or _new_uc_ct > 0:
+            _parts = []
+            if _new_opp_ct > 0:
+                _parts.append(f"**{_new_opp_ct}** new opportunit{'y' if _new_opp_ct == 1 else 'ies'}")
+            if _new_uc_ct > 0:
+                _parts.append(f"**{_new_uc_ct}** new use case{'s' if _new_uc_ct != 1 else ''}")
+            _since = _ls_dt.strftime("%b %d")
+            st.info(f"✨ Since your last visit ({_since}): {' and '.join(_parts)} were created.", icon=None)
+        st.session_state["_whats_new_shown"] = True
+    except Exception:
+        st.session_state["_whats_new_shown"] = True
+
+_today_str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
+if st.session_state.get("_last_seen_at") != _today_str[:10]:
+    _wn_prefs = {
+        "sf_theater":   st.session_state.get("sf_theater", []),
+        "sf_region":    st.session_state.get("sf_region", []),
+        "sf_pm":        st.session_state.get("sf_pm", []),
+        "sf_district":  st.session_state.get("sf_district", []),
+        "last_seen_at": _today_str[:10],
+    }
+    save_user_prefs(_wn_prefs)
+    st.session_state["_last_seen_at"] = _today_str[:10]
+
 _selected = st.session_state.get("current_page", ":material/bar_chart: Executive Summary")
 with open(os.path.join(_APP_DIR, f"app_pages/{_PAGE_FILES[_selected]}")) as f:
     exec(f.read())
+
+# ── DATA FRESHNESS FOOTER ─────────────────────────────────────────────────────
+try:
+    _fresh = load_data_freshness()
+    _date  = _fresh.get("accounts_date", "Unknown")
+    _ok    = _fresh.get("today_loaded", False)
+    _dot   = "🟢" if _ok else "🟡"
+    st.markdown(
+        f'<div style="margin-top:24px;padding:6px 4px;border-top:1px solid #E4E7EB;'
+        f'font-size:0.70rem;color:#8A999E;display:flex;gap:16px;flex-wrap:wrap;">'
+        f'<span>{_dot} SNOWHOUSE.SALES.ACCOUNTS_DAILY — latest partition: <strong style="color:#334155">{_date}</strong></span>'
+        f'<span style="margin-left:auto">Data refreshes daily &nbsp;·&nbsp; '
+        f'<a href="https://app.snowflake.com" target="_blank" style="color:#29B5E8;text-decoration:none">Snowflake</a></span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+except Exception:
+    pass

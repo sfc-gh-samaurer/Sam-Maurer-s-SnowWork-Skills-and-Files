@@ -84,9 +84,12 @@ days_window = st.radio(
     label_visibility="collapsed",
 )
 
-cutoff  = today - pd.Timedelta(days=days_window)
-new_opps = new_opps_all[new_opps_all["CREATED_DATE"] >= cutoff].copy()
-new_uc   = new_uc_all[new_uc_all["CREATED_DATE"] >= cutoff].copy()
+cutoff       = today - pd.Timedelta(days=days_window)
+prior_cutoff = cutoff - pd.Timedelta(days=days_window)
+new_opps     = new_opps_all[new_opps_all["CREATED_DATE"] >= cutoff].copy()
+new_uc       = new_uc_all[new_uc_all["CREATED_DATE"] >= cutoff].copy()
+prior_opps   = new_opps_all[(new_opps_all["CREATED_DATE"] >= prior_cutoff) & (new_opps_all["CREATED_DATE"] < cutoff)]
+prior_uc     = new_uc_all[(new_uc_all["CREATED_DATE"] >= prior_cutoff) & (new_uc_all["CREATED_DATE"] < cutoff)]
 
 sw_n     = len(sw_renewals)
 svc_n    = len(svc_renewals)
@@ -95,9 +98,20 @@ uc_n     = len(new_uc)
 cv_n     = len(conv_candidates)
 invest_n = len(invest_df)
 
-# ── KPI METRICS ───────────────────────────────────────────────────────────────
+opp_delta = opp_n - len(prior_opps)
+uc_delta  = uc_n  - len(prior_uc)
+
+
+def _delta_html(d):
+    if d > 0:
+        return f'<div class="kpi-delta" style="color:#16a34a;">▲ {d} vs prior period</div>'
+    if d < 0:
+        return f'<div class="kpi-delta" style="color:#dc2626;">▼ {abs(d)} vs prior period</div>'
+    return f'<div class="kpi-delta" style="color:#8A999E;">— same as prior period</div>'
+
 # ── KPI CARDS ─────────────────────────────────────────────────────────────────
 st.markdown(f"""
+<style>.kpi-delta{{font-size:0.62rem;margin-top:4px;font-weight:600;}}</style>
 <div class="kpi-grid">
   <div class="kpi-card" style="background:linear-gradient(160deg,#EFF6FF,#DBEAFE);border-top-color:#3B82F6;">
     <span class="kpi-icon">🔄</span>
@@ -116,12 +130,14 @@ st.markdown(f"""
     <div class="kpi-value" style="color:#15803D;">{opp_n}</div>
     <div class="kpi-label" style="color:#166534;">New Opps</div>
     <div class="kpi-sub">Last {days_window} days</div>
+    {_delta_html(opp_delta)}
   </div>
   <div class="kpi-card" style="background:linear-gradient(160deg,#FAF5FF,#F3E8FF);border-top-color:#9333EA;">
     <span class="kpi-icon">💡</span>
     <div class="kpi-value" style="color:#7E22CE;">{uc_n}</div>
     <div class="kpi-label" style="color:#6B21A8;">New Use Cases</div>
     <div class="kpi-sub">Last {days_window} days</div>
+    {_delta_html(uc_delta)}
   </div>
   <div class="kpi-card" style="background:linear-gradient(160deg,#FFFBEB,#FEF3C7);border-top-color:#D97706;">
     <span class="kpi-icon">⚡</span>
@@ -269,3 +285,29 @@ with st.expander(f"Investment Candidates — {' & '.join(invest_fqs)} ({invest_n
             {"col": "CLOSE_DATE",      "label": "Close Date", "fmt": "date"},
             {"col": "EST_INVESTMENT",  "label": "Est. Invest","fmt": "dollar"},
         ], height=max(200, min(500, invest_n * 38 + 60)))
+
+# ── FISCAL QUARTER SUMMARY ────────────────────────────────────────────────────
+def _fq_label():
+    m = today.month
+    fy = today.year + 1 if m >= 2 else today.year
+    q = 1 if m in (2, 3, 4) else 2 if m in (5, 6, 7) else 3 if m in (8, 9, 10) else 4
+    return f"Q{q}-FY{str(fy)[2:]}"
+
+_cfq = _fq_label()
+
+st.divider()
+st.markdown(f'<p class="sf-section-label">📅 {_cfq} — Current Quarter Pipeline</p>', unsafe_allow_html=True)
+
+_cap_fq = cap_pipe_df[cap_pipe_df["FISCAL_QUARTER"] == _cfq] if not cap_pipe_df.empty else pd.DataFrame()
+_cap_fq = _cap_fq[_cap_fq["FORECAST_STATUS"].fillna("") != "Omitted"] if not _cap_fq.empty else _cap_fq
+
+from data import load_ps_pipeline
+_sd_pipe = load_ps_pipeline()
+_sd_fq   = _sd_pipe[_sd_pipe["FISCAL_QUARTER"] == _cfq] if not _sd_pipe.empty else pd.DataFrame()
+_sd_fq   = _sd_fq[_sd_fq["FORECAST_STATUS"].fillna("") != "Omitted"] if not _sd_fq.empty else _sd_fq
+
+fq1, fq2, fq3, fq4 = st.columns(4)
+fq1.metric("Cap Opps This FQ",    len(_cap_fq),                                   help=f"Open capacity opps closing in {_cfq}")
+fq2.metric("Cap TCV This FQ",     f"${_cap_fq['CALCULATED_TCV'].fillna(0).sum():,.0f}" if not _cap_fq.empty else "$0", help="Sum of Calculated TCV")
+fq3.metric("SD Opps This FQ",     len(_sd_fq),                                    help=f"Open PS&T opps closing in {_cfq}")
+fq4.metric("SD TCV This FQ",      f"${_sd_fq['TOTAL_PST_TCV'].fillna(0).sum():,.0f}" if not _sd_fq.empty else "$0",   help="Sum of Total PST TCV")

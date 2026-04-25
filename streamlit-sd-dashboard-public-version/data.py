@@ -391,6 +391,24 @@ def clear_all_caches():
     load_exec_new_use_cases.clear()
 
 
+@st.cache_data(ttl=3600)
+def load_data_freshness():
+    session = _get_session()
+    try:
+        row = session.sql("""
+            SELECT
+                MAX(DS)                              AS ACCOUNTS_DAILY_DATE,
+                COUNT_IF(DS = CURRENT_DATE())::INT   AS TODAY_LOADED
+            FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
+        """).to_pandas().iloc[0]
+        return {
+            "accounts_date": str(row["ACCOUNTS_DAILY_DATE"])[:10] if row["ACCOUNTS_DAILY_DATE"] else "Unknown",
+            "today_loaded":  bool(row["TODAY_LOADED"]),
+        }
+    except Exception:
+        return {"accounts_date": "Unknown", "today_loaded": False}
+
+
 @st.cache_data(ttl=86400)
 def load_accounts_base():
     session = _get_session()

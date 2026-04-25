@@ -56,6 +56,25 @@ with tab_active:
                 {"col": "OVERAGE_DATE",      "label": "Overage Date","fmt": "date"},
             ], height=600)
             st.download_button(":material/download: Export CSV", filtered.to_csv(index=False), "capacity_contracts.csv", "text/csv", key="cap_csv")
+
+        st.markdown('<p class="sf-section-label">Jump to Account Details</p>', unsafe_allow_html=True)
+        _cr_nav_acct = st.selectbox("Account", options=[""] + sorted(filtered["ACCOUNT_NAME"].dropna().unique()), key="cap_nav_acct", label_visibility="collapsed", placeholder="Select an account to open…")
+        if _cr_nav_acct and st.button("Open in Account Details →", key="cap_nav_go", type="primary"):
+            from data import load_hierarchy as _lh
+            _hier = _lh()
+            _cr_row = filtered[filtered["ACCOUNT_NAME"] == _cr_nav_acct]
+            if not _cr_row.empty:
+                _dm_val = _cr_row.iloc[0].get("DM", "")
+                _d_rows = _hier[_hier["DM"] == _dm_val]
+                if not _d_rows.empty:
+                    _d = _d_rows.iloc[0]
+                    st.session_state["acct_theater"]   = _d.get("THEATER", "")
+                    st.session_state["acct_region"]    = _d.get("REGION", "")
+                    st.session_state["acct_district"]  = _d.get("DISTRICT", "")
+            st.session_state["acct_ae"]            = "All AEs"
+            st.session_state["acct_detail_select"] = _cr_nav_acct
+            st.session_state["current_page"]       = ":material/manage_accounts: Account Details"
+            st.rerun()
     else:
         empty_state("No capacity contract data found.")
 
