@@ -450,6 +450,11 @@ if not selected:
     st.stop()
 
 # ── Load per-account datasets ─────────────────────────────────────────────────
+if "accounts_df" not in dir():
+    _acct_district = _scoped_df.loc[_scoped_df["ACCOUNT_NAME"] == selected, "DISTRICT_NAME"]
+    _acct_district = _acct_district.iloc[0] if not _acct_district.empty else ""
+    accounts_df = load_accounts_for_scope(_acct_district) if _acct_district else pd.DataFrame()
+
 cap_df     = load_capacity_renewals()
 renewal_df = load_exec_software_renewals()
 
