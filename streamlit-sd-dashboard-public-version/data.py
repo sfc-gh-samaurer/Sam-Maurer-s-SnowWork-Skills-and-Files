@@ -750,6 +750,8 @@ def load_use_cases():
             uc.USE_CASE_STATUS_C AS USE_CASE_STATUS,
             CAST(uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C AS FLOAT) AS ACV,
             uc.STAGE_C AS STAGE,
+            uc.TECHNICAL_WIN_C          AS TECHNICAL_WIN,
+            uc.ACTUAL_GO_LIVE_DATE_C    AS ACTUAL_GO_LIVE,
             uc.CREATED_DATE,
             uc.LAST_MODIFIED_DATE,
             uc.LAST_STAGE_CHANGE_IN_DAYS_C AS DAYS_IN_STAGE,
