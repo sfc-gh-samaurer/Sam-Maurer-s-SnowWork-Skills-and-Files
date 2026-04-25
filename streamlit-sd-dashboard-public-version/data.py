@@ -462,31 +462,22 @@ def load_fq_closed_sd(fiscal_quarter: str):
     session = _get_session()
     fq_safe = fiscal_quarter.replace("'", "''")
     df = session.sql(_sql(f"""
-        WITH line_items AS (
-            SELECT
-                oli.OPPORTUNITY_ID,
-                CAST(SUM(CASE WHEN oli.PRODUCT_FAMILY_C = 'Technical Services' THEN oli.TOTAL_PRICE ELSE 0 END) AS FLOAT) AS PS_SERVICES_ACV,
-                CAST(SUM(oli.TOTAL_PRICE) AS FLOAT) AS TOTAL_PST
-            FROM FIVETRAN.SALESFORCE.OPPORTUNITY_LINE_ITEM oli
-            WHERE oli.IS_DELETED = FALSE
-            AND oli.PRODUCT_FAMILY_C IN ('Technical Services', 'Education Services')
-            GROUP BY oli.OPPORTUNITY_ID
-        )
         SELECT
             opp.ID            AS OPPORTUNITY_ID,
             opp.NAME          AS OPPORTUNITY_NAME,
             a.ACCOUNT_NAME,
             a.REP_NAME        AS AE,
             opp.CLOSE_DATE,
-            li.PS_SERVICES_ACV,
-            li.TOTAL_PST
+            opp.TYPE          AS OPP_TYPE,
+            CAST(COALESCE(NULLIF(opp.SERVICES_TCV_LOOKER_C, 0), opp.SERVICES_FORECAST_C, 0) AS FLOAT) AS PS_SERVICES_ACV,
+            CAST(COALESCE(NULLIF(opp.SERVICES_TCV_LOOKER_C, 0), opp.SERVICES_FORECAST_C, 0) AS FLOAT) AS TOTAL_PST
         FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON opp.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
         JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = opp.CLOSE_DATE AND fc.FISCAL_PERIOD = '{fq_safe}'
-        JOIN line_items li ON opp.ID = li.OPPORTUNITY_ID
         WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND opp.IS_WON = TRUE
         AND opp.IS_DELETED = FALSE
+        AND (opp.SERVICES_TCV_LOOKER_C > 0 OR opp.SERVICES_FORECAST_C > 0)
         ORDER BY opp.CLOSE_DATE DESC
     """)).to_pandas()
     return _fix_decimals(df)
