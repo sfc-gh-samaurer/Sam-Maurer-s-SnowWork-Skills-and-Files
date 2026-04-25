@@ -63,7 +63,6 @@ if not pipeline_df.empty:
             {"col": "PRODUCT_NAMES",              "label": "Products"},
             {"col": "STAGE_NAME",                 "label": "Stage"},
             {"col": "FORECAST_STATUS",            "label": "Forecast"},
-            {"col": "PS_FORECAST_CATEGORY",       "label": "PS Fcast Cat"},
             {"col": "PS_INVESTMENT_TYPE",         "label": "Invest"},
             {"col": "CLOSE_DATE",                 "label": "Close",        "fmt": "date"},
             {"col": "CREATED_DATE",               "label": "Created",      "fmt": "date"},
