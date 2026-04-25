@@ -182,10 +182,10 @@ if not _ex_stages.empty:
 else:
     _ex_stages["DIRECTION"] = pd.Series(dtype=str)
 
-_ex_adv    = _ex_stages[_ex_stages["DIRECTION"] == "Advance"] if not _ex_stages.empty else pd.DataFrame()
-_ex_reg    = _ex_stages[_ex_stages["DIRECTION"] == "Regression"] if not _ex_stages.empty else pd.DataFrame()
-_ex_wins   = _wow_uc[(_wow_uc["FIELD"] == "Technical_Win__c") & (_wow_uc["NEW_VALUE"] == "Yes") & (_wow_uc["CURRENT_STAGE"].str.startswith("8") == False)]
-_ex_gl     = _wow_uc[_wow_uc["FIELD"] == "Actual_Go_Live_Date__c"]
+_ex_adv    = _ex_stages[_ex_stages["DIRECTION"] == "Advance"].drop_duplicates(subset=["USE_CASE_ID"], keep="first") if not _ex_stages.empty else pd.DataFrame()
+_ex_reg    = _ex_stages[_ex_stages["DIRECTION"] == "Regression"].drop_duplicates(subset=["USE_CASE_ID"], keep="first") if not _ex_stages.empty else pd.DataFrame()
+_ex_wins   = _wow_uc[(_wow_uc["FIELD"] == "Technical_Win__c") & (_wow_uc["NEW_VALUE"] == "Yes") & (_wow_uc["CURRENT_STAGE"].str.startswith("8") == False)].drop_duplicates(subset=["USE_CASE_ID"], keep="first")
+_ex_gl     = _wow_uc[_wow_uc["FIELD"] == "Actual_Go_Live_Date__c"].drop_duplicates(subset=["USE_CASE_ID"], keep="first")
 _ex_pstage = _wow_proj[_wow_proj["FIELD"] == "pse__Stage__c"]
 _ex_comp   = _ex_pstage[_ex_pstage["NEW_VALUE"] == "Completed"]
 _ex_stall  = _ex_pstage[_ex_pstage["NEW_VALUE"].isin(["Stalled", "Stalled - Expiring"])]

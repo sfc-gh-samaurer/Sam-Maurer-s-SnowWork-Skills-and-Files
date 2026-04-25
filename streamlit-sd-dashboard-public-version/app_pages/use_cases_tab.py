@@ -27,11 +27,11 @@ if not wow_stages.empty:
 else:
     wow_stages["DIRECTION"] = pd.Series(dtype=str)
 
-wow_advances     = wow_stages[wow_stages["DIRECTION"] == "Advance"] if not wow_stages.empty else pd.DataFrame()
-wow_regressions  = wow_stages[wow_stages["DIRECTION"] == "Regression"] if not wow_stages.empty else pd.DataFrame()
-wow_lost         = wow_stages[wow_stages["NEW_VALUE"].str.contains("8 - Use Case Lost", na=False)] if not wow_stages.empty else pd.DataFrame()
-wow_tech_wins    = wow[(wow["FIELD"] == "Technical_Win__c") & (wow["NEW_VALUE"] == "Yes") & (wow["CURRENT_STAGE"].str.startswith("8") == False)]
-wow_golive       = wow[wow["FIELD"] == "Actual_Go_Live_Date__c"]
+wow_advances     = wow_stages[wow_stages["DIRECTION"] == "Advance"].drop_duplicates(subset=["USE_CASE_ID"], keep="first") if not wow_stages.empty else pd.DataFrame()
+wow_regressions  = wow_stages[wow_stages["DIRECTION"] == "Regression"].drop_duplicates(subset=["USE_CASE_ID"], keep="first") if not wow_stages.empty else pd.DataFrame()
+wow_lost         = wow_stages[wow_stages["NEW_VALUE"].str.contains("8 - Use Case Lost", na=False)].drop_duplicates(subset=["USE_CASE_ID"], keep="first") if not wow_stages.empty else pd.DataFrame()
+wow_tech_wins    = wow[(wow["FIELD"] == "Technical_Win__c") & (wow["NEW_VALUE"] == "Yes") & (wow["CURRENT_STAGE"].str.startswith("8") == False)].drop_duplicates(subset=["USE_CASE_ID"], keep="first")
+wow_golive       = wow[wow["FIELD"] == "Actual_Go_Live_Date__c"].drop_duplicates(subset=["USE_CASE_ID"], keep="first")
 
 _adv_n = len(wow_advances)
 _reg_n = len(wow_regressions)
