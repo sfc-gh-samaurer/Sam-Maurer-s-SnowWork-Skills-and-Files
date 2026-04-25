@@ -405,11 +405,11 @@ with st.sidebar:
     org_df = load_org_hierarchy()
 
     if "sf_theater" not in st.session_state:
-        st.session_state["sf_theater"] = ["Expansions"]
+        st.session_state["sf_theater"] = []
     if "sf_region" not in st.session_state:
-        st.session_state["sf_region"] = ["NorthwestExp"]
+        st.session_state["sf_region"] = []
     if "sf_pm" not in st.session_state:
-        st.session_state["sf_pm"] = ["Sam Maurer"]
+        st.session_state["sf_pm"] = []
     if "sf_district" not in st.session_state:
         st.session_state["sf_district"] = []
     if "selected_dms" not in st.session_state:
