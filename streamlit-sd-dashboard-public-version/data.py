@@ -893,6 +893,7 @@ def load_ps_pipeline():
                 opp.NAME AS OPPORTUNITY_NAME,
                 opp.ID AS OPPORTUNITY_ID,
                 opp.TYPE AS OPPORTUNITY_TYPE,
+                opp.AGREEMENT_TYPE_C AS AGREEMENT_TYPE,
                 opp.STAGE_NAME,
                 opp.FORECAST_CATEGORY_NAME AS FORECAST_STATUS,
                 CAST(opp.AMOUNT AS FLOAT) AS TOTAL_ACV,
