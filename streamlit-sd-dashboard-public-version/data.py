@@ -691,6 +691,30 @@ def load_hierarchy():
 
 
 @st.cache_data(ttl=86400)
+def load_account_search_list():
+    session = _get_session()
+    df = session.sql("""
+        SELECT DISTINCT
+            ACCOUNT_NAME,
+            DISTRICT_NAME,
+            REGION_NAME,
+            GEO_NAME AS THEATER,
+            DM
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
+        WHERE DS = CURRENT_DATE()
+        AND ACCOUNT_STATUS = 'Active'
+        AND REGION_NAME IN (
+            'LATAM','MajorsAcq','CommAcqEast','CommAcqWest',
+            'EntAcqCentral','EntAcqEast','EntAcqWest',
+            'NortheastExp','SoutheastExp','CentralExp','Commercial',
+            'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp'
+        )
+        ORDER BY ACCOUNT_NAME
+    """).to_pandas()
+    return df
+
+
+@st.cache_data(ttl=86400)
 def load_accounts_for_scope(district_name: str):
     session = _get_session()
     df = session.sql(f"""
