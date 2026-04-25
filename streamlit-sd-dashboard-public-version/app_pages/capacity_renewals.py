@@ -43,7 +43,7 @@ with tab_active:
 
         display = filtered[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                              "LEAD_SE", "CONTRACT_START_DATE", "CONTRACT_END_DATE",
-                             "TOTAL_CAP", "OVERAGE_UNDERAGE_PREDICTION", "OVERAGE_DATE"]].copy()
+                             "TOTAL_CAP", "ACTUAL_CONSUMPTION_YTD_C", "OVERAGE_UNDERAGE_PREDICTION", "OVERAGE_DATE"]].copy()
         display["ACCOUNT_LINK"] = display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
         )
@@ -57,6 +57,7 @@ with tab_active:
                 {"col": "CONTRACT_START_DATE","label": "Start",     "fmt": "date"},
                 {"col": "CONTRACT_END_DATE", "label": "End",        "fmt": "date"},
                 {"col": "TOTAL_CAP",                    "label": "Total Cap",        "fmt": "dollar"},
+                {"col": "ACTUAL_CONSUMPTION_YTD_C",       "label": "YTD Consumption", "fmt": "dollar"},
                 {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Underage", "fmt": "dollar"},
                 {"col": "OVERAGE_DATE",      "label": "Overage Date","fmt": "date"},
             ], height=600)
@@ -87,7 +88,7 @@ with tab_candidates:
 
             conv_display = candidates[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                                        "CONTRACT_END_DATE", "DAYS_LEFT",
-                                       "TOTAL_CAP", "OVERAGE_UNDERAGE_PREDICTION"]].copy()
+                                       "TOTAL_CAP", "ACTUAL_CONSUMPTION_YTD_C", "OVERAGE_UNDERAGE_PREDICTION"]].copy()
             conv_display["ACCOUNT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
                 lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
             )
@@ -100,6 +101,7 @@ with tab_candidates:
                     {"col": "CONTRACT_END_DATE",        "label": "End Date",     "fmt": "date"},
                     {"col": "DAYS_LEFT",                "label": "Days Left",    "fmt": "number"},
                     {"col": "TOTAL_CAP",                    "label": "Total Cap",        "fmt": "dollar"},
+                    {"col": "ACTUAL_CONSUMPTION_YTD_C",       "label": "YTD Consumption", "fmt": "dollar"},
                     {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Underage", "fmt": "dollar"},
                 ])
     else:
