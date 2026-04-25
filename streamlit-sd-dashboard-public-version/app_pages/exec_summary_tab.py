@@ -195,10 +195,10 @@ _wow_summary = (
 )
 
 _adv_c   = f'<span style="color:#86efac;font-weight:700">{len(_ex_adv)}</span>'
-_reg_c   = f'<span style="color:#fca5a5;font-weight:700">{len(_ex_reg)}</span>' if _ex_reg else f'<span style="color:rgba(255,255,255,0.45)">0</span>'
+_reg_c   = f'<span style="color:#fca5a5;font-weight:700">{len(_ex_reg)}</span>' if not _ex_reg.empty else f'<span style="color:rgba(255,255,255,0.45)">0</span>'
 _win_c   = f'<span style="color:#fde68a;font-weight:700">{len(_ex_wins)}</span>'
 _comp_c  = f'<span style="color:rgba(255,255,255,0.75)">{len(_ex_comp)}</span>'
-_stall_c = f'<span style="color:#fca5a5;font-weight:700">{len(_ex_stall)}</span>' if _ex_stall else f'<span style="color:rgba(255,255,255,0.45)">0</span>'
+_stall_c = f'<span style="color:#fca5a5;font-weight:700">{len(_ex_stall)}</span>' if not _ex_stall.empty else f'<span style="color:rgba(255,255,255,0.45)">0</span>'
 
 st.markdown(f"""
 <div style="
