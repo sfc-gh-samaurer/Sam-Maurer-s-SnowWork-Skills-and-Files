@@ -87,7 +87,7 @@ days_window = st.radio(
     label_visibility="collapsed",
 )
 
-st.warning("⚠️ Data access permissions to account capacity data causing issues and limitations — working through resolution.", icon=None)
+st.warning("⚠️ Data access permissions to ACCOUNT CAPACITY DATA causing issues and limitations — working through resolution.", icon=None)
 
 cutoff       = today - pd.Timedelta(days=days_window)
 prior_cutoff = cutoff - pd.Timedelta(days=days_window)
