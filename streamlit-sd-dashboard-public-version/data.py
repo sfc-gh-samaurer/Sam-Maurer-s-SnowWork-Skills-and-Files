@@ -635,7 +635,7 @@ def load_capacity_renewals():
 @st.cache_data(ttl=86400)
 def load_capacity_pipeline():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         SELECT
             o.ACCOUNT_NAME,
             o.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
@@ -666,7 +666,7 @@ def load_capacity_pipeline():
         AND o.DS = CURRENT_DATE()
         AND o.IS_CLOSED = FALSE
         ORDER BY o.CLOSE_DATE ASC
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
@@ -762,7 +762,7 @@ def load_accounts_for_scope(district_name: str):
 @st.cache_data(ttl=86400)
 def load_use_cases():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         SELECT
             a.ACCOUNT_NAME,
             a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
@@ -799,14 +799,14 @@ def load_use_cases():
         AND uc.STAGE_C != '8 - Use Case Lost'
         AND uc._FIVETRAN_DELETED = FALSE
         ORDER BY uc.LAST_STAGE_CHANGE_IN_DAYS_C DESC NULLS LAST
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
 @st.cache_data(ttl=86400)
 def load_ps_projects_active():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         WITH assignments AS (
             SELECT
                 asgn.PSE_PROJECT_C AS PROJECT_ID,
@@ -874,14 +874,14 @@ def load_ps_projects_active():
         AND p.PSE_IS_ACTIVE_C = TRUE
         AND p.PSE_STAGE_C IN ('In Progress', 'Stalled', 'Stalled - Expiring', 'Pipeline', 'Out Year')
         ORDER BY a.ACCOUNT_NAME, p.NAME
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
 @st.cache_data(ttl=86400)
 def load_ps_pipeline():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         WITH sda_opps AS (
             SELECT
                 o.ACCOUNT_NAME,
@@ -1006,7 +1006,7 @@ def load_ps_pipeline():
         LEFT JOIN FIVETRAN.SALESFORCE.USER ps_seller ON fo.PS_T_SELLER_C = ps_seller.ID
         LEFT JOIN products pr ON tf.OPPORTUNITY_ID = pr.OPPORTUNITY_ID
         ORDER BY tf.CLOSE_DATE ASC
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
@@ -1014,7 +1014,7 @@ def load_ps_pipeline():
 @st.cache_data(ttl=86400)
 def load_ps_history():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         WITH opp_ps_summary AS (
             SELECT
                 oli.OPPORTUNITY_ID,
@@ -1057,14 +1057,14 @@ def load_ps_history():
         AND opp.IS_WON = TRUE
         AND opp.IS_DELETED = FALSE
         ORDER BY opp.CLOSE_DATE DESC
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
 @st.cache_data(ttl=86400)
 def load_action_planner_pipeline():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         SELECT
             sa.ACCOUNT_NAME,
             sa.ACCOUNT_ID AS ACCOUNT_ID,
@@ -1095,14 +1095,14 @@ def load_action_planner_pipeline():
         AND uc.STAGE_C IS NOT NULL
         AND uc.STAGE_C != '8 - Use Case Lost'
         ORDER BY sa.ACCOUNT_NAME, uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C DESC NULLS LAST
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
 @st.cache_data(ttl=86400)
 def load_product_usage():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         SELECT
             c.SALESFORCE_ACCOUNT_ID,
             c.ACCOUNT_NAME AS ACCOUNT_NAME,
@@ -1118,14 +1118,14 @@ def load_product_usage():
         GROUP BY c.SALESFORCE_ACCOUNT_ID, c.ACCOUNT_NAME, c.PRODUCT_CATEGORY
         HAVING SUM(c.CREDITS) > 0
         ORDER BY c.ACCOUNT_NAME, SUM(c.CREDITS) DESC
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
 @st.cache_data(ttl=86400)
 def load_exec_software_renewals():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         SELECT
             o.NAME AS OPPORTUNITY_NAME,
             o.ID AS OPPORTUNITY_ID,
@@ -1147,7 +1147,7 @@ def load_exec_software_renewals():
         AND o.TYPE = 'Renewal'
         AND o.CLOSE_DATE BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 6, CURRENT_DATE())
         ORDER BY o.CLOSE_DATE ASC
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
@@ -1245,7 +1245,7 @@ def load_exec_new_opps():
 @st.cache_data(ttl=86400)
 def load_exec_new_use_cases():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         SELECT
             a.ACCOUNT_NAME,
             a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
@@ -1268,7 +1268,7 @@ def load_exec_new_use_cases():
         AND uc._FIVETRAN_DELETED = FALSE
         AND uc.CREATED_DATE >= DATEADD('day', -90, CURRENT_DATE())
         ORDER BY uc.CREATED_DATE DESC
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 

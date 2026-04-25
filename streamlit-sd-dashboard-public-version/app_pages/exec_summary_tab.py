@@ -302,7 +302,7 @@ with st.expander(_wow_summary, expanded=False):
 st.markdown('<p class="sf-section-label">Detailed Results — click to expand</p>', unsafe_allow_html=True)
 
 # ── Section 1: Software Renewals ──────────────────────────────────────────────
-with st.expander(f"Upcoming Software Renewals ({sw_n})", expanded=False):
+with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expanded=False):
     if sw_renewals.empty:
         empty_state("No software renewal opportunities closing in the next 6 months.")
     else:
