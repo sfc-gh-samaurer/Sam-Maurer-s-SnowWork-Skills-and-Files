@@ -41,7 +41,7 @@ with tab_active:
 
         display = filtered[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                              "LEAD_SE", "CONTRACT_START_DATE", "CONTRACT_END_DATE",
-                             "TOTAL_CAP", "OVERAGE_DATE"]].copy()
+                             "TOTAL_CAP", "OVERAGE_UNDERAGE_PREDICTION", "OVERAGE_DATE"]].copy()
         display["ACCOUNT_LINK"] = display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
         )
@@ -54,7 +54,8 @@ with tab_active:
                 {"col": "LEAD_SE",           "label": "Lead SE"},
                 {"col": "CONTRACT_START_DATE","label": "Start",     "fmt": "date"},
                 {"col": "CONTRACT_END_DATE", "label": "End",        "fmt": "date"},
-                {"col": "TOTAL_CAP",         "label": "Total Cap",  "fmt": "dollar"},
+                {"col": "TOTAL_CAP",                    "label": "Total Cap",        "fmt": "dollar"},
+                {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Underage", "fmt": "dollar"},
                 {"col": "OVERAGE_DATE",      "label": "Overage Date","fmt": "date"},
             ], height=600)
             st.download_button(":material/download: Export CSV", filtered.to_csv(index=False), "capacity_contracts.csv", "text/csv", key="cap_csv")
@@ -102,8 +103,7 @@ with tab_candidates:
 
             conv_display = candidates[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                                        "CONTRACT_END_DATE", "DAYS_LEFT",
-                                       "TOTAL_CAP", "CAPACITY_REMAINING",
-                                       "OVERAGE_UNDERAGE_PREDICTION"]].copy()
+                                       "TOTAL_CAP", "OVERAGE_UNDERAGE_PREDICTION"]].copy()
             conv_display["ACCOUNT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
                 lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
             )
@@ -115,9 +115,8 @@ with tab_candidates:
                     {"col": "DM",                       "label": "DM"},
                     {"col": "CONTRACT_END_DATE",        "label": "End Date",     "fmt": "date"},
                     {"col": "DAYS_LEFT",                "label": "Days Left",    "fmt": "number"},
-                    {"col": "TOTAL_CAP",                "label": "Total Cap",    "fmt": "dollar"},
-                    {"col": "CAPACITY_REMAINING",       "label": "Remaining",    "fmt": "dollar"},
-                    {"col": "OVERAGE_UNDERAGE_PREDICTION","label": "Overage Pred","fmt": "dollar"},
+                    {"col": "TOTAL_CAP",                    "label": "Total Cap",        "fmt": "dollar"},
+                    {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Underage", "fmt": "dollar"},
                 ])
     else:
         empty_state("No capacity data available.")
