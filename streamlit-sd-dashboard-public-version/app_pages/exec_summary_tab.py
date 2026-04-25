@@ -406,7 +406,7 @@ def _fq_label():
     m = today.month
     fy = today.year + 1 if m >= 2 else today.year
     q = 1 if m in (2, 3, 4) else 2 if m in (5, 6, 7) else 3 if m in (8, 9, 10) else 4
-    return f"Q{q}-FY{str(fy)[2:]}"
+    return f"Q{q}-{fy}"
 
 _cfq_current = _fq_label()
 
@@ -417,8 +417,8 @@ _sd_pipe = load_ps_pipeline()
 
 def _valid_fq(q):
     try:
-        parts = str(q).split("-FY")
-        return len(parts) == 2 and len(parts[1]) in (2, 4) and parts[1].isdigit()
+        parts = str(q).split("-")
+        return len(parts) == 2 and parts[0].startswith("Q") and parts[1].isdigit() and len(parts[1]) == 4
     except Exception:
         return False
 
@@ -432,14 +432,14 @@ if _cfq_current not in _fq_all:
 _fq_all = sorted(set(_fq_all))
 
 def _fq_fy(q):
-    suffix = q.split("-FY")[1]
-    return int(suffix) if len(suffix) == 4 else int("20" + suffix)
+    return int(q.split("-")[1])
 
 _cur_fy  = _fq_fy(_cfq_current)
 _fq_3yr  = [q for q in _fq_all if _fq_fy(q) <= _cur_fy + 3] or [_cfq_current]
 _cfq_idx = _fq_3yr.index(_cfq_current) if _cfq_current in _fq_3yr else 0
 
-selected_fq = st.selectbox(
+_fq_col, _ = st.columns([2, 5])
+selected_fq = _fq_col.selectbox(
     "Fiscal Quarter",
     options=_fq_3yr,
     index=_cfq_idx,
