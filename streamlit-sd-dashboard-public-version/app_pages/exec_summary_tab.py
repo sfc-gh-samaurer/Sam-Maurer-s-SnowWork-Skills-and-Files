@@ -96,13 +96,47 @@ cv_n     = len(conv_candidates)
 invest_n = len(invest_df)
 
 # ── KPI METRICS ───────────────────────────────────────────────────────────────
-k1, k2, k3, k4, k5, k6 = st.columns(6)
-k1.metric("Cap Renewals",     sw_n,     help="Capacity renewal opps closing in 6 months")
-k2.metric("SD Renewals",      svc_n,    help="Active PS projects ending in 6 months")
-k3.metric(f"New Opps",        opp_n,    help=f"Opportunities created in last {days_window} days")
-k4.metric(f"New Use Cases",   uc_n,     help=f"Use cases created in last {days_window} days")
-k5.metric("Conv. Candidates", cv_n,     help="Underburn capacity accounts ending <24 months")
-k6.metric("Invest Candidates",invest_n, help=f"Cap deals ≥$500K in {' & '.join(invest_fqs)}")
+# ── KPI CARDS ─────────────────────────────────────────────────────────────────
+st.markdown(f"""
+<div class="kpi-grid">
+  <div class="kpi-card" style="background:linear-gradient(160deg,#EFF6FF,#DBEAFE);border-top-color:#3B82F6;">
+    <span class="kpi-icon">🔄</span>
+    <div class="kpi-value" style="color:#1D4ED8;">{sw_n}</div>
+    <div class="kpi-label" style="color:#1E40AF;">Cap Renewals</div>
+    <div class="kpi-sub">Closing in 6 months</div>
+  </div>
+  <div class="kpi-card" style="background:linear-gradient(160deg,#F0F9FF,#E0F2FE);border-top-color:#0284C7;">
+    <span class="kpi-icon">🤝</span>
+    <div class="kpi-value" style="color:#0369A1;">{svc_n}</div>
+    <div class="kpi-label" style="color:#075985;">SD Renewals</div>
+    <div class="kpi-sub">Active projects ending</div>
+  </div>
+  <div class="kpi-card" style="background:linear-gradient(160deg,#F0FDF4,#DCFCE7);border-top-color:#16A34A;">
+    <span class="kpi-icon">💼</span>
+    <div class="kpi-value" style="color:#15803D;">{opp_n}</div>
+    <div class="kpi-label" style="color:#166534;">New Opps</div>
+    <div class="kpi-sub">Last {days_window} days</div>
+  </div>
+  <div class="kpi-card" style="background:linear-gradient(160deg,#FAF5FF,#F3E8FF);border-top-color:#9333EA;">
+    <span class="kpi-icon">💡</span>
+    <div class="kpi-value" style="color:#7E22CE;">{uc_n}</div>
+    <div class="kpi-label" style="color:#6B21A8;">New Use Cases</div>
+    <div class="kpi-sub">Last {days_window} days</div>
+  </div>
+  <div class="kpi-card" style="background:linear-gradient(160deg,#FFFBEB,#FEF3C7);border-top-color:#D97706;">
+    <span class="kpi-icon">⚡</span>
+    <div class="kpi-value" style="color:#B45309;">{cv_n}</div>
+    <div class="kpi-label" style="color:#92400E;">Conv. Candidates</div>
+    <div class="kpi-sub">Underburn &lt;24 months</div>
+  </div>
+  <div class="kpi-card" style="background:linear-gradient(160deg,#FDF2F8,#FCE7F3);border-top-color:#D45B90;">
+    <span class="kpi-icon">💰</span>
+    <div class="kpi-value" style="color:#BE185D;">{invest_n}</div>
+    <div class="kpi-label" style="color:#9D174D;">Invest Candidates</div>
+    <div class="kpi-sub">Cap deals &gt;$500K, 2 Qtrs</div>
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 st.markdown('<p class="sf-section-label">Detailed Results — click to expand</p>', unsafe_allow_html=True)
 
