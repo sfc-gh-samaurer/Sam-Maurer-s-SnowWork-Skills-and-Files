@@ -1130,7 +1130,7 @@ def load_exec_software_renewals():
 @st.cache_data(ttl=86400)
 def load_exec_services_renewals():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         SELECT
             p.NAME AS PROJECT_NAME,
             p.ID AS PROJECT_ID,
@@ -1157,14 +1157,14 @@ def load_exec_services_renewals():
         AND p.PSE_STAGE_C IN ('In Progress', 'Stalled', 'Stalled - Expiring', 'Pipeline', 'Out Year')
         AND p.PSE_END_DATE_C BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 6, CURRENT_DATE())
         ORDER BY p.PSE_END_DATE_C ASC
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
 @st.cache_data(ttl=86400)
 def load_exec_new_opps():
     session = _get_session()
-    df = session.sql("""
+    df = session.sql(_sql("""
         WITH sda_new AS (
             SELECT
                 o.ACCOUNT_NAME,
@@ -1214,7 +1214,7 @@ def load_exec_new_opps():
         UNION ALL
         SELECT * FROM fivetran_new
         ORDER BY CREATED_DATE DESC
-    """).to_pandas()
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
