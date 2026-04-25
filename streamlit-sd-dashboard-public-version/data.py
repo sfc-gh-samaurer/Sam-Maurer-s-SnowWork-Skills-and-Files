@@ -479,7 +479,7 @@ def load_fq_closed_sd(fiscal_quarter: str):
         WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND opp.IS_WON = TRUE
         AND opp.IS_DELETED = FALSE
-        AND opp.AGREEMENT_TYPE_C = 'Technical Services'
+        AND (opp.AGREEMENT_TYPE_C = 'Technical Services' OR opp.AMENDMENT_TYPE_C = 'Capacity and PS&T Swap')
         AND (opp.SERVICES_TCV_LOOKER_C > 0 OR opp.SERVICES_FORECAST_C > 0)
         ORDER BY opp.CLOSE_DATE DESC
     """)).to_pandas()
