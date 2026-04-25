@@ -447,17 +447,23 @@ def _valid_fq(q):
     except Exception:
         return False
 
+def _fq_fy(q):
+    return int(q.split("-")[1])
+
+def _fq_sort_key(q):
+    try:
+        return (int(q.split("-")[1]), int(q.split("-")[0][1:]))
+    except Exception:
+        return (9999, 9)
+
 _fq_raw = (
     list(cap_pipe_df["FISCAL_QUARTER"].dropna().unique()) +
     list(_sd_pipe["FISCAL_QUARTER"].dropna().unique() if not _sd_pipe.empty else [])
 )
-_fq_all = sorted(set(q for q in _fq_raw if _valid_fq(q)), key=lambda q: (_fq_fy(q), int(q.split("-")[0][1:])))
+_fq_all = sorted(set(q for q in _fq_raw if _valid_fq(q)), key=_fq_sort_key)
 if _cfq_current not in _fq_all:
-    _fq_all = sorted(set([_cfq_current] + _fq_all), key=lambda q: (_fq_fy(q), int(q.split("-")[0][1:])))
-_fq_all = sorted(set(_fq_all), key=lambda q: (_fq_fy(q), int(q.split("-")[0][1:])))
-
-def _fq_fy(q):
-    return int(q.split("-")[1])
+    _fq_all = sorted(set([_cfq_current] + _fq_all), key=_fq_sort_key)
+_fq_all = sorted(set(_fq_all), key=_fq_sort_key)
 
 _cur_fy  = _fq_fy(_cfq_current)
 _fq_3yr  = [q for q in _fq_all if _fq_fy(q) <= _cur_fy + 3] or [_cfq_current]
