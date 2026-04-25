@@ -1,28 +1,25 @@
 import streamlit as st
 import pandas as pd
-from data import load_ps_pipeline, load_ps_history, render_html_table, render_nav_bar
-
+from data import load_ps_pipeline, load_ps_history, render_html_table
 from constants import SFDC_BASE
+from components import section_banner, empty_state
 
 pipeline_df = load_ps_pipeline()
-history_df = load_ps_history()
+history_df  = load_ps_history()
 
-render_nav_bar([
-    ("SD Pipeline", "nav-sdo-pipeline"),
-    ("Historical Sold Services &amp; Training", "nav-sdo-history"),
-])
+section_banner("SD Opportunities", "Open pipeline and historical sold services & training")
 
-kpi1, kpi2 = st.columns(2)
-with kpi1:
-    st.metric("Pipeline Opps", len(pipeline_df))
-with kpi2:
-    pipe_tcv = pipeline_df["TOTAL_PST_TCV"].fillna(0).sum() if not pipeline_df.empty else 0
-    st.metric("Pipeline TCV", f"${pipe_tcv:,.0f}")
+# ── KPI strip ─────────────────────────────────────────────────────────────────
+k1, k2 = st.columns(2)
+pipe_tcv = pipeline_df["TOTAL_PST_TCV"].fillna(0).sum() if not pipeline_df.empty else 0
+k1.metric("Pipeline Opps", len(pipeline_df))
+k2.metric("Pipeline TCV",  f"${pipe_tcv:,.0f}")
 
-st.markdown('<div id="nav-sdo-pipeline" class="tab-banner"><p class="tab-banner-title">SD Pipeline (Open Opportunities)</p></div>', unsafe_allow_html=True)
+st.markdown('<p class="sf-section-label">SD Pipeline (Open Opportunities)</p>', unsafe_allow_html=True)
 
+# ── Pipeline ──────────────────────────────────────────────────────────────────
 if not pipeline_df.empty:
-    fc1, fc2, fc3, fc4, fc5, fc6 = st.columns(6)
+    fc1, fc2, fc3, fc4, fc5 = st.columns(5)
     with fc1:
         acct_filter_p = st.multiselect("Account", options=sorted(pipeline_df["ACCOUNT_NAME"].dropna().unique()), default=[], key="psp_acct")
     with fc2:
@@ -33,8 +30,7 @@ if not pipeline_df.empty:
         type_filter_p = st.multiselect("Type", options=sorted(pipeline_df["OPPORTUNITY_TYPE"].dropna().unique()), default=[], key="psp_type")
     with fc5:
         fc_filter_p = st.multiselect("Forecast", options=sorted(pipeline_df["FORECAST_STATUS"].dropna().unique()), default=[], key="psp_fc")
-    with fc6:
-        search_p = st.text_input("Search opportunity", "", key="psp_search")
+    search_p = st.text_input("Search opportunity name", "", key="psp_search", placeholder="Type to filter…")
 
     filtered_p = pipeline_df.copy()
     if acct_filter_p:
@@ -52,44 +48,44 @@ if not pipeline_df.empty:
 
     display_p = filtered_p.copy()
     display_p["OPP_LINK"] = display_p.apply(
-        lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1)
+        lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1
+    )
 
     with st.expander(f"{len(filtered_p)} opportunities", expanded=True):
         render_html_table(display_p, columns=[
-            {"col": "ACCOUNT_NAME", "label": "Account"},
-            {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
-            {"col": "OPP_LINK", "label": "Opp SFDC", "fmt": "link"},
-            {"col": "OPPORTUNITY_TYPE", "label": "Type"},
-            {"col": "PRODUCT_NAMES", "label": "Products"},
-            {"col": "STAGE_NAME", "label": "Stage"},
-            {"col": "FORECAST_STATUS", "label": "Forecast"},
-            {"col": "PS_FORECAST_CATEGORY", "label": "PS Fcast Cat"},
-            {"col": "PS_INVESTMENT_TYPE", "label": "Invest"},
-            {"col": "QUOTE_SUB_AGREEMENT_TYPE", "label": "Agreement"},
-            {"col": "CLOSE_DATE", "label": "Close", "fmt": "date"},
-            {"col": "CREATED_DATE", "label": "Created", "fmt": "date"},
-            {"col": "SALES_QUALIFIED_DATE", "label": "SQ Date", "fmt": "date"},
-            {"col": "FISCAL_QUARTER", "label": "FQ"},
-            {"col": "TOTAL_ACV", "label": "Total ACV", "fmt": "dollar"},
-            {"col": "TOTAL_PST_TCV", "label": "PST TCV", "fmt": "dollar"},
-            {"col": "PS_SERVICES_TCV", "label": "PS TCV", "fmt": "dollar"},
-            {"col": "PS_SERVICES_FORECAST", "label": "PS Fcast $", "fmt": "dollar"},
-            {"col": "DM", "label": "DM"},
-            {"col": "OWNER", "label": "AE"},
-            {"col": "PS_SELLER_NAME", "label": "PS Seller"},
-            {"col": "PS_COMMENTS", "label": "PS Comments"},
-            {"col": "OPP_PROBABILITY", "label": "Prob %", "fmt": "pct"},
+            {"col": "ACCOUNT_NAME",              "label": "Account"},
+            {"col": "OPPORTUNITY_NAME",           "label": "Opportunity"},
+            {"col": "OPP_LINK",                   "label": "SFDC",         "fmt": "link"},
+            {"col": "OPPORTUNITY_TYPE",           "label": "Type"},
+            {"col": "PRODUCT_NAMES",              "label": "Products"},
+            {"col": "STAGE_NAME",                 "label": "Stage"},
+            {"col": "FORECAST_STATUS",            "label": "Forecast"},
+            {"col": "PS_FORECAST_CATEGORY",       "label": "PS Fcast Cat"},
+            {"col": "PS_INVESTMENT_TYPE",         "label": "Invest"},
+            {"col": "QUOTE_SUB_AGREEMENT_TYPE",   "label": "Agreement"},
+            {"col": "CLOSE_DATE",                 "label": "Close",        "fmt": "date"},
+            {"col": "CREATED_DATE",               "label": "Created",      "fmt": "date"},
+            {"col": "SALES_QUALIFIED_DATE",       "label": "SQ Date",      "fmt": "date"},
+            {"col": "FISCAL_QUARTER",             "label": "FQ"},
+            {"col": "TOTAL_ACV",                  "label": "ACV",          "fmt": "dollar"},
+            {"col": "TOTAL_PST_TCV",              "label": "PST TCV",      "fmt": "dollar"},
+            {"col": "PS_SERVICES_TCV",            "label": "PS TCV",       "fmt": "dollar"},
+            {"col": "PS_SERVICES_FORECAST",       "label": "PS Fcast $",   "fmt": "dollar"},
+            {"col": "DM",                         "label": "DM"},
+            {"col": "OWNER",                      "label": "AE"},
+            {"col": "PS_SELLER_NAME",             "label": "PS Seller"},
+            {"col": "PS_COMMENTS",                "label": "PS Comments"},
+            {"col": "OPP_PROBABILITY",            "label": "Prob %",       "fmt": "pct"},
         ], height=450)
-
-        csv_p = filtered_p.to_csv(index=False)
-        st.download_button(":material/download: Export Pipeline CSV", csv_p, "pst_pipeline.csv", "text/csv", key="psp_csv")
+        st.download_button(":material/download: Export CSV", filtered_p.to_csv(index=False), "pst_pipeline.csv", "text/csv", key="psp_csv")
 else:
-    st.info("No PS&T pipeline opportunities found.")
+    empty_state("No PS&T pipeline opportunities found.")
 
 st.divider()
 
-st.markdown('<div id="nav-sdo-history" class="tab-banner"><p class="tab-banner-title">Historical Sold Services &amp; Training</p></div>', unsafe_allow_html=True)
+st.markdown('<p class="sf-section-label">Historical Sold Services & Training</p>', unsafe_allow_html=True)
 
+# ── History ───────────────────────────────────────────────────────────────────
 if not history_df.empty:
     hc1, hc2, hc3, hc4, hc5 = st.columns(5)
     with hc1:
@@ -101,7 +97,7 @@ if not history_df.empty:
     with hc4:
         type_filter_h = st.multiselect("Opp Type", options=sorted(history_df["OPPORTUNITY_TYPE"].dropna().unique()), default=[], key="psh_type")
     with hc5:
-        search_h = st.text_input("Search opportunity", "", key="psh_search")
+        search_h = st.text_input("Search", "", key="psh_search", placeholder="Account or opportunity…")
 
     filtered_h = history_df.copy()
     if acct_filter_h:
@@ -119,40 +115,34 @@ if not history_df.empty:
         ]
 
     hk1, hk2, hk3, hk4 = st.columns(4)
-    with hk1:
-        st.metric("Closed Won Opps", len(filtered_h))
-    with hk2:
-        st.metric("PS Services $", f"${filtered_h['PS_SERVICES_ACV'].sum():,.0f}")
-    with hk3:
-        st.metric("Edu Services $", f"${filtered_h['EDU_SERVICES_ACV'].sum():,.0f}")
-    with hk4:
-        st.metric("Total PST $", f"${filtered_h['TOTAL_PST_AMOUNT'].sum():,.0f}")
+    hk1.metric("Closed Won",   len(filtered_h))
+    hk2.metric("PS Services",  f"${filtered_h['PS_SERVICES_ACV'].sum():,.0f}")
+    hk3.metric("Edu Services", f"${filtered_h['EDU_SERVICES_ACV'].sum():,.0f}")
+    hk4.metric("Total PST",    f"${filtered_h['TOTAL_PST_AMOUNT'].sum():,.0f}")
 
     display_h = filtered_h.copy()
     display_h["OPP_LINK"] = display_h.apply(
-        lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1)
-
+        lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1
+    )
     with st.expander(f"{len(filtered_h)} closed won opportunities", expanded=True):
         render_html_table(display_h, columns=[
-            {"col": "ACCOUNT_NAME", "label": "Account"},
+            {"col": "ACCOUNT_NAME",     "label": "Account"},
             {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
-            {"col": "OPP_LINK", "label": "SFDC", "fmt": "link"},
-            {"col": "DM", "label": "DM"},
-            {"col": "AE", "label": "AE"},
-            {"col": "OPP_OWNER", "label": "Opp Owner"},
+            {"col": "OPP_LINK",         "label": "SFDC",         "fmt": "link"},
+            {"col": "DM",               "label": "DM"},
+            {"col": "AE",               "label": "AE"},
+            {"col": "OPP_OWNER",        "label": "Opp Owner"},
             {"col": "OPPORTUNITY_TYPE", "label": "Type"},
-            {"col": "CLOSE_DATE", "label": "Close Date", "fmt": "date"},
+            {"col": "CLOSE_DATE",       "label": "Close Date",   "fmt": "date"},
             {"col": "PRODUCT_FAMILIES", "label": "Product Family"},
-            {"col": "PS_SERVICES_ACV", "label": "PS Svc $", "fmt": "dollar"},
-            {"col": "EDU_SERVICES_ACV", "label": "Edu Svc $", "fmt": "dollar"},
-            {"col": "TOTAL_PST_AMOUNT", "label": "Total PST $", "fmt": "dollar"},
-            {"col": "PS_INVESTMENT_TYPE", "label": "Invest Type"},
-            {"col": "PS_INVESTMENT_AMOUNT", "label": "Invest $", "fmt": "dollar"},
-            {"col": "PS_SELLER_NAME", "label": "PS Seller"},
-            {"col": "STAGE_NAME", "label": "Stage"},
+            {"col": "PS_SERVICES_ACV",  "label": "PS Svc $",     "fmt": "dollar"},
+            {"col": "EDU_SERVICES_ACV", "label": "Edu Svc $",    "fmt": "dollar"},
+            {"col": "TOTAL_PST_AMOUNT", "label": "Total PST $",  "fmt": "dollar"},
+            {"col": "PS_INVESTMENT_TYPE","label": "Invest Type"},
+            {"col": "PS_INVESTMENT_AMOUNT","label": "Invest $",  "fmt": "dollar"},
+            {"col": "PS_SELLER_NAME",   "label": "PS Seller"},
+            {"col": "STAGE_NAME",       "label": "Stage"},
         ], height=600)
-
-        csv_h = filtered_h.to_csv(index=False)
-        st.download_button(":material/download: Export History CSV", csv_h, "pst_history.csv", "text/csv", key="psh_csv")
+        st.download_button(":material/download: Export CSV", filtered_h.to_csv(index=False), "pst_history.csv", "text/csv", key="psh_csv")
 else:
-    st.info("No historical PS&T opportunities found.")
+    empty_state("No historical PS&T opportunities found.")

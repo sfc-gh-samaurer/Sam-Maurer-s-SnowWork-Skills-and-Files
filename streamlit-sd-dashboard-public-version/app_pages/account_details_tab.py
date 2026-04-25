@@ -9,6 +9,7 @@ from data import (
 )
 
 from constants import SFDC_BASE
+from components import section_banner, empty_state
 
 
 st.markdown("""
@@ -264,7 +265,7 @@ STAGE_DOTS = {"1":"#3b82f6","2":"#22c55e","3":"#eab308","4":"#f97316","5":"#f973
 # ── Load hierarchy metadata (lightweight, cached) ────────────────────────────
 hierarchy_df = load_hierarchy()
 
-st.markdown('<div class="tab-banner"><p class="tab-banner-title">Account Details</p></div>', unsafe_allow_html=True)
+section_banner("Account Details", "Account snapshot — select a Theater, District, and Account")
 
 # ── Cascading filters ─────────────────────────────────────────────────────────
 st.markdown('<div style="margin-bottom:4px"></div>', unsafe_allow_html=True)
@@ -312,7 +313,7 @@ with f3:
 
 # ── Load accounts only once a district is selected ───────────────────────────
 if not district:
-    st.markdown('<p style="color:#94a3b8;font-size:0.95rem;margin-top:12px;">Select a Theater and District above to load accounts.</p>', unsafe_allow_html=True)
+    empty_state("Select a Theater and District above to load accounts.", icon="🗺️")
     st.stop()
 
 accounts_df = load_accounts_for_scope(district)
@@ -547,12 +548,17 @@ if has_intel:
 
     st.markdown(f"""
     <style>
-    .intel-block {{ }}
-    .intel-label {{ font-size: 0.63rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: #94a3b8; margin-bottom: 4px; }}
+    .intel-label { font-size: 0.63rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: #94a3b8; margin-bottom: 4px; }
     </style>
     <div class="snapshot-card">
       <div class="card-header">Account Intelligence</div>
       <div class="card-body">{grid_html}</div>
     </div>
     """, unsafe_allow_html=True)
+else:
+    st.markdown("""
+    <div class="snapshot-card">
+      <div class="card-header">Account Intelligence</div>
+      <div class="card-body"><p class="none-msg">No account intelligence data on file for this account.</p></div>
+    </div>""", unsafe_allow_html=True)
 

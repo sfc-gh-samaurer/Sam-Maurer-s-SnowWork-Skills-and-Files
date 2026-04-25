@@ -1,30 +1,21 @@
 import streamlit as st
 import pandas as pd
 import re
-from data import load_ps_projects_active, render_html_table, render_nav_bar
-
+from data import load_ps_projects_active, render_html_table
 from constants import SFDC_BASE
+from components import section_banner, empty_state
 
 active_df = load_ps_projects_active()
 if not active_df.empty and "PRACTICE" in active_df.columns:
     active_df = active_df[active_df["PRACTICE"] != "Education Services"]
 
-render_nav_bar([
-    ("Active SD Projects", "nav-pst-active"),
-])
+section_banner("Active SD Projects", "In-progress and pipeline services delivery engagements")
 
-kpi1, kpi2, kpi3, kpi4 = st.columns(4)
-with kpi1:
-    st.metric("Active Projects", len(active_df))
-with kpi2:
-    active_rev = active_df["REVENUE_AMOUNT"].sum() if not active_df.empty else 0
-    st.metric("Active Revenue", f"${active_rev:,.0f}")
-with kpi3:
-    total_hours = active_df["BILLABLE_HOURS"].sum() if not active_df.empty else 0
-    st.metric("Billable Hours", f"{total_hours:,.0f}")
-with kpi4:
-    stalled = len(active_df[active_df["PROJECT_STAGE"].isin(["Stalled", "Stalled - Expiring"])]) if not active_df.empty else 0
-    st.metric("Stalled Projects", stalled)
+k1, k2, k3, k4 = st.columns(4)
+k1.metric("Active Projects", len(active_df))
+k2.metric("Active Revenue",  f"${active_df['REVENUE_AMOUNT'].sum():,.0f}"  if not active_df.empty else "$0")
+k3.metric("Billable Hours",  f"{active_df['BILLABLE_HOURS'].sum():,.0f}"   if not active_df.empty else "0")
+k4.metric("Stalled",         len(active_df[active_df["PROJECT_STAGE"].isin(["Stalled", "Stalled - Expiring"])]) if not active_df.empty else 0)
 
 
 def _extract_base_name(project_name):
@@ -39,31 +30,30 @@ def _extract_base_name(project_name):
     return cleaned
 
 
-st.markdown('<div id="nav-pst-active" class="tab-banner"><p class="tab-banner-title">Active SD Projects</p></div>', unsafe_allow_html=True)
-
 if not active_df.empty:
-    active_df["END_DATE"] = pd.to_datetime(active_df["END_DATE"])
+    active_df["END_DATE"]            = pd.to_datetime(active_df["END_DATE"])
     active_df["LAST_RESOURCE_END_DATE"] = pd.to_datetime(active_df["LAST_RESOURCE_END_DATE"])
 
-    exp_months_a = st.slider(
-        "Expiring within (months)",
-        min_value=0, max_value=24, value=0, step=1, key="psa_exp_months",
-        help="0 = show all active projects; set to N to show only projects expiring within N months with no planned extension",
-    )
-
-    fc1, fc2, fc3, fc4, fc5, fc6 = st.columns(6)
+    fc1, fc2, fc3, fc4 = st.columns(4)
     with fc1:
-        acct_filter_a = st.multiselect("Account", options=sorted(active_df["ACCOUNT_NAME"].dropna().unique()), default=[], key="psa_acct")
+        acct_filter_a  = st.multiselect("Account",       options=sorted(active_df["ACCOUNT_NAME"].dropna().unique()),  default=[], key="psa_acct")
     with fc2:
         stage_filter_a = st.multiselect("Project Stage", options=sorted(active_df["PROJECT_STAGE"].dropna().unique()), default=[], key="psa_stage")
     with fc3:
-        dm_filter_a = st.multiselect("DM", options=sorted(active_df["DM"].dropna().unique()), default=[], key="psa_dm")
+        dm_filter_a    = st.multiselect("DM",            options=sorted(active_df["DM"].dropna().unique()),            default=[], key="psa_dm")
     with fc4:
-        ae_filter_a = st.multiselect("AE", options=sorted(active_df["AE"].dropna().unique()), default=[], key="psa_ae")
+        ae_filter_a    = st.multiselect("AE",            options=sorted(active_df["AE"].dropna().unique()),            default=[], key="psa_ae")
+
+    fc5, fc6, fc7 = st.columns([2, 1, 2])
     with fc5:
-        hide_past_end = st.checkbox("Hide past end dates", value=False, key="psa_hide_past")
+        exp_months_a = st.slider(
+            "Show only projects expiring within N months (0 = show all)",
+            min_value=0, max_value=24, value=0, step=1, key="psa_exp_months",
+        )
     with fc6:
-        search_a = st.text_input("Search project", "", key="psa_search")
+        hide_past_end = st.checkbox("Hide past end dates", value=False, key="psa_hide_past")
+    with fc7:
+        search_a = st.text_input("Search project", "", key="psa_search", placeholder="Project name…")
 
     filtered_a = active_df.copy()
     if acct_filter_a:
@@ -75,23 +65,22 @@ if not active_df.empty:
     if ae_filter_a:
         filtered_a = filtered_a[filtered_a["AE"].isin(ae_filter_a)]
     if hide_past_end:
-        today = pd.Timestamp.now().normalize()
-        filtered_a = filtered_a[filtered_a["END_DATE"].isna() | (filtered_a["END_DATE"] >= today)]
+        _today = pd.Timestamp.now().normalize()
+        filtered_a = filtered_a[filtered_a["END_DATE"].isna() | (filtered_a["END_DATE"] >= _today)]
     if search_a:
         filtered_a = filtered_a[filtered_a["PROJECT_NAME"].str.contains(search_a, case=False, na=False)]
 
     if exp_months_a > 0:
-        today_exp = pd.Timestamp.now().normalize()
+        today_exp  = pd.Timestamp.now().normalize()
         cutoff_exp = today_exp + pd.DateOffset(months=exp_months_a)
-        filtered_a = filtered_a.copy()
-        filtered_a["_EFF_END"] = filtered_a["LAST_RESOURCE_END_DATE"].fillna(filtered_a["END_DATE"])
+        filtered_a["_EFF_END"]   = filtered_a["LAST_RESOURCE_END_DATE"].fillna(filtered_a["END_DATE"])
         filtered_a["_BASE_NAME"] = filtered_a["PROJECT_NAME"].apply(_extract_base_name)
         expiring_mask = (
             filtered_a["_EFF_END"].notna()
             & (filtered_a["_EFF_END"] > today_exp)
             & (filtered_a["_EFF_END"] <= cutoff_exp)
         )
-        expiring_set = filtered_a[expiring_mask]
+        expiring_set  = filtered_a[expiring_mask]
         no_ext_indices = []
         for idx, row in expiring_set.iterrows():
             same_acct = filtered_a[
@@ -106,35 +95,34 @@ if not active_df.empty:
 
     display_a = filtered_a.copy()
     display_a["OPP_LINK"] = display_a.apply(
-        lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1)
+        lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1
+    )
 
     with st.expander(f"{len(filtered_a)} projects", expanded=True):
         render_html_table(display_a, columns=[
-            {"col": "ACCOUNT_NAME", "label": "Account"},
-            {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
-            {"col": "OPP_LINK", "label": "Opp SFDC", "fmt": "link"},
-            {"col": "PROJECT_NAME", "label": "Project"},
-            {"col": "PRACTICE", "label": "Practice"},
-            {"col": "DM", "label": "DM"},
-            {"col": "AE", "label": "AE"},
-            {"col": "PROJECT_STAGE", "label": "Stage"},
-            {"col": "BILLING_TYPE", "label": "Billing"},
-            {"col": "SKU_TYPE", "label": "SKU"},
-            {"col": "INVESTMENT_TYPE", "label": "Invest"},
-            {"col": "START_DATE", "label": "Start", "fmt": "date"},
-            {"col": "END_DATE", "label": "Proj End", "fmt": "date"},
-            {"col": "LAST_RESOURCE_END_DATE", "label": "Last Resource End", "fmt": "date", "highlight": True},
-            {"col": "BILLABLE_HOURS", "label": "Bill Hrs", "fmt": "number"},
-            {"col": "REVENUE_AMOUNT", "label": "Revenue", "fmt": "dollar"},
-            {"col": "PROJECT_MANAGER", "label": "PM"},
-            {"col": "PS_SELLER_NAME", "label": "PS Seller"},
-            {"col": "ASSIGNMENT_COUNT", "label": "Assignments", "fmt": "number"},
-            {"col": "ASSIGNED_RESOURCES", "label": "Resources"},
-            {"col": "ASSIGNED_ROLES", "label": "Roles"},
-            {"col": "PS_FORECAST_CATEGORY", "label": "Fcast Cat"},
+            {"col": "ACCOUNT_NAME",        "label": "Account"},
+            {"col": "OPPORTUNITY_NAME",    "label": "Opportunity"},
+            {"col": "OPP_LINK",            "label": "Opp SFDC",      "fmt": "link"},
+            {"col": "PROJECT_NAME",        "label": "Project"},
+            {"col": "PRACTICE",            "label": "Practice"},
+            {"col": "DM",                  "label": "DM"},
+            {"col": "AE",                  "label": "AE"},
+            {"col": "PROJECT_STAGE",       "label": "Stage"},
+            {"col": "BILLING_TYPE",        "label": "Billing"},
+            {"col": "SKU_TYPE",            "label": "SKU"},
+            {"col": "INVESTMENT_TYPE",     "label": "Invest"},
+            {"col": "START_DATE",          "label": "Start",         "fmt": "date"},
+            {"col": "END_DATE",            "label": "Proj End",      "fmt": "date"},
+            {"col": "LAST_RESOURCE_END_DATE","label": "Last Rsrc End","fmt": "date", "highlight": True},
+            {"col": "BILLABLE_HOURS",      "label": "Bill Hrs",      "fmt": "number"},
+            {"col": "REVENUE_AMOUNT",      "label": "Revenue",       "fmt": "dollar"},
+            {"col": "PROJECT_MANAGER",     "label": "PM"},
+            {"col": "PS_SELLER_NAME",      "label": "PS Seller"},
+            {"col": "ASSIGNMENT_COUNT",    "label": "Assignments",   "fmt": "number"},
+            {"col": "ASSIGNED_RESOURCES",  "label": "Resources"},
+            {"col": "ASSIGNED_ROLES",      "label": "Roles"},
+            {"col": "PS_FORECAST_CATEGORY","label": "Fcast Cat"},
         ], height=500)
-
-        csv_a = filtered_a.to_csv(index=False)
-        st.download_button(":material/download: Export Active CSV", csv_a, "pst_active_projects.csv", "text/csv", key="psa_csv")
+        st.download_button(":material/download: Export CSV", filtered_a.to_csv(index=False), "pst_active_projects.csv", "text/csv", key="psa_csv")
 else:
-    st.info("No active PS&T projects found.")
+    empty_state("No active PS&T projects found.")
