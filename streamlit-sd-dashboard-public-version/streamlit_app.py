@@ -267,9 +267,89 @@ st.markdown("""
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: #8A999E;
-        margin: 18px 0 8px 2px;
+        color: #11567F;
+        margin: 18px 0 8px 0;
+        padding-left: 8px;
+        border-left: 3px solid #29B5E8;
     }
+
+    /* ── Snapshot cards (Account Details) ── */
+    .snapshot-card {
+        background: #FFFFFF;
+        border: 1px solid #E4E7EB;
+        border-radius: 8px;
+        padding: 12px 14px;
+        box-shadow: 0 1px 2px rgba(16,24,40,0.04);
+        height: 100%;
+    }
+    .card-header {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.09em;
+        color: #11567F;
+        margin-bottom: 8px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid #E0F2FE;
+    }
+    .stat-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        padding: 3px 0;
+        border-bottom: 1px solid #F8FAFC;
+    }
+    .stat-label { font-size: 0.75rem; color: #8A999E; }
+    .stat-value { font-size: 0.82rem; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; }
+    .none-msg { color: #94a3b8; font-size: 0.80rem; font-style: italic; }
+
+    /* ── WoW expander accent ── */
+    div[data-testid="stExpander"]:has(summary:first-line) {
+        border-left: 3px solid transparent !important;
+    }
+
+    /* ── Pill styles ── */
+    .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 0.66rem;
+        font-weight: 600;
+        margin-right: 4px;
+        letter-spacing: 0.02em;
+    }
+    .pill-blue  { background: #E0F2FE; color: #0284C7; }
+    .pill-green { background: #DCFCE7; color: #16A34A; }
+    .pill-red   { background: #FEE2E2; color: #DC2626; }
+    .pill-gray  { background: #F1F5F9; color: #475569; }
+    .pill-amber { background: #FEF3C7; color: #D97706; }
+
+    /* ── ARR/ACV badge on account header ── */
+    .acct-arr-badge {
+        background: rgba(255,255,255,0.15);
+        border: 1px solid rgba(255,255,255,0.3);
+        border-radius: 8px;
+        padding: 8px 14px;
+        text-align: right;
+        backdrop-filter: blur(4px);
+    }
+    .arr-label { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.12em; color: rgba(255,255,255,0.65); font-weight: 600; }
+    .arr-value { font-size: 1.5rem; font-weight: 900; color: white; line-height: 1.1; margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+    /* ── Sidebar scope section highlight ── */
+    section[data-testid="stSidebar"] .stMultiSelect > label,
+    section[data-testid="stSidebar"] .stTextInput > label {
+        font-size: 0.72rem !important;
+        font-weight: 600 !important;
+        color: #11567F !important;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+
+    /* ── WoW summary banner color coding ── */
+    .wow-positive { color: #16A34A; font-weight: 700; }
+    .wow-negative { color: #DC2626; font-weight: 700; }
+    .wow-neutral  { color: #8A999E; font-weight: 600; }
 
     /* ── nav scroll bar (legacy render_nav_bar) ── */
     .tab-nav {

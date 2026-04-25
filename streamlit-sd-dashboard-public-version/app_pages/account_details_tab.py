@@ -470,9 +470,8 @@ st.markdown(f"""
   </div>
   <div class="acct-header-right">
     <div class="acct-arr-badge">
-      <div class="arr-label">ARR</div>
+      <div class="arr-label">ACV</div>
       <div class="arr-value">{arr}</div>
-      {"<div class='arr-sub'>APS: " + aps + "</div>" if aps != "—" else ""}
     </div>
     <a class="sfdc-link" href="{sfdc_url}" target="_blank">Open in Salesforce →</a>
   </div>
@@ -568,41 +567,4 @@ with col3:
 
 st.markdown('<div style="margin-top:16px"></div>', unsafe_allow_html=True)
 
-# ── ROW 2: Account Intelligence (full width, conditional) ─────────────────────
-has_intel = any([strategy, risk_note, comments, risk_mit])
-if has_intel:
-    intel_parts = []
-    if strategy:
-        intel_parts.append(f'<div class="intel-block"><div class="intel-label">Account Strategy</div><div class="comment-block">{esc(strategy)}</div></div>')
-    if risk_note:
-        intel_parts.append(f'<div class="intel-block"><div class="intel-label">Account Risk</div><div class="risk-block">{esc(risk_note)}</div></div>')
-    if risk_mit:
-        intel_parts.append(f'<div class="intel-block"><div class="intel-label">Risk Mitigation</div><div class="notes-block">{esc(risk_mit)}</div></div>')
-    if comments:
-        intel_parts.append(f'<div class="intel-block"><div class="intel-label">Account Comments</div><div class="comment-block">{esc(comments)}</div></div>')
-
-    n = len(intel_parts)
-    cols_per_row = 2
-    grid_html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;">'
-    for part in intel_parts:
-        grid_html += part
-    if n % 2 == 1:
-        grid_html += '<div></div>'
-    grid_html += '</div>'
-
-    st.markdown(f"""
-    <style>
-    .intel-label { font-size: 0.63rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.09em; color: #94a3b8; margin-bottom: 4px; }
-    </style>
-    <div class="snapshot-card">
-      <div class="card-header">Account Intelligence</div>
-      <div class="card-body">{grid_html}</div>
-    </div>
-    """, unsafe_allow_html=True)
-else:
-    st.markdown("""
-    <div class="snapshot-card">
-      <div class="card-header">Account Intelligence</div>
-      <div class="card-body"><p class="none-msg">No account intelligence data on file for this account.</p></div>
-    </div>""", unsafe_allow_html=True)
 

@@ -63,7 +63,7 @@ with st.expander(_wow_label, expanded=False):
         {"col": "UC_LINK",       "label": "SFDC",           "fmt": "link"},
         {"col": "OLD_VALUE",     "label": "From Stage"},
         {"col": "NEW_VALUE",     "label": "To Stage"},
-        {"col": "ACV",           "label": "eACV",           "fmt": "dollar"},
+        {"col": "ACV",           "label": "UC eACV",           "fmt": "dollar"},
         {"col": "UC_STATUS",     "label": "Status"},
         {"col": "DECISION_DATE", "label": "Decision Date",  "fmt": "date"},
         {"col": "TARGET_GO_LIVE","label": "Target Go-Live", "fmt": "date"},
@@ -91,7 +91,7 @@ with st.expander(_wow_label, expanded=False):
                 {"col": "USE_CASE_NAME", "label": "Use Case"},
                 {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
                 {"col": "CURRENT_STAGE", "label": "Current Stage"},
-                {"col": "ACV",           "label": "eACV",          "fmt": "dollar"},
+                {"col": "ACV",           "label": "UC eACV",          "fmt": "dollar"},
                 {"col": "UC_STATUS",     "label": "Status"},
                 {"col": "TARGET_GO_LIVE","label": "Target Go-Live","fmt": "date"},
                 {"col": "CHANGED_AT",   "label": "When",           "fmt": "date"},
@@ -108,7 +108,7 @@ with st.expander(_wow_label, expanded=False):
                 {"col": "CURRENT_STAGE", "label": "Current Stage"},
                 {"col": "OLD_VALUE",     "label": "Previous Date"},
                 {"col": "NEW_VALUE",     "label": "New Date"},
-                {"col": "ACV",           "label": "eACV",          "fmt": "dollar"},
+                {"col": "ACV",           "label": "UC eACV",          "fmt": "dollar"},
                 {"col": "CHANGED_AT",   "label": "Changed",        "fmt": "date"},
             ], height=max(180, min(500, _gl_n * 40 + 60)))
 
