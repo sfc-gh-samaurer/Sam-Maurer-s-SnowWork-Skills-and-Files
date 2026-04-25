@@ -631,9 +631,13 @@ else:
     _tw_count = int((acct_ucs["TECHNICAL_WIN"].isin([True, "true", "True", "1", 1])).sum())
     _avg_health = int(acct_ucs["HEALTH"].mean()) if not acct_ucs.empty else 0
     _total_eacv = acct_ucs["ACV"].fillna(0).sum()
-    _adv_count = acct_ucs["STAGE"].apply(
-        lambda s: int(str(s).split(" - ")[0].strip()) >= 4 if pd.notna(s) else False
-    ).sum()
+    _adv_count = 0
+    for _s in acct_ucs["STAGE"].dropna():
+        try:
+            if int(str(_s).split(" - ")[0].strip()) >= 4:
+                _adv_count += 1
+        except Exception:
+            pass
 
     _uc_kpis = [
         ("Total UCs", str(len(acct_ucs))),
@@ -716,21 +720,24 @@ if _ps_acct.empty:
     empty_state("No active PS engagements found for this account.")
 else:
     def _ps_card(r):
-        stage = esc(str(r.get("PROJECT_STAGE") or "—"))
+        def _sv(key, default="—"):
+            v = r.get(key)
+            return default if v is None or (not isinstance(v, str) and pd.isna(v)) else str(v)
+        stage = esc(_sv("PROJECT_STAGE"))
         pct = r.get("PCT_HOURS_COMPLETE")
-        pct_str = f"{pct:.0f}%" if pd.notna(pct) and pct else "—"
-        svc = esc(str(r.get("SERVICE_TYPE") or "—"))
-        billing = esc(str(r.get("BILLING_TYPE") or "—"))
+        pct_str = f"{float(pct):.0f}%" if pct is not None and not (isinstance(pct, float) and pd.isna(pct)) else "—"
+        svc = esc(_sv("SERVICE_TYPE"))
+        billing = esc(_sv("BILLING_TYPE"))
         end_d = fmt_date(r.get("END_DATE"), "—")
-        pm = esc(str(r.get("PROJECT_MANAGER") or "—"))
-        notes = str(r.get("STATUS_NOTES") or "")
+        pm = esc(_sv("PROJECT_MANAGER"))
+        notes = _sv("STATUS_NOTES", "")
         notes_html = f'<div class="comment-block" style="margin-top:7px">{esc(notes)}</div>' if notes.strip() else ""
         stage_color = {"In Progress": "#22c55e", "Stalled": "#ef4444", "Stalled - Expiring": "#dc2626",
                        "Pipeline": "#3b82f6", "Out Year": "#94a3b8"}.get(stage, "#94a3b8")
         return f"""
         <div class="snapshot-card" style="margin-bottom:10px">
           <div class="card-header">
-            {esc(str(r.get("PROJECT_NAME") or "—"))}
+            {esc(_sv("PROJECT_NAME"))}
             <span style="background:{stage_color}22;color:{stage_color};padding:2px 9px;border-radius:10px;font-size:0.68rem;font-weight:700;">{stage}</span>
           </div>
           <div class="card-body" style="font-size:0.8rem;color:#475569">
@@ -792,18 +799,29 @@ def _build_pm_insights_prompt(acct_name, acct_data, ucs, opps, ps_proj, cap_data
             pct = p.get("PCT_HOURS_COMPLETE")
             ps_lines.append(f"  - {esc(str(p.get('PROJECT_NAME','')))} | Stage: {p.get('PROJECT_STAGE','')} | {f'{pct:.0f}% complete' if pd.notna(pct) else ''} | Type: {p.get('SERVICE_TYPE','')}")
 
-    strategy = str(a_d.get("ACCOUNT_STRATEGY_C") or "")
-    risk_note = str(a_d.get("ACCOUNT_RISK_C") or "")
+    def _sv(key, default=""):
+        v = a_d.get(key)
+        if v is None:
+            return default
+        try:
+            if pd.isna(v):
+                return default
+        except Exception:
+            pass
+        return str(v)
+
+    strategy = _sv("ACCOUNT_STRATEGY_C")
+    risk_note = _sv("ACCOUNT_RISK_C")
 
     prompt = f"""You are a Snowflake Professional Services Practice Manager advisor preparing a briefing.
 
 Analyze this Snowflake customer account and return 5-7 numbered, specific action items that help a Practice Manager understand how to generate services business and what to bring to the Account Executive.
 
 ACCOUNT: {acct_name}
-Tier: {str(a_d.get('TIER',''))} | Segment: {str(a_d.get('SEGMENT',''))} | Industry: {str(a_d.get('INDUSTRY',''))}
-ACV: {fmt_currency(a_d.get('ARR'))} | Employees: {a_d.get('NUMBER_OF_EMPLOYEES','—')}
-AE: {str(a_d.get('ACCOUNT_OWNER',''))} | Lead SE: {str(a_d.get('LEAD_SE',''))} | DM: {str(a_d.get('DM',''))}
-Consumption Risk: {str(a_d.get('CONSUMPTION_RISK_C',''))} | Maturity Score: {str(a_d.get('MATURITY_SCORE_C',''))}
+Tier: {_sv('TIER')} | Segment: {_sv('SEGMENT')} | Industry: {_sv('INDUSTRY')}
+ACV: {fmt_currency(a_d.get('ARR'))} | Employees: {_sv('NUMBER_OF_EMPLOYEES', '—')}
+AE: {_sv('ACCOUNT_OWNER')} | Lead SE: {_sv('LEAD_SE')} | DM: {_sv('DM')}
+Consumption Risk: {_sv('CONSUMPTION_RISK_C')} | Maturity Score: {_sv('MATURITY_SCORE_C')}
 {'Account Strategy: ' + strategy if strategy else ''}
 {'Account Risk Notes: ' + risk_note if risk_note else ''}
 

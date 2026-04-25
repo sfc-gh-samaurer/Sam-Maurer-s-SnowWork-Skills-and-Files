@@ -151,6 +151,8 @@ def render_html_table(df, columns, height=500):
                 if pd.notna(dt_val) and dt_val:
                     dt = str(dt_val)
             return f'<a href="{html_mod.escape(str(val))}" target="_blank" style="color:#1E88E5;text-decoration:none;">{html_mod.escape(dt)}</a>'
+        if f == "html":
+            return str(val)
         if f == "dollar":
             try:
                 return f"${float(val):,.0f}"
