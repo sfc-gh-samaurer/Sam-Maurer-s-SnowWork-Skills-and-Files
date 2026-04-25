@@ -357,9 +357,9 @@ with st.expander(f"New Opportunities — last {days_window} days ({opp_n})", exp
             {"col": "OPPORTUNITY_NAME","label": "Opportunity"},
             {"col": "OPP_LINK",        "label": "SFDC",      "fmt": "link"},
             {"col": "AGREEMENT_TYPE",  "label": "Agreement Type"},
+            {"col": "CLOSE_DATE",      "label": "Close",     "fmt": "date"},
             {"col": "FORECAST_STATUS", "label": "Forecast"},
             {"col": "TOTAL_ACV",       "label": "ACV",       "fmt": "dollar"},
-            {"col": "CLOSE_DATE",      "label": "Close",     "fmt": "date"},
             {"col": "CREATED_DATE",    "label": "Created",   "fmt": "date"},
             {"col": "OWNER",           "label": "AE"},
         ], height=max(200, min(500, opp_n * 38 + 60)))
@@ -378,8 +378,8 @@ with st.expander(f"New Use Cases — last {days_window} days ({uc_n})", expanded
             {"col": "ACCT_LINK",     "label": "SFDC",    "fmt": "link"},
             {"col": "USE_CASE_NAME", "label": "Use Case"},
             {"col": "STAGE",         "label": "Stage"},
-            {"col": "ACV",           "label": "eACV",    "fmt": "dollar"},
             {"col": "CREATED_DATE",  "label": "Created", "fmt": "date"},
+            {"col": "ACV",           "label": "eACV",    "fmt": "dollar"},
             {"col": "OWNER",         "label": "AE"},
         ], height=max(200, min(500, uc_n * 38 + 60)))
 
@@ -423,9 +423,9 @@ with st.expander(f"Investment Candidates — {' & '.join(invest_fqs)} ({invest_n
             {"col": "OPPORTUNITY_NAME","label": "Opportunity"},
             {"col": "OPP_LINK",        "label": "SFDC",       "fmt": "link"},
             {"col": "AGREEMENT_TYPE",  "label": "Agreement Type"},
+            {"col": "CLOSE_DATE",      "label": "Close Date", "fmt": "date"},
             {"col": "FORECAST_STATUS", "label": "Forecast"},
             {"col": "CALCULATED_TCV",  "label": "Calc TCV",   "fmt": "dollar"},
-            {"col": "CLOSE_DATE",      "label": "Close Date", "fmt": "date"},
             {"col": "EST_INVESTMENT",  "label": "Est. Invest","fmt": "dollar"},
         ], height=max(200, min(500, invest_n * 38 + 60)))
 
@@ -517,10 +517,10 @@ with _fq_dd1:
             {"col": "OPP_LINK",        "label": "SFDC",     "fmt": "link"},
             {"col": "AGREEMENT_TYPE",  "label": "Agreement Type"},
             {"col": "STAGE_NAME",      "label": "Stage"},
+            {"col": "CLOSE_DATE",      "label": "Close Date","fmt": "date"},
             {"col": "FORECAST_STATUS", "label": "Forecast"},
             {"col": "PRODUCT_FORECAST_ACV","label": "Fcst ACV","fmt": "dollar"},
             {"col": "CALCULATED_TCV",  "label": "Calc TCV",  "fmt": "dollar"},
-            {"col": "CLOSE_DATE",      "label": "Close Date","fmt": "date"},
             {"col": "OWNER",           "label": "AE"},
         ], height=max(160, min(500, len(_cap_fq) * 40 + 60)))
 
@@ -556,8 +556,8 @@ with _fq_dd3:
             {"col": "OPP_LINK",        "label": "SFDC",       "fmt": "link"},
             {"col": "AGREEMENT_TYPE",  "label": "Agreement Type"},
             {"col": "STAGE_NAME",      "label": "Stage"},
+            {"col": "CLOSE_DATE",      "label": "Close Date", "fmt": "date"},
             {"col": "FORECAST_STATUS", "label": "Forecast"},
             {"col": "TOTAL_PST_TCV",   "label": "PST TCV",    "fmt": "dollar"},
-            {"col": "CLOSE_DATE",      "label": "Close Date", "fmt": "date"},
             {"col": "OWNER",           "label": "AE"},
         ], height=max(160, min(500, len(_sd_fq) * 40 + 60)))
