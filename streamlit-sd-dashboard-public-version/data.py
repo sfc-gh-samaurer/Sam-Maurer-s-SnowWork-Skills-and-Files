@@ -504,32 +504,6 @@ def load_data_freshness():
 
 
 @st.cache_data(ttl=86400)
-def load_account_search_list():
-    session = _get_session()
-    df = session.sql("""
-        SELECT DISTINCT
-            a.ACCOUNT_NAME,
-            a.DISTRICT_NAME,
-            a.REGION_NAME,
-            a.GEO_NAME AS THEATER,
-            a.DM
-        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
-        WHERE a.DS = CURRENT_DATE()
-        AND a.REGION_NAME IN (
-            'LATAM','MajorsAcq',
-            'CommAcqEast','CommAcqWest',
-            'EntAcqCentral','EntAcqEast','EntAcqWest',
-            'NortheastExp','SoutheastExp','CentralExp','Commercial',
-            'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp'
-        )
-        AND a.ACCOUNT_STATUS = 'Active'
-        AND a.ACCOUNT_NAME IS NOT NULL
-        ORDER BY a.ACCOUNT_NAME
-    """).to_pandas()
-    return df
-
-
-@st.cache_data(ttl=86400)
 def load_accounts_base():
     session = _get_session()
     df = session.sql(_sql("""
@@ -640,7 +614,26 @@ def load_capacity_renewals():
             contracts.CONTRACT_END_DATE AS CONTRACT_END_DATE,
             b.CURRENT_CAPACITY_VALUE_C AS TOTAL_CAP,
             b.CURRENT_CAPACITY_VALUE_C - b.ACTUAL_CONSUMPTION_YTD_C AS CAPACITY_REMAINING,
-            b.OVERAGE_UNDERAGE_AMOUNT_C AS OVERAGE_UNDERAGE_PREDICTION,
+            -- Predicted underage: annualized YTD run-rate × remaining contract years - total capacity
+            -- Negative = underage (unused capacity at renewal), Positive = overage
+            CASE
+                WHEN b.CURRENT_CAPACITY_VALUE_C > 0
+                    AND b.ACTUAL_CONSUMPTION_YTD_C > 0
+                    AND contracts.CONTRACT_END_DATE > CURRENT_DATE()
+                THEN CAST(
+                    (b.ACTUAL_CONSUMPTION_YTD_C
+                     / GREATEST(1, DATEDIFF('day',
+                         IFF(MONTH(CURRENT_DATE()) >= 2,
+                             DATE_FROM_PARTS(YEAR(CURRENT_DATE()), 2, 1),
+                             DATE_FROM_PARTS(YEAR(CURRENT_DATE()) - 1, 2, 1)),
+                         CURRENT_DATE()))
+                     * 365.0
+                    )
+                    * (DATEDIFF('day', CURRENT_DATE(), contracts.CONTRACT_END_DATE) / 365.0)
+                    - b.CURRENT_CAPACITY_VALUE_C
+                AS FLOAT)
+                ELSE b.OVERAGE_UNDERAGE_AMOUNT_C
+            END AS OVERAGE_UNDERAGE_PREDICTION,
             b.OVERAGE_DATE_C AS OVERAGE_DATE,
             b.DAYS_TO_CAPACITY AS DAYS_TO_CAPACITY,
             r.RENEWAL_OPP_NAME,
