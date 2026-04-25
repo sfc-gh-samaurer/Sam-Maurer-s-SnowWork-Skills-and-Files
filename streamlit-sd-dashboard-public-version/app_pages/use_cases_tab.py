@@ -90,11 +90,12 @@ with st.expander(_wow_label, expanded=False):
                 {"col": "ACCOUNT_NAME",  "label": "Account"},
                 {"col": "USE_CASE_NAME", "label": "Use Case"},
                 {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
-                {"col": "CURRENT_STAGE", "label": "Current Stage"},
-                {"col": "ACV",           "label": "UC eACV",          "fmt": "dollar"},
+                {"col": "CURRENT_STAGE", "label": "Stage at Win"},
+                {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
                 {"col": "UC_STATUS",     "label": "Status"},
+                {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
                 {"col": "TARGET_GO_LIVE","label": "Target Go-Live","fmt": "date"},
-                {"col": "CHANGED_AT",   "label": "When",           "fmt": "date"},
+                {"col": "CHANGED_AT",    "label": "When",          "fmt": "date"},
             ], height=max(180, min(500, _win_n * 40 + 60)))
 
     with _wt4:

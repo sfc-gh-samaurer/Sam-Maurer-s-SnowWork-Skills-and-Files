@@ -284,9 +284,10 @@ with st.expander(_wow_summary, expanded=False):
                 {"col": "ACCOUNT_NAME",  "label": "Account"},
                 {"col": "USE_CASE_NAME", "label": "Use Case"},
                 {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
-                {"col": "CURRENT_STAGE", "label": "Current Stage"},
-                {"col": "ACV",           "label": "UC eACV",          "fmt": "dollar"},
-                {"col": "CHANGED_AT",   "label": "When",           "fmt": "date"},
+                {"col": "CURRENT_STAGE", "label": "Stage at Win"},
+                {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
+                {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
+                {"col": "CHANGED_AT",    "label": "When",          "fmt": "date"},
             ], height=max(120, min(350, len(_ex_wins) * 38 + 60)))
 
     with _ew3:
