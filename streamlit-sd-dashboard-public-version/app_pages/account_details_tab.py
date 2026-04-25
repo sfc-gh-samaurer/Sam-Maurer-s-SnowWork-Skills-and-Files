@@ -3,7 +3,6 @@ import pandas as pd
 import json
 
 from data import (
-    load_hierarchy,
     load_accounts_for_scope,
     load_account_search_list,
     load_capacity_renewals,
@@ -310,129 +309,19 @@ def health_badge(score):
         return f'<span style="background:#fef3c7;color:#d97706;padding:2px 9px;border-radius:10px;font-size:0.69rem;font-weight:700;">● {score}</span>'
     return f'<span style="background:#fee2e2;color:#dc2626;padding:2px 9px;border-radius:10px;font-size:0.69rem;font-weight:700;">● {score}</span>'
 
-# ── Load hierarchy metadata (lightweight, cached) ────────────────────────────
-hierarchy_df = load_hierarchy()
-
-section_banner("Account Details", "Account snapshot — select a Theater, District, and Account")
-
-# ── Quick Search ──────────────────────────────────────────────────────────────
+# ── Load account list scoped to sidebar DMs ───────────────────────────────────
 _search_list = load_account_search_list()
-_qs_col, _qs_toggle_col = st.columns([4, 1])
-with _qs_col:
-    _qs_account = st.selectbox(
-        "Quick Search",
-        options=[""] + sorted(_search_list["ACCOUNT_NAME"].dropna().unique().tolist()),
-        key="acct_quick_search",
-        placeholder="🔍 Type to search any account across all regions…",
-        label_visibility="collapsed",
-    )
-with _qs_toggle_col:
-    _use_browse = st.toggle("Browse", value=False, key="acct_browse_toggle", help="Use Theater / Region / District filters instead")
-
-if _qs_account and not _use_browse:
-    _qs_row = _search_list[_search_list["ACCOUNT_NAME"] == _qs_account]
-    if not _qs_row.empty:
-        _qr = _qs_row.iloc[0]
-        st.session_state["acct_theater"]       = _qr.get("THEATER", "")
-        st.session_state["acct_region"]        = _qr.get("REGION_NAME", "")
-        st.session_state["acct_district"]      = _qr.get("DISTRICT_NAME", "")
-        st.session_state["acct_detail_select"] = _qs_account
-        st.session_state["acct_ae"]            = "All AEs"
-
-# ── Pinned Accounts ───────────────────────────────────────────────────────────
-_pinned = st.session_state.get("_pinned_accounts", [])
-if _pinned:
-    st.markdown('<p class="sf-section-label">⭐ Pinned Accounts</p>', unsafe_allow_html=True)
-    _pin_cols = st.columns(min(len(_pinned), 6))
-    for _pi, _pa in enumerate(_pinned[:6]):
-        with _pin_cols[_pi]:
-            if st.button(_pa["name"][:22] + ("…" if len(_pa["name"]) > 22 else ""),
-                         key=f"_pin_btn_{_pi}", use_container_width=True,
-                         help=_pa["name"], type="secondary"):
-                st.session_state["acct_theater"]      = _pa.get("theater", "")
-                st.session_state["acct_region"]       = _pa.get("region", "")
-                st.session_state["acct_district"]     = _pa.get("district", "")
-                st.session_state["acct_ae"]           = "All AEs"
-                st.session_state["acct_detail_select"]= _pa["name"]
-                st.rerun()
-
-# ── Scope-based or Browse filters ────────────────────────────────────────────
 _selected_dms = st.session_state.get("selected_dms") or []
 
-if _use_browse or not _selected_dms:
-    # ── Browse mode: full hierarchy cascade ───────────────────────────────────
-    st.markdown('<div style="margin-bottom:4px"></div>', unsafe_allow_html=True)
-    f1, f2, f3, f4 = st.columns([1, 1, 1, 1])
+section_banner("Account Details", "Account snapshot — search for an account in your scope")
 
-    theaters = sorted(hierarchy_df["THEATER"].dropna().unique())
+if not _selected_dms:
+    empty_state("Select a Scope in the sidebar to load accounts.", icon="🗺️")
+    st.stop()
 
-    with f1:
-        theater = st.selectbox(
-            "Theater",
-            options=[""] + theaters,
-            key="acct_theater",
-            placeholder="All Theaters",
-            index=0,
-        )
+_scoped_df = _search_list[_search_list["DM"].isin(_selected_dms)]
+account_names = sorted(_scoped_df["ACCOUNT_NAME"].dropna().unique().tolist())
 
-    regions_avail = sorted(
-        hierarchy_df[hierarchy_df["THEATER"] == theater]["REGION"].dropna().unique()
-    ) if theater else sorted(hierarchy_df["REGION"].dropna().unique())
-
-    with f2:
-        region = st.selectbox(
-            "Region",
-            options=[""] + regions_avail,
-            key="acct_region",
-            placeholder="All Regions",
-            index=0,
-        )
-
-    _dis_mask = pd.Series([True] * len(hierarchy_df), index=hierarchy_df.index)
-    if theater:
-        _dis_mask = _dis_mask & (hierarchy_df["THEATER"] == theater)
-    if region:
-        _dis_mask = _dis_mask & (hierarchy_df["REGION"] == region)
-    districts_avail = sorted(hierarchy_df[_dis_mask]["DISTRICT"].dropna().unique())
-
-    with f3:
-        district = st.selectbox(
-            "District",
-            options=[""] + districts_avail,
-            key="acct_district",
-            placeholder="Select a District",
-            index=0,
-        )
-
-    if not district:
-        if not _selected_dms:
-            empty_state("Select a Scope in the sidebar, or use Browse to pick a District.", icon="🗺️")
-        else:
-            empty_state("Select a District above to load accounts.", icon="🗺️")
-        st.stop()
-
-    accounts_df = load_accounts_for_scope(district)
-    aes_avail = ["All AEs"] + sorted(accounts_df["ACCOUNT_OWNER"].dropna().unique())
-
-    with f4:
-        selected_ae = st.selectbox("Account Executive", options=aes_avail, key="acct_ae", index=0)
-
-    if selected_ae and selected_ae != "All AEs":
-        filtered_accounts = accounts_df[accounts_df["ACCOUNT_OWNER"] == selected_ae]
-    else:
-        filtered_accounts = accounts_df
-
-    account_names = sorted(filtered_accounts["ACCOUNT_NAME"].dropna().unique())
-    _scope_label = f"{district}{' — ' + selected_ae if selected_ae != 'All AEs' else ''}"
-
-else:
-    # ── Scoped mode: filter by sidebar DMs ────────────────────────────────────
-    _scoped_df = _search_list[_search_list["DM"].isin(_selected_dms)]
-    account_names = sorted(_scoped_df["ACCOUNT_NAME"].dropna().unique().tolist())
-    _scope_label = f"{len(_selected_dms)} DM{'s' if len(_selected_dms) != 1 else ''} in scope"
-
-# ── Account selector ──────────────────────────────────────────────────────────
-st.markdown('<div style="margin-top:6px;margin-bottom:2px"></div>', unsafe_allow_html=True)
 selected = st.selectbox(
     "account_select",
     options=[""] + account_names,
@@ -444,27 +333,15 @@ selected = st.selectbox(
 
 if not selected:
     st.markdown(
-        f'<p style="color:#94a3b8;font-size:0.88rem;margin-top:6px;">{len(account_names)} accounts — {_scope_label}. Select one to view its snapshot.</p>',
+        f'<p style="color:#94a3b8;font-size:0.88rem;margin-top:6px;">{len(account_names)} accounts in scope. Select one to view its snapshot.</p>',
         unsafe_allow_html=True,
     )
     st.stop()
 
 # ── Load per-account datasets ─────────────────────────────────────────────────
-if "accounts_df" not in dir():
-    _acct_district = _scoped_df.loc[_scoped_df["ACCOUNT_NAME"] == selected, "DISTRICT_NAME"]
-    _acct_district = _acct_district.iloc[0] if not _acct_district.empty else ""
-    accounts_df = load_accounts_for_scope(_acct_district) if _acct_district else pd.DataFrame()
-
-cap_df     = load_capacity_renewals()
-renewal_df = load_exec_software_renewals()
-
-acct_row  = accounts_df[accounts_df["ACCOUNT_NAME"] == selected]
-acct_cap  = cap_df[cap_df["ACCOUNT_NAME"] == selected]
-acct_ren  = renewal_df[renewal_df["ACCOUNT_NAME"] == selected]
-
-if acct_row.empty:
-    st.warning("Account not found in dataset.")
-    st.stop()
+_acct_district = _scoped_df.loc[_scoped_df["ACCOUNT_NAME"] == selected, "DISTRICT_NAME"]
+_acct_district = _acct_district.iloc[0] if not _acct_district.empty else ""
+accounts_df = load_accounts_for_scope(_acct_district) if _acct_district else pd.DataFrame()
 
 a = acct_row.iloc[0]
 sfdc_id   = str(a.get("SALESFORCE_ACCOUNT_ID") or "")
