@@ -428,16 +428,7 @@ with st.sidebar:
     sel_region = st.session_state.get("sf_region", [])
 
     h3 = h2[h2["REGION"].isin(sel_region)] if sel_region else h2
-    valid_pms = sorted(h3["PRACTICE_MANAGERS"].dropna().unique())
-    cur_pms = st.session_state.get("sf_pm", [])
-    clean_pms = [p for p in cur_pms if p in valid_pms]
-    if clean_pms != cur_pms:
-        st.session_state["sf_pm"] = clean_pms
-    st.multiselect("Practice Manager", valid_pms, key="sf_pm")
-    sel_pm = st.session_state.get("sf_pm", [])
-
-    h4 = h3[h3["PRACTICE_MANAGERS"].isin(sel_pm)] if sel_pm else h3
-    valid_districts = sorted(h4["DISTRICT"].dropna().unique())
+    valid_districts = sorted(h3["DISTRICT"].dropna().unique())
     cur_districts = st.session_state.get("sf_district", [])
     clean_districts = [d for d in cur_districts if d in valid_districts]
     if clean_districts != cur_districts:
@@ -445,10 +436,8 @@ with st.sidebar:
     st.multiselect("District", valid_districts, key="sf_district")
     sel_district = st.session_state.get("sf_district", [])
 
-    h5 = h4[h4["DISTRICT"].isin(sel_district)] if sel_district else h4
-    new_dms = sorted(h5["DISTRICT_MANAGER"].dropna().unique().tolist())
-    if not new_dms:
-        new_dms = ["Erik Schneider", "Raymond Navarro"]
+    h4 = h3[h3["DISTRICT"].isin(sel_district)] if sel_district else h3
+    new_dms = sorted(h4["DISTRICT_MANAGER"].dropna().unique().tolist())
 
     prev_dms = st.session_state.get("selected_dms", None)
     if prev_dms is not None and set(new_dms) != set(prev_dms):

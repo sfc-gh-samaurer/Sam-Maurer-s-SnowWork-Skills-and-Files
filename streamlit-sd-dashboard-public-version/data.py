@@ -66,10 +66,10 @@ function scrollParent(id){{
 
 
 def _get_dm_in_clause():
-    dms = st.session_state.get("selected_dms", ["Erik Schneider", "Raymond Navarro"])
+    dms = st.session_state.get("selected_dms") or []
     if not dms:
-        dms = ["Erik Schneider", "Raymond Navarro"]
-    escaped = ", ".join(f"'{d.replace(chr(39), chr(39)*2)}'" for d in dms)
+        dms = list(load_org_hierarchy()["DISTRICT_MANAGER"].dropna().unique())
+    escaped = ", ".join(f"'{d.replace(chr(39), chr(39)*2)}'" for d in sorted(dms))
     return f"({escaped})"
 
 
@@ -1256,14 +1256,17 @@ def load_org_hierarchy():
     session = _get_session()
     df = session.sql("""
         SELECT DISTINCT
-            THEATRE,
-            REGION,
-            PRACTICE_MANAGERS,
-            DISTRICT,
-            DISTRICT_MANAGER
-        FROM TAM.PIPELINE.ORG_HIERARCHY
-        WHERE IS_ADJUSTMENT_DISTRICT = FALSE
-        AND DISTRICT_MANAGER IS NOT NULL
-        ORDER BY THEATRE, REGION, PRACTICE_MANAGERS, DISTRICT
+            GEO_NAME        AS THEATRE,
+            REGION_NAME     AS REGION,
+            DISTRICT_NAME   AS DISTRICT,
+            DM              AS DISTRICT_MANAGER
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
+        WHERE DS = CURRENT_DATE()
+        AND GEO_NAME IN ('AMSAcquisition', 'AMSExpansion')
+        AND DISTRICT_NAME IS NOT NULL
+        AND DM IS NOT NULL
+        AND DISTRICT_NAME NOT LIKE '%_Hold'
+        AND REGION_NAME NOT LIKE '%_Rgn_Hold%'
+        ORDER BY THEATRE, REGION, DISTRICT
     """).to_pandas()
     return df
