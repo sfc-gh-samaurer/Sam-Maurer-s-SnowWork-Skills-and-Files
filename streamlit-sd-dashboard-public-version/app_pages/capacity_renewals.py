@@ -11,6 +11,8 @@ today       = pd.Timestamp.now().normalize()
 
 section_banner("Capacity & Renewals", "Active contracts, conversion candidates, pipeline, and investment opportunities")
 
+st.warning("⚠️ Data access permissions to account capacity data causing issues and limitations — working through resolution.", icon=None)
+
 tab_active, tab_candidates, tab_pipeline, tab_invest = st.tabs([
     "Active Contracts",
     "Conversion Candidates",
