@@ -397,7 +397,6 @@ with st.sidebar:
             type="primary" if _active else "secondary",
         ):
             st.session_state["current_page"] = _pg
-            st.rerun()
 
     st.divider()
     st.markdown("### :material/filter_alt: Scope")
