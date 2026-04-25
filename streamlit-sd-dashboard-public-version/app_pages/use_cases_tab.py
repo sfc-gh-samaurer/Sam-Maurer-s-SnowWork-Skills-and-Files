@@ -1,16 +1,120 @@
 import streamlit as st
 import pandas as pd
 import re
-from data import load_use_cases, load_action_planner_pipeline, render_html_table
+from data import load_use_cases, load_action_planner_pipeline, render_html_table, load_wow_use_cases
 from constants import SFDC_BASE
 from components import section_banner, empty_state
 
 df    = load_use_cases()
 ap_df = load_action_planner_pipeline()
+wow   = load_wow_use_cases()
 
 section_banner("Use Cases", "Pipeline use cases across all accounts")
 
-tab_all, tab_summary = st.tabs(["All Use Cases", "Account Summary"])
+
+def _stage_num(s):
+    try:
+        return int(str(s).split(" - ")[0].strip())
+    except Exception:
+        return -1
+
+
+wow_stages = wow[wow["FIELD"] == "Stage__c"].copy()
+if not wow_stages.empty:
+    wow_stages["DIRECTION"] = wow_stages.apply(
+        lambda r: "Advance" if _stage_num(r["NEW_VALUE"]) > _stage_num(r["OLD_VALUE"]) else "Regression", axis=1
+    )
+else:
+    wow_stages["DIRECTION"] = pd.Series(dtype=str)
+
+wow_advances     = wow_stages[wow_stages["DIRECTION"] == "Advance"] if not wow_stages.empty else pd.DataFrame()
+wow_regressions  = wow_stages[wow_stages["DIRECTION"] == "Regression"] if not wow_stages.empty else pd.DataFrame()
+wow_lost         = wow_stages[wow_stages["NEW_VALUE"].str.contains("8 - Use Case Lost", na=False)] if not wow_stages.empty else pd.DataFrame()
+wow_tech_wins    = wow[wow["FIELD"] == "Technical_Win__c"]
+wow_golive       = wow[wow["FIELD"] == "Actual_Go_Live_Date__c"]
+
+_adv_n = len(wow_advances)
+_reg_n = len(wow_regressions)
+_win_n = len(wow_tech_wins)
+_gl_n  = len(wow_golive)
+
+_wow_label = f"This Week's Use Case Changes  —  {_adv_n} advances · {_reg_n} regressions · {_win_n} tech wins · {_gl_n} go-live shifts"
+
+with st.expander(_wow_label, expanded=False):
+    _wt1, _wt2, _wt3, _wt4, _wt5 = st.tabs([
+        f"Stage Advances ({_adv_n})",
+        f"Regressions ({_reg_n})",
+        f"Tech Wins ({_win_n})",
+        f"Go-Live Shifts ({_gl_n})",
+        "Upcoming",
+    ])
+
+    _wow_cols = [
+        {"col": "ACCOUNT_NAME",  "label": "Account"},
+        {"col": "USE_CASE_NAME", "label": "Use Case"},
+        {"col": "OLD_VALUE",     "label": "From"},
+        {"col": "NEW_VALUE",     "label": "To"},
+        {"col": "CHANGED_AT",   "label": "When", "fmt": "date"},
+    ]
+    _gl_cols = [
+        {"col": "ACCOUNT_NAME",  "label": "Account"},
+        {"col": "USE_CASE_NAME", "label": "Use Case"},
+        {"col": "OLD_VALUE",     "label": "Previous Date"},
+        {"col": "NEW_VALUE",     "label": "New Date"},
+        {"col": "CHANGED_AT",   "label": "Changed", "fmt": "date"},
+    ]
+
+    with _wt1:
+        if wow_advances.empty:
+            empty_state("No stage advances this week.")
+        else:
+            render_html_table(wow_advances, columns=_wow_cols, height=max(180, min(400, _adv_n * 40 + 60)))
+
+    with _wt2:
+        if wow_regressions.empty:
+            empty_state("No stage regressions this week.")
+        else:
+            render_html_table(wow_regressions, columns=_wow_cols, height=max(180, min(400, _reg_n * 40 + 60)))
+
+    with _wt3:
+        if wow_tech_wins.empty:
+            empty_state("No technical wins recorded this week.")
+        else:
+            _tw_cols = [
+                {"col": "ACCOUNT_NAME",  "label": "Account"},
+                {"col": "USE_CASE_NAME", "label": "Use Case"},
+                {"col": "CURRENT_STAGE", "label": "Current Stage"},
+                {"col": "CHANGED_AT",   "label": "When", "fmt": "date"},
+            ]
+            render_html_table(wow_tech_wins, columns=_tw_cols, height=max(180, min(400, _win_n * 40 + 60)))
+
+    with _wt4:
+        if wow_golive.empty:
+            empty_state("No go-live date changes this week.")
+        else:
+            render_html_table(wow_golive, columns=_gl_cols, height=max(180, min(400, _gl_n * 40 + 60)))
+
+    with _wt5:
+        _up_decisions = df[df["DECISION_DATE"].notna() & (pd.to_datetime(df["DECISION_DATE"], errors="coerce") <= (pd.Timestamp.now() + pd.Timedelta(days=7)))].sort_values("DECISION_DATE") if "DECISION_DATE" in df.columns else pd.DataFrame()
+        _up_golives   = df[df["TARGET_GO_LIVE"].notna() & (pd.to_datetime(df["TARGET_GO_LIVE"], errors="coerce") <= (pd.Timestamp.now() + pd.Timedelta(days=30)))].sort_values("TARGET_GO_LIVE") if "TARGET_GO_LIVE" in df.columns else pd.DataFrame()
+        if not _up_decisions.empty:
+            st.markdown('<p class="sf-section-label">Decisions due this week</p>', unsafe_allow_html=True)
+            render_html_table(_up_decisions, columns=[
+                {"col": "ACCOUNT_NAME",  "label": "Account"},
+                {"col": "USE_CASE_NAME", "label": "Use Case"},
+                {"col": "STAGE",         "label": "Stage"},
+                {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
+            ], height=max(120, min(300, len(_up_decisions) * 40 + 60)))
+        if not _up_golives.empty:
+            st.markdown('<p class="sf-section-label">Forecast go-lives in 30 days</p>', unsafe_allow_html=True)
+            render_html_table(_up_golives, columns=[
+                {"col": "ACCOUNT_NAME",  "label": "Account"},
+                {"col": "USE_CASE_NAME", "label": "Use Case"},
+                {"col": "STAGE",         "label": "Stage"},
+                {"col": "TARGET_GO_LIVE","label": "Target Go-Live", "fmt": "date"},
+            ], height=max(120, min(300, len(_up_golives) * 40 + 60)))
+        if _up_decisions.empty and _up_golives.empty:
+            empty_state("No upcoming decisions or go-lives in the next 30 days.")
 
 
 def _latest_se_comment_uc(full_text):
@@ -21,6 +125,8 @@ def _latest_se_comment_uc(full_text):
     parts = [p.strip() for p in parts if p.strip()]
     return parts[0] if parts else text[:500]
 
+
+tab_all, tab_summary = st.tabs(["All Use Cases", "Account Summary"])
 
 # ── All Use Cases ─────────────────────────────────────────────────────────────
 with tab_all:

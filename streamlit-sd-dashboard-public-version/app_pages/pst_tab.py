@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import re
-from data import load_ps_projects_active, render_html_table
+from data import load_ps_projects_active, render_html_table, load_wow_projects
 from constants import SFDC_BASE
 from components import section_banner, empty_state
 
@@ -16,6 +16,85 @@ k1.metric("Active Projects", len(active_df))
 k2.metric("Active Revenue",  f"${active_df['REVENUE_AMOUNT'].sum():,.0f}"  if not active_df.empty else "$0")
 k3.metric("Billable Hours",  f"{active_df['BILLABLE_HOURS'].sum():,.0f}"   if not active_df.empty else "0")
 k4.metric("Stalled",         len(active_df[active_df["PROJECT_STAGE"].isin(["Stalled", "Stalled - Expiring"])]) if not active_df.empty else 0)
+
+# ── WoW Project Changes ───────────────────────────────────────────────────────
+wow_proj  = load_wow_projects()
+_today    = pd.Timestamp.now().normalize()
+
+wow_stages = wow_proj[wow_proj["FIELD"] == "pse__Stage__c"]
+wow_status = wow_proj[wow_proj["FIELD"] == "pse__Project_Status__c"]
+
+wow_completed  = wow_stages[wow_stages["NEW_VALUE"] == "Completed"]
+wow_stalled    = wow_stages[wow_stages["NEW_VALUE"].isin(["Stalled", "Stalled - Expiring"])]
+wow_kicked_off = wow_stages[wow_stages["NEW_VALUE"].isin(["In Progress", "Scheduled"])]
+wow_red        = wow_status[wow_status["NEW_VALUE"] == "Red"]
+
+if not active_df.empty and "END_DATE" in active_df.columns:
+    _end_col = pd.to_datetime(active_df["END_DATE"], errors="coerce")
+    _expiring = active_df[
+        _end_col.notna() &
+        (_end_col <= (_today + pd.Timedelta(days=14))) &
+        (_end_col >= _today)
+    ]
+else:
+    _expiring = pd.DataFrame()
+
+_comp_n  = len(wow_completed)
+_stall_n = len(wow_stalled)
+_kick_n  = len(wow_kicked_off)
+_exp_n   = len(_expiring)
+
+_proj_wow_label = (
+    f"This Week's Project Changes  —  "
+    f"{_comp_n} completed · {_kick_n} kicked off · {_stall_n} stalled · {_exp_n} expiring <14d"
+)
+
+_stage_cols = [
+    {"col": "ACCOUNT_NAME",  "label": "Account"},
+    {"col": "PROJECT_NAME",  "label": "Project"},
+    {"col": "OLD_VALUE",     "label": "From Stage"},
+    {"col": "NEW_VALUE",     "label": "To Stage"},
+    {"col": "CHANGED_AT",   "label": "When", "fmt": "date"},
+]
+
+with st.expander(_proj_wow_label, expanded=False):
+    _pt1, _pt2, _pt3, _pt4 = st.tabs([
+        f"Completed ({_comp_n})",
+        f"Kicked Off ({_kick_n})",
+        f"Went Stalled ({_stall_n})",
+        f"Expiring <14d ({_exp_n})",
+    ])
+
+    with _pt1:
+        if wow_completed.empty:
+            empty_state("No projects completed this week.")
+        else:
+            render_html_table(wow_completed, columns=_stage_cols, height=max(140, min(400, _comp_n * 40 + 60)))
+
+    with _pt2:
+        if wow_kicked_off.empty:
+            empty_state("No projects kicked off this week.")
+        else:
+            render_html_table(wow_kicked_off, columns=_stage_cols, height=max(140, min(400, _kick_n * 40 + 60)))
+
+    with _pt3:
+        if wow_stalled.empty:
+            empty_state("No projects went stalled this week.")
+        else:
+            render_html_table(wow_stalled, columns=_stage_cols, height=max(140, min(400, _stall_n * 40 + 60)))
+
+    with _pt4:
+        if _expiring.empty:
+            empty_state("No projects expiring in the next 14 days.")
+        else:
+            _exp_cols = [
+                {"col": "ACCOUNT_NAME", "label": "Account"},
+                {"col": "PROJECT_NAME", "label": "Project"},
+                {"col": "PROJECT_STAGE","label": "Stage"},
+                {"col": "END_DATE",     "label": "End Date", "fmt": "date"},
+                {"col": "REVENUE_AMOUNT","label": "Revenue",  "fmt": "dollar"},
+            ]
+            render_html_table(_expiring, columns=_exp_cols, height=max(140, min(400, _exp_n * 40 + 60)))
 
 
 def _extract_base_name(project_name):

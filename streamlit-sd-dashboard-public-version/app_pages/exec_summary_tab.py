@@ -8,6 +8,10 @@ from data import (
     load_exec_new_use_cases,
     load_capacity_renewals,
     load_capacity_pipeline,
+    load_ps_pipeline,
+    load_wow_use_cases,
+    load_wow_projects,
+    load_fq_closed_sd,
     render_html_table,
 )
 from constants import SFDC_BASE
@@ -156,6 +160,96 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ── WoW SUMMARY ───────────────────────────────────────────────────────────────
+_wow_uc   = load_wow_use_cases()
+_wow_proj = load_wow_projects()
+
+
+def _stage_num_ex(s):
+    try:
+        return int(str(s).split(" - ")[0].strip())
+    except Exception:
+        return -1
+
+
+_ex_stages   = _wow_uc[_wow_uc["FIELD"] == "Stage__c"].copy()
+if not _ex_stages.empty:
+    _ex_stages["DIRECTION"] = _ex_stages.apply(
+        lambda r: "Advance" if _stage_num_ex(r["NEW_VALUE"]) > _stage_num_ex(r["OLD_VALUE"]) else "Regression", axis=1
+    )
+else:
+    _ex_stages["DIRECTION"] = pd.Series(dtype=str)
+
+_ex_adv    = _ex_stages[_ex_stages["DIRECTION"] == "Advance"] if not _ex_stages.empty else pd.DataFrame()
+_ex_reg    = _ex_stages[_ex_stages["DIRECTION"] == "Regression"] if not _ex_stages.empty else pd.DataFrame()
+_ex_wins   = _wow_uc[_wow_uc["FIELD"] == "Technical_Win__c"]
+_ex_gl     = _wow_uc[_wow_uc["FIELD"] == "Actual_Go_Live_Date__c"]
+_ex_pstage = _wow_proj[_wow_proj["FIELD"] == "pse__Stage__c"]
+_ex_comp   = _ex_pstage[_ex_pstage["NEW_VALUE"] == "Completed"]
+_ex_stall  = _ex_pstage[_ex_pstage["NEW_VALUE"].isin(["Stalled", "Stalled - Expiring"])]
+
+_wow_summary = (
+    f"This Week  \u2014  "
+    f"{len(_ex_adv)} UC advances\u00a0\u00b7\u00a0{len(_ex_reg)} regressions\u00a0\u00b7\u00a0"
+    f"{len(_ex_wins)} tech wins\u00a0\u00b7\u00a0"
+    f"{len(_ex_comp)} projects completed\u00a0\u00b7\u00a0{len(_ex_stall)} stalled"
+)
+
+with st.expander(_wow_summary, expanded=False):
+    _ew1, _ew2, _ew3, _ew4 = st.tabs([
+        f"UC Stage Changes ({len(_ex_adv) + len(_ex_reg)})",
+        f"Tech Wins ({len(_ex_wins)})",
+        f"SD Projects ({len(_ex_pstage)})",
+        "Upcoming",
+    ])
+
+    _ex_wow_cols = [
+        {"col": "ACCOUNT_NAME",  "label": "Account"},
+        {"col": "USE_CASE_NAME", "label": "Use Case"},
+        {"col": "OLD_VALUE",     "label": "From"},
+        {"col": "NEW_VALUE",     "label": "To"},
+        {"col": "CHANGED_AT",   "label": "When", "fmt": "date"},
+    ]
+    _ex_proj_cols = [
+        {"col": "ACCOUNT_NAME", "label": "Account"},
+        {"col": "PROJECT_NAME", "label": "Project"},
+        {"col": "OLD_VALUE",    "label": "From Stage"},
+        {"col": "NEW_VALUE",    "label": "To Stage"},
+        {"col": "CHANGED_AT",  "label": "When", "fmt": "date"},
+    ]
+
+    with _ew1:
+        if _ex_adv.empty and _ex_reg.empty:
+            empty_state("No stage changes this week.")
+        else:
+            if not _ex_adv.empty:
+                st.markdown('<p class="sf-section-label">Advances</p>', unsafe_allow_html=True)
+                render_html_table(_ex_adv, columns=_ex_wow_cols, height=max(120, min(300, len(_ex_adv) * 38 + 60)))
+            if not _ex_reg.empty:
+                st.markdown('<p class="sf-section-label">Regressions</p>', unsafe_allow_html=True)
+                render_html_table(_ex_reg, columns=_ex_wow_cols, height=max(120, min(300, len(_ex_reg) * 38 + 60)))
+
+    with _ew2:
+        if _ex_wins.empty:
+            empty_state("No technical wins recorded this week.")
+        else:
+            render_html_table(_ex_wins, columns=[
+                {"col": "ACCOUNT_NAME",  "label": "Account"},
+                {"col": "USE_CASE_NAME", "label": "Use Case"},
+                {"col": "CURRENT_STAGE", "label": "Current Stage"},
+                {"col": "CHANGED_AT",   "label": "When", "fmt": "date"},
+            ], height=max(120, min(300, len(_ex_wins) * 38 + 60)))
+
+    with _ew3:
+        if _ex_pstage.empty:
+            empty_state("No project stage changes this week.")
+        else:
+            render_html_table(_ex_pstage, columns=_ex_proj_cols, height=max(120, min(300, len(_ex_pstage) * 38 + 60)))
+
+    with _ew4:
+        _up_gl  = new_uc_all[pd.to_datetime(new_uc_all.get("CREATED_DATE"), errors="coerce").notna()].head(0) if new_uc_all.empty else pd.DataFrame()
+        st.caption("Go to the Use Cases tab → This Week's Use Case Changes → Upcoming for full details.")
+
 st.markdown('<p class="sf-section-label">Detailed Results — click to expand</p>', unsafe_allow_html=True)
 
 # ── Section 1: Software Renewals ──────────────────────────────────────────────
@@ -295,21 +389,55 @@ def _fq_label():
     q = 1 if m in (2, 3, 4) else 2 if m in (5, 6, 7) else 3 if m in (8, 9, 10) else 4
     return f"Q{q}-FY{str(fy)[2:]}"
 
-_cfq = _fq_label()
+_cfq_current = _fq_label()
 
 st.divider()
-st.markdown(f'<p class="sf-section-label">📅 {_cfq} — Current Quarter Pipeline</p>', unsafe_allow_html=True)
+st.markdown('<p class="sf-section-label">Quarter Summary</p>', unsafe_allow_html=True)
 
-_cap_fq = cap_pipe_df[cap_pipe_df["FISCAL_QUARTER"] == _cfq] if not cap_pipe_df.empty else pd.DataFrame()
+_sd_pipe = load_ps_pipeline()
+
+_fq_available = sorted(set(
+    list(cap_pipe_df["FISCAL_QUARTER"].dropna().unique()) +
+    list(_sd_pipe["FISCAL_QUARTER"].dropna().unique() if not _sd_pipe.empty else [])
+))
+if _cfq_current not in _fq_available:
+    _fq_available = [_cfq_current] + _fq_available
+_fq_available = sorted(set(_fq_available))
+_cfq_idx = _fq_available.index(_cfq_current) if _cfq_current in _fq_available else 0
+
+selected_fq = st.radio(
+    "Quarter",
+    options=_fq_available,
+    index=_cfq_idx,
+    horizontal=True,
+    key="exec_fq_select",
+    label_visibility="collapsed",
+)
+
+_cap_fq = cap_pipe_df[cap_pipe_df["FISCAL_QUARTER"] == selected_fq] if not cap_pipe_df.empty else pd.DataFrame()
 _cap_fq = _cap_fq[_cap_fq["FORECAST_STATUS"].fillna("") != "Omitted"] if not _cap_fq.empty else _cap_fq
 
-from data import load_ps_pipeline
-_sd_pipe = load_ps_pipeline()
-_sd_fq   = _sd_pipe[_sd_pipe["FISCAL_QUARTER"] == _cfq] if not _sd_pipe.empty else pd.DataFrame()
-_sd_fq   = _sd_fq[_sd_fq["FORECAST_STATUS"].fillna("") != "Omitted"] if not _sd_fq.empty else _sd_fq
+_sd_fq = _sd_pipe[_sd_pipe["FISCAL_QUARTER"] == selected_fq] if not _sd_pipe.empty else pd.DataFrame()
+_sd_fq = _sd_fq[_sd_fq["FORECAST_STATUS"].fillna("") != "Omitted"] if not _sd_fq.empty else _sd_fq
 
-fq1, fq2, fq3, fq4 = st.columns(4)
-fq1.metric("Cap Opps This FQ",    len(_cap_fq),                                   help=f"Open capacity opps closing in {_cfq}")
-fq2.metric("Cap TCV This FQ",     f"${_cap_fq['CALCULATED_TCV'].fillna(0).sum():,.0f}" if not _cap_fq.empty else "$0", help="Sum of Calculated TCV")
-fq3.metric("SD Opps This FQ",     len(_sd_fq),                                    help=f"Open PS&T opps closing in {_cfq}")
-fq4.metric("SD TCV This FQ",      f"${_sd_fq['TOTAL_PST_TCV'].fillna(0).sum():,.0f}" if not _sd_fq.empty else "$0",   help="Sum of Total PST TCV")
+_closed_sd = load_fq_closed_sd(selected_fq)
+_is_current = selected_fq == _cfq_current
+
+fq1, fq2, fq3, fq4, fq5, fq6 = st.columns(6)
+fq1.metric("Cap Opps",      len(_cap_fq),                                                  help=f"Open capacity opps closing in {selected_fq}")
+fq2.metric("Cap TCV",       f"${_cap_fq['CALCULATED_TCV'].fillna(0).sum():,.0f}" if not _cap_fq.empty else "$0", help="Sum of Calculated TCV for open opps")
+fq3.metric("SD Won Opps",   len(_closed_sd),                                               help=f"Closed won PS&T opps in {selected_fq}")
+fq4.metric("SD ACV Won",    f"${_closed_sd['PS_SERVICES_ACV'].fillna(0).sum():,.0f}" if not _closed_sd.empty else "$0", help="Technical Services ACV on closed won deals")
+fq5.metric("Open SD Opps",  len(_sd_fq),                                                   help=f"Open PS&T opps closing in {selected_fq}")
+fq6.metric("Open SD TCV",   f"${_sd_fq['TOTAL_PST_TCV'].fillna(0).sum():,.0f}" if not _sd_fq.empty else "$0",   help="Sum of Total PST TCV for open opps")
+
+if not _closed_sd.empty:
+    with st.expander(f"View {len(_closed_sd)} closed SD deal{'s' if len(_closed_sd) != 1 else ''} in {selected_fq}", expanded=False):
+        render_html_table(_closed_sd, columns=[
+            {"col": "ACCOUNT_NAME",    "label": "Account"},
+            {"col": "OPPORTUNITY_NAME","label": "Opportunity"},
+            {"col": "AE",              "label": "AE"},
+            {"col": "CLOSE_DATE",      "label": "Close Date",   "fmt": "date"},
+            {"col": "PS_SERVICES_ACV", "label": "PS Svc ACV",   "fmt": "dollar"},
+            {"col": "TOTAL_PST",       "label": "Total PST",    "fmt": "dollar"},
+        ], height=max(140, min(400, len(_closed_sd) * 40 + 60)))

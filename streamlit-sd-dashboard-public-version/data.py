@@ -389,6 +389,94 @@ def clear_all_caches():
     load_exec_services_renewals.clear()
     load_exec_new_opps.clear()
     load_exec_new_use_cases.clear()
+    load_wow_use_cases.clear()
+    load_wow_projects.clear()
+
+
+@st.cache_data(ttl=3600)
+def load_wow_use_cases():
+    session = _get_session()
+    df = session.sql(_sql("""
+        SELECT
+            a.ACCOUNT_NAME,
+            uc.NAME_C    AS USE_CASE_NAME,
+            uc.ID        AS USE_CASE_ID,
+            uc.NAME      AS USE_CASE_NUMBER,
+            uc.STAGE_C   AS CURRENT_STAGE,
+            h.FIELD,
+            h.OLD_VALUE,
+            h.NEW_VALUE,
+            h.CREATED_DATE AS CHANGED_AT
+        FROM FIVETRAN.SALESFORCE.USE_CASE_HISTORY h
+        JOIN FIVETRAN.SALESFORCE.USE_CASE_C uc ON h.PARENT_ID = uc.ID
+        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON uc.ACCOUNT_C = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
+        AND h.FIELD IN ('Stage__c', 'Technical_Win__c', 'Actual_Go_Live_Date__c')
+        AND h.CREATED_DATE >= DATEADD('day', -7, CURRENT_DATE())
+        AND h._FIVETRAN_DELETED = FALSE
+        ORDER BY h.CREATED_DATE DESC
+    """)).to_pandas()
+    return _fix_decimals(df)
+
+
+@st.cache_data(ttl=3600)
+def load_wow_projects():
+    session = _get_session()
+    df = session.sql(_sql("""
+        SELECT
+            a.ACCOUNT_NAME,
+            p.NAME          AS PROJECT_NAME,
+            p.ID            AS PROJECT_ID,
+            p.PSE_STAGE_C   AS CURRENT_STAGE,
+            h.FIELD,
+            h.OLD_VALUE,
+            h.NEW_VALUE,
+            h.CREATED_DATE  AS CHANGED_AT
+        FROM FIVETRAN.SALESFORCE.PSE_PROJ_HISTORY h
+        JOIN FIVETRAN.SALESFORCE.PSE_PROJ_C p ON h.PARENT_ID = p.ID
+        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON p.PSE_ACCOUNT_C = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
+        AND h.FIELD IN ('pse__Stage__c', 'pse__Project_Status__c')
+        AND h.CREATED_DATE >= DATEADD('day', -7, CURRENT_DATE())
+        AND h._FIVETRAN_DELETED = FALSE
+        ORDER BY h.CREATED_DATE DESC
+    """)).to_pandas()
+    return _fix_decimals(df)
+
+
+@st.cache_data(ttl=3600)
+def load_fq_closed_sd(fiscal_quarter: str):
+    session = _get_session()
+    fq_safe = fiscal_quarter.replace("'", "''")
+    df = session.sql(_sql(f"""
+        WITH line_items AS (
+            SELECT
+                oli.OPPORTUNITY_ID,
+                CAST(SUM(CASE WHEN oli.PRODUCT_FAMILY_C = 'Technical Services' THEN oli.TOTAL_PRICE ELSE 0 END) AS FLOAT) AS PS_SERVICES_ACV,
+                CAST(SUM(oli.TOTAL_PRICE) AS FLOAT) AS TOTAL_PST
+            FROM FIVETRAN.SALESFORCE.OPPORTUNITY_LINE_ITEM oli
+            WHERE oli.IS_DELETED = FALSE
+            AND oli.PRODUCT_FAMILY_C IN ('Technical Services', 'Education Services')
+            GROUP BY oli.OPPORTUNITY_ID
+        )
+        SELECT
+            opp.ID            AS OPPORTUNITY_ID,
+            opp.NAME          AS OPPORTUNITY_NAME,
+            a.ACCOUNT_NAME,
+            a.REP_NAME        AS AE,
+            opp.CLOSE_DATE,
+            li.PS_SERVICES_ACV,
+            li.TOTAL_PST
+        FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
+        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON opp.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
+        JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = opp.CLOSE_DATE AND fc.FISCAL_PERIOD = '{fq_safe}'
+        JOIN line_items li ON opp.ID = li.OPPORTUNITY_ID
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
+        AND opp.IS_WON = TRUE
+        AND opp.IS_DELETED = FALSE
+        ORDER BY opp.CLOSE_DATE DESC
+    """)).to_pandas()
+    return _fix_decimals(df)
 
 
 @st.cache_data(ttl=3600)
