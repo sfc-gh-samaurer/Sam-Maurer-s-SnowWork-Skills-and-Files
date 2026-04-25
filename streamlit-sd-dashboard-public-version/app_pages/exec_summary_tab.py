@@ -246,7 +246,6 @@ with st.expander(_wow_summary, expanded=False):
         {"col": "ACV",           "label": "UC eACV",           "fmt": "dollar"},
         {"col": "UC_STATUS",     "label": "Status"},
         {"col": "DECISION_DATE", "label": "Decision Date",  "fmt": "date"},
-        {"col": "CHANGED_AT",   "label": "When",            "fmt": "date"},
     ]
     _ex_proj_cols = [
         {"col": "ACCOUNT_NAME",  "label": "Account"},
@@ -255,7 +254,6 @@ with st.expander(_wow_summary, expanded=False):
         {"col": "OLD_VALUE",     "label": "From Stage"},
         {"col": "NEW_VALUE",     "label": "To Stage"},
         {"col": "REVENUE_AMOUNT","label": "Revenue",        "fmt": "dollar"},
-        {"col": "CHANGED_AT",   "label": "When",            "fmt": "date"},
     ]
 
     def _prep_ex_uc(df_in):
@@ -290,7 +288,6 @@ with st.expander(_wow_summary, expanded=False):
                 {"col": "CURRENT_STAGE", "label": "Stage at Win"},
                 {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
                 {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
-                {"col": "CHANGED_AT",    "label": "When",          "fmt": "date"},
             ], height=max(120, min(350, len(_ex_wins) * 38 + 60)))
 
     with _ew3:

@@ -70,7 +70,6 @@ _stage_cols = [
     {"col": "END_DATE",      "label": "End",         "fmt": "date"},
     {"col": "REVENUE_AMOUNT","label": "Revenue",     "fmt": "dollar"},
     {"col": "PCT_COMPLETE",  "label": "% Complete",  "fmt": "pct"},
-    {"col": "CHANGED_AT",   "label": "When",        "fmt": "date"},
 ]
 
 st.markdown(f"""

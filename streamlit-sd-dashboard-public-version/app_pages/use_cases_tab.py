@@ -85,7 +85,6 @@ with st.expander(_wow_label, expanded=False):
         {"col": "UC_STATUS",     "label": "Status"},
         {"col": "DECISION_DATE", "label": "Decision Date",  "fmt": "date"},
         {"col": "TARGET_GO_LIVE","label": "Target Go-Live", "fmt": "date"},
-        {"col": "CHANGED_AT",   "label": "Changed",        "fmt": "date"},
     ]
 
     with _wt1:
@@ -113,7 +112,6 @@ with st.expander(_wow_label, expanded=False):
                 {"col": "UC_STATUS",     "label": "Status"},
                 {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
                 {"col": "TARGET_GO_LIVE","label": "Target Go-Live","fmt": "date"},
-                {"col": "CHANGED_AT",    "label": "When",          "fmt": "date"},
             ], height=max(180, min(500, _win_n * 40 + 60)))
 
     with _wt4:
@@ -128,7 +126,6 @@ with st.expander(_wow_label, expanded=False):
                 {"col": "OLD_VALUE",     "label": "Previous Date"},
                 {"col": "NEW_VALUE",     "label": "New Date"},
                 {"col": "ACV",           "label": "UC eACV",          "fmt": "dollar"},
-                {"col": "CHANGED_AT",   "label": "Changed",        "fmt": "date"},
             ], height=max(180, min(500, _gl_n * 40 + 60)))
 
 
