@@ -356,73 +356,80 @@ if _pinned:
                 st.session_state["acct_detail_select"]= _pa["name"]
                 st.rerun()
 
-# ── Cascading filters ─────────────────────────────────────────────────────────
-st.markdown('<div style="margin-bottom:4px"></div>', unsafe_allow_html=True)
-f1, f2, f3, f4 = st.columns([1, 1, 1, 1])
+# ── Scope-based or Browse filters ────────────────────────────────────────────
+_selected_dms = st.session_state.get("selected_dms") or []
 
-theaters = sorted(hierarchy_df["THEATER"].dropna().unique())
+if _use_browse or not _selected_dms:
+    # ── Browse mode: full hierarchy cascade ───────────────────────────────────
+    st.markdown('<div style="margin-bottom:4px"></div>', unsafe_allow_html=True)
+    f1, f2, f3, f4 = st.columns([1, 1, 1, 1])
 
-with f1:
-    theater = st.selectbox(
-        "Theater",
-        options=[""] + theaters,
-        key="acct_theater",
-        placeholder="All Theaters",
-        index=0,
-    )
+    theaters = sorted(hierarchy_df["THEATER"].dropna().unique())
 
-regions_avail = sorted(
-    hierarchy_df[hierarchy_df["THEATER"] == theater]["REGION"].dropna().unique()
-) if theater else sorted(hierarchy_df["REGION"].dropna().unique())
+    with f1:
+        theater = st.selectbox(
+            "Theater",
+            options=[""] + theaters,
+            key="acct_theater",
+            placeholder="All Theaters",
+            index=0,
+        )
 
-with f2:
-    region = st.selectbox(
-        "Region",
-        options=[""] + regions_avail,
-        key="acct_region",
-        placeholder="All Regions",
-        index=0,
-    )
+    regions_avail = sorted(
+        hierarchy_df[hierarchy_df["THEATER"] == theater]["REGION"].dropna().unique()
+    ) if theater else sorted(hierarchy_df["REGION"].dropna().unique())
 
-_dis_mask = pd.Series([True] * len(hierarchy_df), index=hierarchy_df.index)
-if theater:
-    _dis_mask = _dis_mask & (hierarchy_df["THEATER"] == theater)
-if region:
-    _dis_mask = _dis_mask & (hierarchy_df["REGION"] == region)
-districts_avail = sorted(hierarchy_df[_dis_mask]["DISTRICT"].dropna().unique())
+    with f2:
+        region = st.selectbox(
+            "Region",
+            options=[""] + regions_avail,
+            key="acct_region",
+            placeholder="All Regions",
+            index=0,
+        )
 
-with f3:
-    district = st.selectbox(
-        "District",
-        options=[""] + districts_avail,
-        key="acct_district",
-        placeholder="Select a District",
-        index=0,
-    )
+    _dis_mask = pd.Series([True] * len(hierarchy_df), index=hierarchy_df.index)
+    if theater:
+        _dis_mask = _dis_mask & (hierarchy_df["THEATER"] == theater)
+    if region:
+        _dis_mask = _dis_mask & (hierarchy_df["REGION"] == region)
+    districts_avail = sorted(hierarchy_df[_dis_mask]["DISTRICT"].dropna().unique())
 
-# ── Load accounts only once a district is selected ───────────────────────────
-if not district:
-    empty_state("Select a Theater and District above to load accounts.", icon="🗺️")
-    st.stop()
+    with f3:
+        district = st.selectbox(
+            "District",
+            options=[""] + districts_avail,
+            key="acct_district",
+            placeholder="Select a District",
+            index=0,
+        )
 
-accounts_df = load_accounts_for_scope(district)
+    if not district:
+        if not _selected_dms:
+            empty_state("Select a Scope in the sidebar, or use Browse to pick a District.", icon="🗺️")
+        else:
+            empty_state("Select a District above to load accounts.", icon="🗺️")
+        st.stop()
 
-aes_avail = ["All AEs"] + sorted(accounts_df["ACCOUNT_OWNER"].dropna().unique())
+    accounts_df = load_accounts_for_scope(district)
+    aes_avail = ["All AEs"] + sorted(accounts_df["ACCOUNT_OWNER"].dropna().unique())
 
-with f4:
-    selected_ae = st.selectbox(
-        "Account Executive",
-        options=aes_avail,
-        key="acct_ae",
-        index=0,
-    )
+    with f4:
+        selected_ae = st.selectbox("Account Executive", options=aes_avail, key="acct_ae", index=0)
 
-if selected_ae and selected_ae != "All AEs":
-    filtered_accounts = accounts_df[accounts_df["ACCOUNT_OWNER"] == selected_ae]
+    if selected_ae and selected_ae != "All AEs":
+        filtered_accounts = accounts_df[accounts_df["ACCOUNT_OWNER"] == selected_ae]
+    else:
+        filtered_accounts = accounts_df
+
+    account_names = sorted(filtered_accounts["ACCOUNT_NAME"].dropna().unique())
+    _scope_label = f"{district}{' — ' + selected_ae if selected_ae != 'All AEs' else ''}"
+
 else:
-    filtered_accounts = accounts_df
-
-account_names = sorted(filtered_accounts["ACCOUNT_NAME"].dropna().unique())
+    # ── Scoped mode: filter by sidebar DMs ────────────────────────────────────
+    _scoped_df = _search_list[_search_list["DM"].isin(_selected_dms)]
+    account_names = sorted(_scoped_df["ACCOUNT_NAME"].dropna().unique().tolist())
+    _scope_label = f"{len(_selected_dms)} DM{'s' if len(_selected_dms) != 1 else ''} in scope"
 
 # ── Account selector ──────────────────────────────────────────────────────────
 st.markdown('<div style="margin-top:6px;margin-bottom:2px"></div>', unsafe_allow_html=True)
@@ -437,7 +444,7 @@ selected = st.selectbox(
 
 if not selected:
     st.markdown(
-        f'<p style="color:#94a3b8;font-size:0.88rem;margin-top:6px;">{len(account_names)} accounts in {district}{" — " + selected_ae if selected_ae != "All AEs" else ""}. Select one to view its snapshot.</p>',
+        f'<p style="color:#94a3b8;font-size:0.88rem;margin-top:6px;">{len(account_names)} accounts — {_scope_label}. Select one to view its snapshot.</p>',
         unsafe_allow_html=True,
     )
     st.stop()
