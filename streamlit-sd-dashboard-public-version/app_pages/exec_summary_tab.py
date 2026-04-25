@@ -194,6 +194,26 @@ _wow_summary = (
     f"{len(_ex_comp)} projects completed\u00a0\u00b7\u00a0{len(_ex_stall)} stalled"
 )
 
+st.markdown("""
+<style>
+div[data-testid="stExpander"]:first-of-type > details {
+    border: 2px solid #29B5E8 !important;
+    border-radius: 10px !important;
+    background: linear-gradient(135deg, #EFF8FF 0%, #F0FAFF 100%) !important;
+    box-shadow: 0 2px 10px rgba(41,181,232,0.18) !important;
+}
+div[data-testid="stExpander"]:first-of-type > details > summary {
+    font-size: 1.0rem !important;
+    font-weight: 700 !important;
+    color: #11567F !important;
+    padding: 10px 16px !important;
+    letter-spacing: 0.01em !important;
+}
+div[data-testid="stExpander"]:first-of-type > details > summary svg {
+    fill: #29B5E8 !important;
+}
+</style>
+""", unsafe_allow_html=True)
 with st.expander(_wow_summary, expanded=False):
     _ew1, _ew2, _ew3 = st.tabs([
         f"UC Stage Changes ({len(_ex_adv) + len(_ex_reg)})",
