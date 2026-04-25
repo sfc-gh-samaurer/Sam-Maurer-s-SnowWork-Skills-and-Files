@@ -205,11 +205,11 @@ _stall_c = f'<span style="color:#fca5a5;font-weight:700">{len(_ex_stall)}</span>
 
 st.markdown(f"""
 <div style="
-    background: linear-gradient(135deg, #0C4A6E 0%, #0284C7 60%, #29B5E8 100%);
+background: linear-gradient(135deg, #92400e 0%, #b45309 55%, #d97706 100%);
     border-radius: 10px 10px 0 0;
     padding: 11px 20px;
     margin-bottom: -8px;
-    box-shadow: 0 2px 10px rgba(12,74,110,0.25);
+    box-shadow: 0 2px 10px rgba(146,64,14,0.35);
     display:flex; align-items:center; gap:18px;
 ">
   <span style="color:white;font-weight:800;font-size:0.95rem;white-space:nowrap;letter-spacing:0.02em;">📅 THIS WEEK</span>

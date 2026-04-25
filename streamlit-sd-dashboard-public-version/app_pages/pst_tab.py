@@ -73,6 +73,24 @@ _stage_cols = [
     {"col": "CHANGED_AT",   "label": "When",        "fmt": "date"},
 ]
 
+st.markdown(f"""
+<div style="
+    background: linear-gradient(135deg, #92400e 0%, #b45309 55%, #d97706 100%);
+    border-radius: 10px 10px 0 0;
+    padding: 11px 20px;
+    margin-bottom: -8px;
+    box-shadow: 0 2px 10px rgba(146,64,14,0.35);
+    display:flex; align-items:center; gap:18px;
+">
+  <span style="color:white;font-weight:800;font-size:0.95rem;white-space:nowrap;letter-spacing:0.02em;">📅 THIS WEEK</span>
+  <span style="color:rgba(255,255,255,0.75);font-size:0.78rem;">
+    <span style="color:#86efac;font-weight:700">{_comp_n}</span> <span style="color:rgba(255,255,255,0.55)">completed</span>
+    &nbsp;·&nbsp; <span style="color:#fde68a;font-weight:700">{_kick_n}</span> <span style="color:rgba(255,255,255,0.55)">kicked off</span>
+    &nbsp;·&nbsp; <span style="color:#fca5a5;font-weight:700">{_stall_n}</span> <span style="color:rgba(255,255,255,0.55)">stalled</span>
+    &nbsp;·&nbsp; <span style="color:#fca5a5;font-weight:700">{_exp_n}</span> <span style="color:rgba(255,255,255,0.55)">expiring &lt;14d</span>
+  </span>
+</div>
+""", unsafe_allow_html=True)
 with st.expander(_proj_wow_label, expanded=False):
     _pt1, _pt2, _pt3, _pt4 = st.tabs([
         f"Completed ({_comp_n})",

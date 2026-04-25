@@ -40,6 +40,24 @@ _gl_n  = len(wow_golive)
 
 _wow_label = f"This Week's Use Case Changes  \u2014  {_adv_n} advances\u00a0\u00b7\u00a0{_reg_n} regressions\u00a0\u00b7\u00a0{_win_n} tech wins\u00a0\u00b7\u00a0{_gl_n} go-live shifts"
 
+st.markdown(f"""
+<div style="
+    background: linear-gradient(135deg, #92400e 0%, #b45309 55%, #d97706 100%);
+    border-radius: 10px 10px 0 0;
+    padding: 11px 20px;
+    margin-bottom: -8px;
+    box-shadow: 0 2px 10px rgba(146,64,14,0.35);
+    display:flex; align-items:center; gap:18px;
+">
+  <span style="color:white;font-weight:800;font-size:0.95rem;white-space:nowrap;letter-spacing:0.02em;">📅 THIS WEEK</span>
+  <span style="color:rgba(255,255,255,0.75);font-size:0.78rem;">
+    <span style="color:#fde68a;font-weight:700">{_adv_n}</span> <span style="color:rgba(255,255,255,0.55)">advances</span>
+    &nbsp;·&nbsp; <span style="color:#fca5a5;font-weight:700">{_reg_n}</span> <span style="color:rgba(255,255,255,0.55)">regressions</span>
+    &nbsp;·&nbsp; <span style="color:#fde68a;font-weight:700">{_win_n}</span> <span style="color:rgba(255,255,255,0.55)">tech wins</span>
+    &nbsp;·&nbsp; <span style="color:rgba(255,255,255,0.75)">{_gl_n}</span> <span style="color:rgba(255,255,255,0.55)">go-live shifts</span>
+  </span>
+</div>
+""", unsafe_allow_html=True)
 with st.expander(_wow_label, expanded=False):
     _wt1, _wt2, _wt3, _wt4 = st.tabs([
         f"Stage Advances ({_adv_n})",
