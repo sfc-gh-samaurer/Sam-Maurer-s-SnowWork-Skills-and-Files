@@ -47,7 +47,6 @@ conv_candidates = pd.DataFrame()
 if not cap_df.empty:
     _cap = cap_df.copy()
     _cap["DAYS_LEFT"] = (pd.to_datetime(_cap["CONTRACT_END_DATE"]) - today).dt.days
-    _cap["PCT_REMAINING"] = (_cap["CAPACITY_REMAINING"] / _cap["TOTAL_CAP"] * 100).round(1)
     conv_candidates = _cap[
         (_cap["CONTRACT_END_DATE"].notna())
         & (_cap["DAYS_LEFT"] <= 730)
@@ -364,7 +363,7 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
         st.caption("Accounts predicted to have significant unused capacity at contract end. Consider converting remaining capacity into services.")
         conv_display = conv_candidates[[
             "ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
-            "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP", "CAPACITY_REMAINING", "PCT_REMAINING"
+            "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP"
         ]].copy()
         conv_display["ACCT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
@@ -377,8 +376,6 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
             {"col": "CONTRACT_END_DATE",  "label": "End Date",   "fmt": "date"},
             {"col": "DAYS_LEFT",          "label": "Days Left",  "fmt": "number"},
             {"col": "TOTAL_CAP",          "label": "Total Cap",  "fmt": "dollar"},
-            {"col": "CAPACITY_REMAINING", "label": "Remaining",  "fmt": "dollar"},
-            {"col": "PCT_REMAINING",      "label": "% Remain",   "fmt": "pct"},
         ], height=max(200, min(500, cv_n * 38 + 60)))
 
 # ── Section 6: Investment Candidates ──────────────────────────────────────────
