@@ -450,8 +450,11 @@ with st.sidebar:
 
     st.divider()
     n_dms = len(new_dms)
-    dms_preview = ", ".join(new_dms[:2]) + ("…" if n_dms > 2 else "")
-    st.caption(f"**{n_dms}** DM(s): {dms_preview}")
+    if n_dms:
+        with st.expander(f"**{n_dms}** DM(s) in scope", expanded=False):
+            st.markdown("\n".join(f"- {d}" for d in new_dms))
+    else:
+        st.caption("No DMs selected")
 
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = datetime.now()
