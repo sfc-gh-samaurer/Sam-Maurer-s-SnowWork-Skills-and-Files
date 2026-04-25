@@ -403,7 +403,7 @@ def load_wow_use_cases():
             uc.ID                            AS USE_CASE_ID,
             uc.NAME                          AS USE_CASE_NUMBER,
             uc.STAGE_C                       AS CURRENT_STAGE,
-            CAST(uc.ACV_C AS FLOAT)          AS ACV,
+            CAST(uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C AS FLOAT) AS ACV,
             uc.DECISION_DATE_C               AS DECISION_DATE,
             uc.TECHNICAL_WIN_DATE_FORECAST_C AS TARGET_GO_LIVE,
             uc.USE_CASE_STATUS_C             AS UC_STATUS,
@@ -748,7 +748,7 @@ def load_use_cases():
             a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
             uc.NAME_C AS USE_CASE_NAME,
             uc.USE_CASE_STATUS_C AS USE_CASE_STATUS,
-            CAST(uc.ACV_C AS FLOAT) AS ACV,
+            CAST(uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C AS FLOAT) AS ACV,
             uc.STAGE_C AS STAGE,
             uc.CREATED_DATE,
             uc.LAST_MODIFIED_DATE,
@@ -1051,7 +1051,7 @@ def load_action_planner_pipeline():
             uc.NAME_C AS USE_CASE_NAME,
             uc.STAGE_C AS STAGE,
             uc.USE_CASE_STATUS_C AS USE_CASE_STATUS,
-            CAST(uc.ACV_C AS FLOAT) AS EACV,
+            CAST(uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C AS FLOAT) AS EACV,
             uc.TECHNICAL_USE_CASE_C AS TECHNICAL_UC,
             uc.COMPETITORS_C AS COMPETITORS,
             uc.IMPLEMENTER_C AS IMPLEMENTER,
@@ -1069,7 +1069,7 @@ def load_action_planner_pipeline():
         AND sa.ACCOUNT_STATUS = 'Active'
         AND uc.STAGE_C IS NOT NULL
         AND uc.STAGE_C != '8 - Use Case Lost'
-        ORDER BY sa.ACCOUNT_NAME, uc.ACV_C DESC NULLS LAST
+        ORDER BY sa.ACCOUNT_NAME, uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C DESC NULLS LAST
     """).to_pandas()
     return _fix_decimals(df)
 
@@ -1226,7 +1226,7 @@ def load_exec_new_use_cases():
             a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
             uc.NAME_C AS USE_CASE_NAME,
             uc.USE_CASE_STATUS_C AS USE_CASE_STATUS,
-            CAST(uc.ACV_C AS FLOAT) AS ACV,
+            CAST(uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C AS FLOAT) AS ACV,
             uc.STAGE_C AS STAGE,
             uc.CREATED_DATE,
             u.NAME AS OWNER,
