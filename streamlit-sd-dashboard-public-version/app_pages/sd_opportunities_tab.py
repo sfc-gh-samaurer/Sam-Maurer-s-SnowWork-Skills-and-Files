@@ -74,7 +74,7 @@ if not pipeline_df.empty:
             {"col": "DM",                         "label": "DM"},
             {"col": "OWNER",                      "label": "AE"},
             {"col": "PS_SELLER_NAME",             "label": "PS Seller"},
-            {"col": "PS_COMMENTS",                "label": "PS Comments"},
+
             {"col": "OPP_PROBABILITY",            "label": "Prob %",       "fmt": "pct"},
         ], height=450)
         st.download_button(":material/download: Export CSV", filtered_p.to_csv(index=False), "pst_pipeline.csv", "text/csv", key="psp_csv")

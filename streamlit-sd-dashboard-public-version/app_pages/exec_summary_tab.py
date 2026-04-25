@@ -194,25 +194,30 @@ _wow_summary = (
     f"{len(_ex_comp)} projects completed\u00a0\u00b7\u00a0{len(_ex_stall)} stalled"
 )
 
-st.markdown("""
-<style>
-div[data-testid="stExpander"]:first-of-type > details {
-    border: 2px solid #29B5E8 !important;
-    border-radius: 10px !important;
-    background: linear-gradient(135deg, #EFF8FF 0%, #F0FAFF 100%) !important;
-    box-shadow: 0 2px 10px rgba(41,181,232,0.18) !important;
-}
-div[data-testid="stExpander"]:first-of-type > details > summary {
-    font-size: 1.0rem !important;
-    font-weight: 700 !important;
-    color: #11567F !important;
-    padding: 10px 16px !important;
-    letter-spacing: 0.01em !important;
-}
-div[data-testid="stExpander"]:first-of-type > details > summary svg {
-    fill: #29B5E8 !important;
-}
-</style>
+_adv_c   = f'<span style="color:#86efac;font-weight:700">{len(_ex_adv)}</span>'
+_reg_c   = f'<span style="color:#fca5a5;font-weight:700">{len(_ex_reg)}</span>' if _ex_reg else f'<span style="color:rgba(255,255,255,0.45)">0</span>'
+_win_c   = f'<span style="color:#fde68a;font-weight:700">{len(_ex_wins)}</span>'
+_comp_c  = f'<span style="color:rgba(255,255,255,0.75)">{len(_ex_comp)}</span>'
+_stall_c = f'<span style="color:#fca5a5;font-weight:700">{len(_ex_stall)}</span>' if _ex_stall else f'<span style="color:rgba(255,255,255,0.45)">0</span>'
+
+st.markdown(f"""
+<div style="
+    background: linear-gradient(135deg, #0C4A6E 0%, #0284C7 60%, #29B5E8 100%);
+    border-radius: 10px 10px 0 0;
+    padding: 11px 20px;
+    margin-bottom: -8px;
+    box-shadow: 0 2px 10px rgba(12,74,110,0.25);
+    display:flex; align-items:center; gap:18px;
+">
+  <span style="color:white;font-weight:800;font-size:0.95rem;white-space:nowrap;letter-spacing:0.02em;">📅 THIS WEEK</span>
+  <span style="color:rgba(255,255,255,0.7);font-size:0.78rem;">
+    {_adv_c} <span style="color:rgba(255,255,255,0.55)">advances</span>
+    &nbsp;·&nbsp; {_reg_c} <span style="color:rgba(255,255,255,0.55)">regressions</span>
+    &nbsp;·&nbsp; {_win_c} <span style="color:rgba(255,255,255,0.55)">tech wins</span>
+    &nbsp;·&nbsp; {_comp_c} <span style="color:rgba(255,255,255,0.55)">completed</span>
+    &nbsp;·&nbsp; {_stall_c} <span style="color:rgba(255,255,255,0.55)">stalled</span>
+  </span>
+</div>
 """, unsafe_allow_html=True)
 with st.expander(_wow_summary, expanded=False):
     _ew1, _ew2, _ew3 = st.tabs([
@@ -446,10 +451,10 @@ _fq_raw = (
     list(cap_pipe_df["FISCAL_QUARTER"].dropna().unique()) +
     list(_sd_pipe["FISCAL_QUARTER"].dropna().unique() if not _sd_pipe.empty else [])
 )
-_fq_all = sorted(set(q for q in _fq_raw if _valid_fq(q)))
+_fq_all = sorted(set(q for q in _fq_raw if _valid_fq(q)), key=lambda q: (_fq_fy(q), int(q.split("-")[0][1:])))
 if _cfq_current not in _fq_all:
-    _fq_all = [_cfq_current] + _fq_all
-_fq_all = sorted(set(_fq_all))
+    _fq_all = sorted(set([_cfq_current] + _fq_all), key=lambda q: (_fq_fy(q), int(q.split("-")[0][1:])))
+_fq_all = sorted(set(_fq_all), key=lambda q: (_fq_fy(q), int(q.split("-")[0][1:])))
 
 def _fq_fy(q):
     return int(q.split("-")[1])
