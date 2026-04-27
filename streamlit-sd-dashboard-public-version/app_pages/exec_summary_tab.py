@@ -213,9 +213,9 @@ background: linear-gradient(135deg, #92400e 0%, #b45309 55%, #d97706 100%);
 </div>
 """, unsafe_allow_html=True)
 with st.expander(_wow_summary, expanded=False):
-    _ew1, _ew2, _ew3 = st.tabs([
-        f"UC Stage Changes ({len(_ex_adv) + len(_ex_reg)})",
-        f"Tech Wins ({len(_ex_wins)})",
+    _ew_uc_n = len(_ex_adv) + len(_ex_reg) + len(_ex_wins)
+    _ew1, _ew2 = st.tabs([
+        f"UC Changes ({_ew_uc_n})",
         f"SD Projects ({len(_ex_pstage)})",
     ])
 
@@ -256,31 +256,40 @@ with st.expander(_wow_summary, expanded=False):
         d["PROJ_LINK"] = d.apply(_ex_proj_link, axis=1)
         return d
 
-    with _ew1:
-        if _ex_adv.empty and _ex_reg.empty:
-            empty_state("No stage changes this week.")
-        else:
-            if not _ex_adv.empty:
-                st.markdown('<p class="sf-section-label">Advances</p>', unsafe_allow_html=True)
-                render_html_table(_prep_ex_uc(_ex_adv), columns=_ex_wow_cols, height=max(120, min(350, len(_ex_adv) * 38 + 60)))
-            if not _ex_reg.empty:
-                st.markdown('<p class="sf-section-label">Regressions</p>', unsafe_allow_html=True)
-                render_html_table(_prep_ex_uc(_ex_reg), columns=_ex_wow_cols, height=max(120, min(350, len(_ex_reg) * 38 + 60)))
+    def _tag_ex(df, label):
+        d = df.copy()
+        d["CHANGE"] = label
+        return d
 
-    with _ew2:
-        if _ex_wins.empty:
-            empty_state("No technical wins recorded this week.")
-        else:
-            render_html_table(_prep_ex_uc(_ex_wins), columns=[
+    _uc_parts = []
+    if not _ex_adv.empty:
+        _uc_parts.append(_tag_ex(_ex_adv, "↑ Stage Advance"))
+    if not _ex_reg.empty:
+        _uc_parts.append(_tag_ex(_ex_reg, "↓ Stage Regression"))
+    if not _ex_wins.empty:
+        _tw = _ex_wins.copy()
+        _tw["NEW_VALUE"] = "Tech Win ✓"
+        _uc_parts.append(_tag_ex(_tw, "✓ Tech Win"))
+
+    with _ew1:
+        if _uc_parts:
+            _uc_merged = pd.concat(_uc_parts, ignore_index=True)
+            _uc_merged["UC_LINK"] = _uc_merged.apply(_ex_uc_link, axis=1)
+            render_html_table(_uc_merged, columns=[
                 {"col": "ACCOUNT_NAME",  "label": "Account"},
                 {"col": "USE_CASE_NAME", "label": "Use Case"},
                 {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
-                {"col": "CURRENT_STAGE", "label": "Stage at Win"},
+                {"col": "CHANGE",        "label": "Change"},
+                {"col": "OLD_VALUE",     "label": "From"},
+                {"col": "NEW_VALUE",     "label": "To"},
                 {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
+                {"col": "CURRENT_STAGE", "label": "Current Stage"},
                 {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
-            ], height=max(120, min(350, len(_ex_wins) * 38 + 60)))
+            ], height=max(120, min(450, len(_uc_merged) * 38 + 60)))
+        else:
+            empty_state("No use case changes this week.")
 
-    with _ew3:
+    with _ew2:
         if _ex_pstage.empty:
             empty_state("No project stage changes this week.")
         else:

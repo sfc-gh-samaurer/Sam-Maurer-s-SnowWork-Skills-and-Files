@@ -59,75 +59,43 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 with st.expander(_wow_label, expanded=False):
-    _wt1, _wt2, _wt3, _wt4 = st.tabs([
-        f"Stage Advances ({_adv_n})",
-        f"Regressions ({_reg_n})",
-        f"Tech Wins ({_win_n})",
-        f"Go-Live Shifts ({_gl_n})",
-    ])
-
     def _uc_link(row):
         uid = row.get("USE_CASE_ID")
         return f"{SFDC_BASE}/{uid}/view" if uid and str(uid).strip() else None
 
-    def _add_uc_links(df_in):
-        d = df_in.copy()
-        d["UC_LINK"] = d.apply(_uc_link, axis=1)
+    def _tag_event(df, label):
+        d = df.copy()
+        d["CHANGE"] = label
         return d
 
-    _wow_stage_cols = [
-        {"col": "ACCOUNT_NAME",  "label": "Account"},
-        {"col": "USE_CASE_NAME", "label": "Use Case"},
-        {"col": "UC_LINK",       "label": "SFDC",           "fmt": "link"},
-        {"col": "OLD_VALUE",     "label": "From Stage"},
-        {"col": "NEW_VALUE",     "label": "To Stage"},
-        {"col": "ACV",           "label": "UC eACV",           "fmt": "dollar"},
-        {"col": "UC_STATUS",     "label": "Status"},
-        {"col": "DECISION_DATE", "label": "Decision Date",  "fmt": "date"},
-        {"col": "TARGET_GO_LIVE","label": "Target Go-Live", "fmt": "date"},
-    ]
+    _merged_parts = []
+    if not wow_advances.empty:
+        _merged_parts.append(_tag_event(wow_advances, "↑ Stage Advance"))
+    if not wow_regressions.empty:
+        _merged_parts.append(_tag_event(wow_regressions, "↓ Stage Regression"))
+    if not wow_tech_wins.empty:
+        _tw = wow_tech_wins.copy()
+        _tw["NEW_VALUE"] = "Tech Win ✓"
+        _merged_parts.append(_tag_event(_tw, "✓ Tech Win"))
+    if not wow_golive.empty:
+        _merged_parts.append(_tag_event(wow_golive, "Go-Live Shift"))
 
-    with _wt1:
-        if wow_advances.empty:
-            empty_state("No stage advances this week.")
-        else:
-            render_html_table(_add_uc_links(wow_advances), columns=_wow_stage_cols, height=max(180, min(500, _adv_n * 40 + 60)))
-
-    with _wt2:
-        if wow_regressions.empty:
-            empty_state("No stage regressions this week.")
-        else:
-            render_html_table(_add_uc_links(wow_regressions), columns=_wow_stage_cols, height=max(180, min(500, _reg_n * 40 + 60)))
-
-    with _wt3:
-        if wow_tech_wins.empty:
-            empty_state("No technical wins recorded this week.")
-        else:
-            render_html_table(_add_uc_links(wow_tech_wins), columns=[
-                {"col": "ACCOUNT_NAME",  "label": "Account"},
-                {"col": "USE_CASE_NAME", "label": "Use Case"},
-                {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
-                {"col": "CURRENT_STAGE", "label": "Stage at Win"},
-                {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
-                {"col": "UC_STATUS",     "label": "Status"},
-                {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
-                {"col": "TARGET_GO_LIVE","label": "Target Go-Live","fmt": "date"},
-            ], height=max(180, min(500, _win_n * 40 + 60)))
-
-    with _wt4:
-        if wow_golive.empty:
-            empty_state("No go-live date changes this week.")
-        else:
-            render_html_table(_add_uc_links(wow_golive), columns=[
-                {"col": "ACCOUNT_NAME",  "label": "Account"},
-                {"col": "USE_CASE_NAME", "label": "Use Case"},
-                {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
-                {"col": "CURRENT_STAGE", "label": "Current Stage"},
-                {"col": "OLD_VALUE",     "label": "Previous Date"},
-                {"col": "NEW_VALUE",     "label": "New Date"},
-                {"col": "ACV",           "label": "UC eACV",          "fmt": "dollar"},
-            ], height=max(180, min(500, _gl_n * 40 + 60)))
-
+    if _merged_parts:
+        _merged = pd.concat(_merged_parts, ignore_index=True)
+        _merged["UC_LINK"] = _merged.apply(_uc_link, axis=1)
+        render_html_table(_merged, columns=[
+            {"col": "ACCOUNT_NAME",  "label": "Account"},
+            {"col": "USE_CASE_NAME", "label": "Use Case"},
+            {"col": "UC_LINK",       "label": "SFDC",           "fmt": "link"},
+            {"col": "CHANGE",        "label": "Change"},
+            {"col": "OLD_VALUE",     "label": "From"},
+            {"col": "NEW_VALUE",     "label": "To"},
+            {"col": "ACV",           "label": "UC eACV",        "fmt": "dollar"},
+            {"col": "CURRENT_STAGE", "label": "Current Stage"},
+            {"col": "DECISION_DATE", "label": "Decision Date",  "fmt": "date"},
+        ], height=max(180, min(600, len(_merged) * 40 + 60)))
+    else:
+        empty_state("No use case changes this week.")
 
 def _latest_se_comment_uc(full_text):
     if pd.isna(full_text) or not str(full_text).strip():
