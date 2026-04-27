@@ -685,7 +685,7 @@ def load_capacity_pipeline():
         FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
         LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = o.CLOSE_DATE
         LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY sf ON sf.ID = o.OPP_ID
-        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE o.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND o.DS = CURRENT_DATE()
         AND o.IS_CLOSED = FALSE
         ORDER BY o.CLOSE_DATE ASC
@@ -945,7 +945,7 @@ def load_ps_pipeline():
             FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
             LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = o.CLOSE_DATE
             LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY fv ON fv.ID = o.OPP_ID
-            WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
+            WHERE o.DM IN ('Erik Schneider', 'Raymond Navarro')
             AND o.DS = CURRENT_DATE()
             AND o.IS_CLOSED = FALSE
         ),
@@ -1247,7 +1247,7 @@ def load_exec_new_opps():
                 o.DM
             FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
             LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY fv ON fv.ID = o.OPP_ID
-            WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
+            WHERE o.DM IN ('Erik Schneider', 'Raymond Navarro')
             AND o.DS = CURRENT_DATE()
             AND o.CREATED_DATE >= DATEADD('day', -90, CURRENT_DATE())
         ),
