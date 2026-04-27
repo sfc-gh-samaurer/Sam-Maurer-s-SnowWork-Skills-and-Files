@@ -77,18 +77,8 @@ if not cap_pipe_df.empty:
     _ip = _ip[_ip["FISCAL_QUARTER"].isin(invest_fqs)]
     invest_df = _ip[_ip["CALCULATED_TCV"].fillna(0) >= 500_000]
 
-# ── TIMEFRAME SELECTOR (above KPI row) ────────────────────────────────────────
-if "exec_days_window" not in st.session_state:
-    st.session_state["exec_days_window"] = 15
-
-days_window = st.radio(
-    "Timeframe for New Opps & Use Cases:",
-    options=[15, 30, 60, 90],
-    format_func=lambda x: f"Last {x} days",
-    horizontal=True,
-    key="exec_days_window",
-    label_visibility="collapsed",
-)
+# ── TIMEFRAME: fixed 7 days ───────────────────────────────────────────────────
+days_window = 7
 
 st.warning("⚠️ Data access permissions to ACCOUNT CAPACITY DATA causing issues and limitations — working through resolution.", icon=None)
 
