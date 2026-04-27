@@ -222,6 +222,7 @@ _ex_proj_cols = [
     {"col": "PROJ_LINK",     "label": "SFDC",           "fmt": "link"},
     {"col": "OLD_VALUE",     "label": "From Stage"},
     {"col": "NEW_VALUE",     "label": "To Stage"},
+    {"col": "CHANGED_AT",   "label": "Changed",        "fmt": "date"},
     {"col": "REVENUE_AMOUNT","label": "Revenue",        "fmt": "dollar"},
 ]
 
@@ -249,6 +250,7 @@ with st.expander(f"UC Changes ({_ew_uc_n})", expanded=False):
             {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
             {"col": "CURRENT_STAGE", "label": "Current Stage"},
             {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
+            {"col": "CHANGED_AT",    "label": "Changed",       "fmt": "date"},
         ], height=max(120, min(450, len(_uc_merged) * 38 + 60)))
     else:
         empty_state("No use case changes this week.")

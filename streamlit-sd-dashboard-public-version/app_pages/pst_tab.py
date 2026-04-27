@@ -64,6 +64,7 @@ _stage_cols = [
     {"col": "PROJ_LINK",     "label": "SFDC",        "fmt": "link"},
     {"col": "OLD_VALUE",     "label": "From Stage"},
     {"col": "NEW_VALUE",     "label": "To Stage"},
+    {"col": "CHANGED_AT",   "label": "Changed",     "fmt": "date"},
     {"col": "BILLING_TYPE",  "label": "Billing"},
     {"col": "SERVICE_TYPE",  "label": "Service Type"},
     {"col": "START_DATE",    "label": "Start",       "fmt": "date"},

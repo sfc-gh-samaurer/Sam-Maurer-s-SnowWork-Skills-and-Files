@@ -93,6 +93,7 @@ with st.expander(_wow_label, expanded=False):
             {"col": "ACV",           "label": "UC eACV",        "fmt": "dollar"},
             {"col": "CURRENT_STAGE", "label": "Current Stage"},
             {"col": "DECISION_DATE", "label": "Decision Date",  "fmt": "date"},
+            {"col": "CHANGED_AT",   "label": "Changed",        "fmt": "date"},
         ], height=max(180, min(600, len(_merged) * 40 + 60)))
     else:
         empty_state("No use case changes this week.")
