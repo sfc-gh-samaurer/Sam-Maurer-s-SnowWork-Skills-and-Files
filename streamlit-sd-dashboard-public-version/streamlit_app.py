@@ -15,9 +15,10 @@ st.set_page_config(
 
 _init_session()
 
-_HIERARCHY_VERSION = "v2"
+_HIERARCHY_VERSION = "v3"
 if st.session_state.get("_hierarchy_version") != _HIERARCHY_VERSION:
     load_hierarchy.clear()
+    load_org_hierarchy.clear()
     load_account_search_list.clear()
     st.session_state["_hierarchy_version"] = _HIERARCHY_VERSION
 

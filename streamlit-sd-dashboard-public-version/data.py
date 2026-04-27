@@ -412,6 +412,7 @@ def clear_all_caches():
     load_wow_projects.clear()
     load_fq_closed_sd.clear()
     load_hierarchy.clear()
+    load_org_hierarchy.clear()
     load_account_search_list.clear()
 
 
@@ -1310,22 +1311,30 @@ def load_exec_new_use_cases():
 def load_org_hierarchy():
     session = _get_session()
     df = session.sql("""
+        WITH dm_primary AS (
+            SELECT DM, REGION_NAME,
+                RANK() OVER (PARTITION BY DM ORDER BY COUNT(DISTINCT ACCOUNT_ID) DESC) AS rk
+            FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
+            WHERE DS = CURRENT_DATE() AND ACCOUNT_STATUS = 'Active' AND DM IS NOT NULL
+            GROUP BY DM, REGION_NAME
+        )
         SELECT DISTINCT
-            GEO_NAME        AS THEATRE,
-            REGION_NAME     AS REGION,
-            DISTRICT_NAME   AS DISTRICT,
-            DM              AS DISTRICT_MANAGER
-        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
-        WHERE DS = CURRENT_DATE()
-        AND REGION_NAME IN (
+            a.GEO_NAME      AS THEATRE,
+            a.REGION_NAME   AS REGION,
+            a.DISTRICT_NAME AS DISTRICT,
+            a.DM            AS DISTRICT_MANAGER
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+        JOIN dm_primary p ON a.DM = p.DM AND a.REGION_NAME = p.REGION_NAME AND p.rk = 1
+        WHERE a.DS = CURRENT_DATE()
+        AND a.REGION_NAME IN (
             'LATAM','MajorsAcq',
             'CommAcqEast','CommAcqWest',
             'EntAcqCentral','EntAcqEast','EntAcqWest',
             'NortheastExp','SoutheastExp','CentralExp','Commercial',
             'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp'
         )
-        AND DISTRICT_NAME IS NOT NULL
-        AND DM IS NOT NULL
+        AND a.DISTRICT_NAME IS NOT NULL
+        AND a.DM IS NOT NULL
         ORDER BY THEATRE, REGION, DISTRICT
     """).to_pandas()
     return df
