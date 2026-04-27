@@ -558,7 +558,6 @@ st.markdown(
     f'<p class="sf-app-title">❄️ SD Presales · Run the Business</p>'
     f'<p class="sf-app-scope">'
     f'Theater: <strong>{_theaters_str}</strong> &nbsp;·&nbsp; '
-    f'PM: <strong>{_pms_str}</strong> &nbsp;·&nbsp; '
     f'<strong>{_n_dms}</strong> DM(s) in scope'
     f'</p>'
     f'</div>'
