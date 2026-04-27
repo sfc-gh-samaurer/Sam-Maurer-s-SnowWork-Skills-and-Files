@@ -421,6 +421,10 @@ with st.sidebar:
         st.session_state["selected_dms"] = ["Erik Schneider", "Raymond Navarro"]
 
     all_theaters = sorted(org_df["THEATRE"].dropna().unique())
+    cur_theaters = st.session_state.get("sf_theater", [])
+    clean_theaters = [t for t in cur_theaters if t in all_theaters]
+    if clean_theaters != cur_theaters:
+        st.session_state["sf_theater"] = clean_theaters
     st.multiselect("Theater", all_theaters, key="sf_theater")
     sel_theater = st.session_state.get("sf_theater", [])
 
