@@ -207,6 +207,12 @@ def _ex_proj_link(row):
 def _prep_ex_proj(df_in):
     d = df_in.copy()
     d["PROJ_LINK"] = d.apply(_ex_proj_link, axis=1)
+    d["CHANGE_DESC"] = d.apply(
+        lambda r: f"{r['OLD_VALUE']} → {r['NEW_VALUE']}"
+        if pd.notna(r.get("OLD_VALUE")) and pd.notna(r.get("NEW_VALUE"))
+        else str(r.get("NEW_VALUE", "")),
+        axis=1,
+    )
     return d
 
 def _tag_ex(df, label):
@@ -217,11 +223,10 @@ def _tag_ex(df, label):
 _ex_proj_cols = [
     {"col": "ACCOUNT_NAME",  "label": "Account"},
     {"col": "PROJECT_NAME",  "label": "Project"},
-    {"col": "PROJ_LINK",     "label": "SFDC",           "fmt": "link"},
-    {"col": "OLD_VALUE",     "label": "From Stage"},
-    {"col": "NEW_VALUE",     "label": "To Stage"},
-    {"col": "CHANGED_AT",   "label": "Changed",        "fmt": "date"},
-    {"col": "REVENUE_AMOUNT","label": "Revenue",        "fmt": "dollar"},
+    {"col": "PROJ_LINK",     "label": "SFDC",       "fmt": "link"},
+    {"col": "CHANGE_DESC",   "label": "Change"},
+    {"col": "CHANGED_AT",    "label": "Changed",    "fmt": "date"},
+    {"col": "REVENUE_AMOUNT","label": "Revenue",    "fmt": "dollar"},
 ]
 
 _stage_parts = []
