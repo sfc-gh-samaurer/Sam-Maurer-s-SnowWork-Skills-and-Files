@@ -77,8 +77,9 @@ if not cap_pipe_df.empty:
     _ip = _ip[_ip["FISCAL_QUARTER"].isin(invest_fqs)]
     invest_df = _ip[_ip["CALCULATED_TCV"].fillna(0) >= 500_000]
 
-# ── TIMEFRAME: 7 days default, toggle to 14 ──────────────────────────────────
-days_window = 14 if st.toggle("2 Weeks", value=False, key="exec_two_weeks") else 7
+# ── PAGE-LEVEL TIMEFRAME ────────────────────────────────────────────────────────
+_tw = st.radio("**Timeframe:**", ["7 days", "14 days"], horizontal=True, key="exec_days", label_visibility="visible")
+days_window = int(_tw.split()[0])
 
 st.warning("⚠️ Data access permissions to ACCOUNT CAPACITY DATA causing issues and limitations — working through resolution.", icon=None)
 
@@ -180,122 +181,136 @@ _ex_pstage = _wow_proj[_wow_proj["FIELD"] == "pse__Stage__c"]
 _ex_comp   = _ex_pstage[_ex_pstage["NEW_VALUE"] == "Completed"]
 _ex_stall  = _ex_pstage[_ex_pstage["NEW_VALUE"].isin(["Stalled", "Stalled - Expiring"])]
 
-_wow_summary = (
-    f"This Week  \u2014  "
-    f"{len(_ex_adv)} UC advances\u00a0\u00b7\u00a0{len(_ex_reg)} regressions\u00a0\u00b7\u00a0"
-    f"{len(_ex_wins)} tech wins\u00a0\u00b7\u00a0"
-    f"{len(_ex_comp)} projects completed\u00a0\u00b7\u00a0{len(_ex_stall)} stalled"
-)
-
-_adv_c   = f'<span style="color:#86efac;font-weight:700">{len(_ex_adv)}</span>'
-_reg_c   = f'<span style="color:#fca5a5;font-weight:700">{len(_ex_reg)}</span>' if not _ex_reg.empty else f'<span style="color:rgba(255,255,255,0.45)">0</span>'
-_win_c   = f'<span style="color:#fde68a;font-weight:700">{len(_ex_wins)}</span>'
-_comp_c  = f'<span style="color:rgba(255,255,255,0.75)">{len(_ex_comp)}</span>'
-_stall_c = f'<span style="color:#fca5a5;font-weight:700">{len(_ex_stall)}</span>' if not _ex_stall.empty else f'<span style="color:rgba(255,255,255,0.45)">0</span>'
+# ── THIS WEEK SECTION ────────────────────────────────────────────────────────
+_ew_uc_n = len(_ex_adv) + len(_ex_reg) + len(_ex_wins)
 
 st.markdown(f"""
 <div style="
-background: linear-gradient(135deg, #92400e 0%, #b45309 55%, #d97706 100%);
-    border-radius: 10px 10px 0 0;
-    padding: 11px 20px;
-    margin-bottom: -8px;
-    box-shadow: 0 2px 10px rgba(146,64,14,0.35);
-    display:flex; align-items:center; gap:18px;
+    background: linear-gradient(135deg, #92400e 0%, #b45309 55%, #d97706 100%);
+    border-radius: 10px;
+    padding: 12px 22px;
+    margin: 8px 0 6px 0;
+    box-shadow: 0 2px 10px rgba(146,64,14,0.3);
+    display:flex; align-items:center; justify-content:space-between;
 ">
-  <span style="color:white;font-weight:800;font-size:0.95rem;white-space:nowrap;letter-spacing:0.02em;">📅 THIS WEEK</span>
-  <span style="color:rgba(255,255,255,0.7);font-size:0.78rem;">
-    {_adv_c} <span style="color:rgba(255,255,255,0.55)">advances</span>
-    &nbsp;·&nbsp; {_reg_c} <span style="color:rgba(255,255,255,0.55)">regressions</span>
-    &nbsp;·&nbsp; {_win_c} <span style="color:rgba(255,255,255,0.55)">tech wins</span>
-    &nbsp;·&nbsp; {_comp_c} <span style="color:rgba(255,255,255,0.55)">completed</span>
-    &nbsp;·&nbsp; {_stall_c} <span style="color:rgba(255,255,255,0.55)">stalled</span>
-  </span>
+  <span style="color:white;font-weight:800;font-size:1rem;letter-spacing:0.03em;">\U0001f4c5 THIS WEEK</span>
+  <span style="color:rgba(255,255,255,0.75);font-size:0.82rem;font-weight:600;">Last {days_window} days</span>
 </div>
 """, unsafe_allow_html=True)
-with st.expander(_wow_summary, expanded=False):
-    _ew_uc_n = len(_ex_adv) + len(_ex_reg) + len(_ex_wins)
-    _ew1, _ew2 = st.tabs([
-        f"UC Changes ({_ew_uc_n})",
-        f"SD Projects ({len(_ex_pstage)})",
-    ])
 
-    def _ex_uc_link(row):
-        uid = row.get("USE_CASE_ID")
-        return f"{SFDC_BASE}/{uid}/view" if uid and str(uid).strip() else None
+def _ex_uc_link(row):
+    uid = row.get("USE_CASE_ID")
+    return f"{SFDC_BASE}/{uid}/view" if uid and str(uid).strip() else None
 
-    def _ex_proj_link(row):
-        pid = row.get("PROJECT_ID")
-        return f"{SFDC_BASE}/pse__Proj__c/{pid}/view" if pid and str(pid).strip() else None
+def _ex_proj_link(row):
+    pid = row.get("PROJECT_ID")
+    return f"{SFDC_BASE}/pse__Proj__c/{pid}/view" if pid and str(pid).strip() else None
 
-    _ex_wow_cols = [
-        {"col": "ACCOUNT_NAME",  "label": "Account"},
-        {"col": "USE_CASE_NAME", "label": "Use Case"},
-        {"col": "UC_LINK",       "label": "SFDC",           "fmt": "link"},
-        {"col": "OLD_VALUE",     "label": "From Stage"},
-        {"col": "NEW_VALUE",     "label": "To Stage"},
-        {"col": "ACV",           "label": "UC eACV",           "fmt": "dollar"},
-        {"col": "UC_STATUS",     "label": "Status"},
-        {"col": "DECISION_DATE", "label": "Decision Date",  "fmt": "date"},
-    ]
-    _ex_proj_cols = [
-        {"col": "ACCOUNT_NAME",  "label": "Account"},
-        {"col": "PROJECT_NAME",  "label": "Project"},
-        {"col": "PROJ_LINK",     "label": "SFDC",           "fmt": "link"},
-        {"col": "OLD_VALUE",     "label": "From Stage"},
-        {"col": "NEW_VALUE",     "label": "To Stage"},
-        {"col": "REVENUE_AMOUNT","label": "Revenue",        "fmt": "dollar"},
-    ]
+def _prep_ex_proj(df_in):
+    d = df_in.copy()
+    d["PROJ_LINK"] = d.apply(_ex_proj_link, axis=1)
+    return d
 
-    def _prep_ex_uc(df_in):
-        d = df_in.copy()
-        d["UC_LINK"] = d.apply(_ex_uc_link, axis=1)
-        return d
+def _tag_ex(df, label):
+    d = df.copy()
+    d["CHANGE"] = label
+    return d
 
-    def _prep_ex_proj(df_in):
-        d = df_in.copy()
-        d["PROJ_LINK"] = d.apply(_ex_proj_link, axis=1)
-        return d
+_ex_proj_cols = [
+    {"col": "ACCOUNT_NAME",  "label": "Account"},
+    {"col": "PROJECT_NAME",  "label": "Project"},
+    {"col": "PROJ_LINK",     "label": "SFDC",           "fmt": "link"},
+    {"col": "OLD_VALUE",     "label": "From Stage"},
+    {"col": "NEW_VALUE",     "label": "To Stage"},
+    {"col": "REVENUE_AMOUNT","label": "Revenue",        "fmt": "dollar"},
+]
 
-    def _tag_ex(df, label):
-        d = df.copy()
-        d["CHANGE"] = label
-        return d
+_uc_parts = []
+if not _ex_adv.empty:
+    _uc_parts.append(_tag_ex(_ex_adv, "\u2191 Stage Advance"))
+if not _ex_reg.empty:
+    _uc_parts.append(_tag_ex(_ex_reg, "\u2193 Stage Regression"))
+if not _ex_wins.empty:
+    _tw_wins = _ex_wins.copy()
+    _tw_wins["NEW_VALUE"] = "Tech Win \u2713"
+    _uc_parts.append(_tag_ex(_tw_wins, "\u2713 Tech Win"))
 
-    _uc_parts = []
-    if not _ex_adv.empty:
-        _uc_parts.append(_tag_ex(_ex_adv, "↑ Stage Advance"))
-    if not _ex_reg.empty:
-        _uc_parts.append(_tag_ex(_ex_reg, "↓ Stage Regression"))
-    if not _ex_wins.empty:
-        _tw = _ex_wins.copy()
-        _tw["NEW_VALUE"] = "Tech Win ✓"
-        _uc_parts.append(_tag_ex(_tw, "✓ Tech Win"))
+with st.expander(f"UC Changes ({_ew_uc_n})", expanded=False):
+    if _uc_parts:
+        _uc_merged = pd.concat(_uc_parts, ignore_index=True)
+        _uc_merged["UC_LINK"] = _uc_merged.apply(_ex_uc_link, axis=1)
+        render_html_table(_uc_merged, columns=[
+            {"col": "ACCOUNT_NAME",  "label": "Account"},
+            {"col": "USE_CASE_NAME", "label": "Use Case"},
+            {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
+            {"col": "CHANGE",        "label": "Change"},
+            {"col": "OLD_VALUE",     "label": "From"},
+            {"col": "NEW_VALUE",     "label": "To"},
+            {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
+            {"col": "CURRENT_STAGE", "label": "Current Stage"},
+            {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
+        ], height=max(120, min(450, len(_uc_merged) * 38 + 60)))
+    else:
+        empty_state("No use case changes this week.")
 
-    with _ew1:
-        if _uc_parts:
-            _uc_merged = pd.concat(_uc_parts, ignore_index=True)
-            _uc_merged["UC_LINK"] = _uc_merged.apply(_ex_uc_link, axis=1)
-            render_html_table(_uc_merged, columns=[
-                {"col": "ACCOUNT_NAME",  "label": "Account"},
-                {"col": "USE_CASE_NAME", "label": "Use Case"},
-                {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
-                {"col": "CHANGE",        "label": "Change"},
-                {"col": "OLD_VALUE",     "label": "From"},
-                {"col": "NEW_VALUE",     "label": "To"},
-                {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
-                {"col": "CURRENT_STAGE", "label": "Current Stage"},
-                {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
-            ], height=max(120, min(450, len(_uc_merged) * 38 + 60)))
-        else:
-            empty_state("No use case changes this week.")
+with st.expander(f"Project Changes ({len(_ex_pstage)})", expanded=False):
+    if _ex_pstage.empty:
+        empty_state("No project stage changes this week.")
+    else:
+        render_html_table(_prep_ex_proj(_ex_pstage), columns=_ex_proj_cols, height=max(120, min(350, len(_ex_pstage) * 38 + 60)))
 
-    with _ew2:
-        if _ex_pstage.empty:
-            empty_state("No project stage changes this week.")
-        else:
-            render_html_table(_prep_ex_proj(_ex_pstage), columns=_ex_proj_cols, height=max(120, min(350, len(_ex_pstage) * 38 + 60)))
+with st.expander(f"New Opportunities — last {days_window} days ({opp_n})", expanded=False):
+    if new_opps.empty:
+        empty_state(f"No opportunities created in the last {days_window} days.")
+    else:
+        new_opps_display = new_opps.copy()
+        new_opps_display["OPP_LINK"] = new_opps_display["OPPORTUNITY_ID"].apply(
+            lambda x: f"{SFDC_BASE}/Opportunity/{x}/view" if pd.notna(x) and x else None
+        )
+        render_html_table(new_opps_display, columns=[
+            {"col": "ACCOUNT_NAME",    "label": "Account"},
+            {"col": "OPPORTUNITY_NAME","label": "Opportunity"},
+            {"col": "OPP_LINK",        "label": "SFDC",      "fmt": "link"},
+            {"col": "AGREEMENT_TYPE",  "label": "Agreement Type"},
+            {"col": "CLOSE_DATE",      "label": "Close",     "fmt": "date"},
+            {"col": "FORECAST_STATUS", "label": "Forecast"},
+            {"col": "TOTAL_ACV",       "label": "ACV",       "fmt": "dollar"},
+            {"col": "CREATED_DATE",    "label": "Created",   "fmt": "date"},
+            {"col": "OWNER",           "label": "AE"},
+        ], height=max(200, min(500, opp_n * 38 + 60)))
 
-st.markdown('<p class="sf-section-label">Detailed Results — click to expand</p>', unsafe_allow_html=True)
+with st.expander(f"New Use Cases — last {days_window} days ({uc_n})", expanded=False):
+    if new_uc.empty:
+        empty_state(f"No use cases created in the last {days_window} days.")
+    else:
+        uc_display = new_uc.copy()
+        uc_display["ACCT_LINK"] = uc_display["SALESFORCE_ACCOUNT_ID"].apply(
+            lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
+        )
+        render_html_table(uc_display, columns=[
+            {"col": "ACCOUNT_NAME",  "label": "Account"},
+            {"col": "ACCT_LINK",     "label": "SFDC",    "fmt": "link"},
+            {"col": "USE_CASE_NAME", "label": "Use Case"},
+            {"col": "STAGE",         "label": "Stage"},
+            {"col": "CREATED_DATE",  "label": "Created", "fmt": "date"},
+            {"col": "ACV",           "label": "eACV",    "fmt": "dollar"},
+            {"col": "OWNER",         "label": "AE"},
+        ], height=max(200, min(500, uc_n * 38 + 60)))
+
+# ── PIPELINE & CAPACITY SECTION ───────────────────────────────────────────────
+st.markdown("""
+<div style="
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-radius: 10px;
+    padding: 12px 22px;
+    margin: 16px 0 6px 0;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    display:flex; align-items:center; justify-content:space-between;
+">
+  <span style="color:white;font-weight:800;font-size:1rem;letter-spacing:0.03em;">\U0001f4ca PIPELINE &amp; CAPACITY</span>
+  <span style="color:rgba(255,255,255,0.55);font-size:0.78rem;">Fixed date windows \u2014 not affected by timeframe toggle</span>
+</div>
+""", unsafe_allow_html=True)
 
 # ── Section 1: Software Renewals ──────────────────────────────────────────────
 with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expanded=False):
@@ -338,46 +353,6 @@ with st.expander(f"Upcoming Services Renewals ({svc_n})", expanded=False):
             {"col": "PROJECT_MANAGER","label": "PM"},
             {"col": "AE",            "label": "AE"},
         ], height=max(200, min(400, svc_n * 38 + 60)))
-
-# ── Section 3: New Opportunities ──────────────────────────────────────────────
-with st.expander(f"New Opportunities — last {days_window} days ({opp_n})", expanded=False):
-    if new_opps.empty:
-        empty_state(f"No opportunities created in the last {days_window} days.")
-    else:
-        new_opps_display = new_opps.copy()
-        new_opps_display["OPP_LINK"] = new_opps_display["OPPORTUNITY_ID"].apply(
-            lambda x: f"{SFDC_BASE}/Opportunity/{x}/view" if pd.notna(x) and x else None
-        )
-        render_html_table(new_opps_display, columns=[
-            {"col": "ACCOUNT_NAME",    "label": "Account"},
-            {"col": "OPPORTUNITY_NAME","label": "Opportunity"},
-            {"col": "OPP_LINK",        "label": "SFDC",      "fmt": "link"},
-            {"col": "AGREEMENT_TYPE",  "label": "Agreement Type"},
-            {"col": "CLOSE_DATE",      "label": "Close",     "fmt": "date"},
-            {"col": "FORECAST_STATUS", "label": "Forecast"},
-            {"col": "TOTAL_ACV",       "label": "ACV",       "fmt": "dollar"},
-            {"col": "CREATED_DATE",    "label": "Created",   "fmt": "date"},
-            {"col": "OWNER",           "label": "AE"},
-        ], height=max(200, min(500, opp_n * 38 + 60)))
-
-# ── Section 4: New Use Cases ──────────────────────────────────────────────────
-with st.expander(f"New Use Cases — last {days_window} days ({uc_n})", expanded=False):
-    if new_uc.empty:
-        empty_state(f"No use cases created in the last {days_window} days.")
-    else:
-        uc_display = new_uc.copy()
-        uc_display["ACCT_LINK"] = uc_display["SALESFORCE_ACCOUNT_ID"].apply(
-            lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
-        )
-        render_html_table(uc_display, columns=[
-            {"col": "ACCOUNT_NAME",  "label": "Account"},
-            {"col": "ACCT_LINK",     "label": "SFDC",    "fmt": "link"},
-            {"col": "USE_CASE_NAME", "label": "Use Case"},
-            {"col": "STAGE",         "label": "Stage"},
-            {"col": "CREATED_DATE",  "label": "Created", "fmt": "date"},
-            {"col": "ACV",           "label": "eACV",    "fmt": "dollar"},
-            {"col": "OWNER",         "label": "AE"},
-        ], height=max(200, min(500, uc_n * 38 + 60)))
 
 # ── Section 5: Capacity Conversion Candidates ─────────────────────────────────
 with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
