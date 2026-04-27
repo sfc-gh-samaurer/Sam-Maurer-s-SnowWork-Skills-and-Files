@@ -390,8 +390,8 @@ with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expan
             {"col": "STAGE_NAME",      "label": "Stage"},
             {"col": "CLOSE_DATE",      "label": "Close",    "fmt": "date"},
             {"col": "FORECAST_STATUS", "label": "Forecast"},
-            {"col": "TOTAL_ACV",       "label": "ACV",      "fmt": "dollar"},
-            {"col": "RENEWAL_ACV",     "label": "Rnwl ACV", "fmt": "dollar"},
+            {"col": "TOTAL_ACV",       "label": "Target ACV", "fmt": "dollar"},
+            {"col": "RENEWAL_ACV",     "label": "Prev ACV",   "fmt": "dollar"},
             {"col": "OWNER",           "label": "AE"},
         ], height=max(200, min(400, sw_n * 38 + 60)))
 
