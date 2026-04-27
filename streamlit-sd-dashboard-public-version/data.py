@@ -11,18 +11,19 @@ _WAREHOUSE = "SNOWADHOC"
 
 _ACCOUNT_SQL = """(
     SELECT
-        d.SALESFORCE_ACCOUNT_ID,
-        d.SALESFORCE_ACCOUNT_NAME       AS NAME,
-        d.SALESFORCE_OWNER_NAME         AS ACCOUNT_OWNER_NAME,
-        d.DM                            AS ACCOUNT_OWNER_MANAGER_C,
-        CAST(fa.ARR_C AS FLOAT)         AS ARR_C,
-        d.INDUSTRY,
-        d.ACCOUNT_TIER                  AS TIER_C,
-        d.LEAD_SALES_ENGINEER_NAME      AS LEAD_SALES_ENGINEER_NAME_C,
-        fa.ACCOUNT_STATUS_C             AS ACCOUNT_STATUS_C
-    FROM SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS d
-    JOIN FIVETRAN.SALESFORCE.ACCOUNT fa ON d.SALESFORCE_ACCOUNT_ID = fa.ID
-    WHERE fa.ACCOUNT_STATUS_C = 'Active'
+        a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
+        a.ACCOUNT_NAME AS NAME,
+        a.REP_NAME AS ACCOUNT_OWNER_NAME,
+        a.DM AS ACCOUNT_OWNER_MANAGER_C,
+        CAST(a.ARR AS FLOAT) AS ARR_C,
+        a.INDUSTRY,
+        a.ACCOUNT_TIER AS TIER_C,
+        lead_se.NAME AS LEAD_SALES_ENGINEER_NAME_C,
+        a.ACCOUNT_STATUS AS ACCOUNT_STATUS_C
+    FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+    JOIN FIVETRAN.SALESFORCE.ACCOUNT fa ON a.ACCOUNT_ID = fa.ID
+    LEFT JOIN FIVETRAN.SALESFORCE.USER lead_se ON fa.LEAD_SALES_ENGINEER_C = lead_se.ID
+    WHERE a.DS = CURRENT_DATE()
 )"""
 
 import re as _re
@@ -88,7 +89,7 @@ def _sql(query):
     if district_clause:
         q = _re.sub(
             r'(\w+)\.DM IN \(([^)]+)\)',
-            lambda m: f"{m.group(1)}.DM IN ({m.group(2)}) AND _dsc.DISTRICT IN {district_clause}",
+            lambda m: f"{m.group(1)}.DM IN ({m.group(2)}) AND {m.group(1)}.DISTRICT_NAME IN {district_clause}",
             q
         )
     return q
@@ -436,8 +437,7 @@ def load_wow_use_cases(days: int = 7):
         FROM FIVETRAN.SALESFORCE.USE_CASE_HISTORY h
         JOIN FIVETRAN.SALESFORCE.USE_CASE_C uc ON h.PARENT_ID = uc.ID
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON uc.ACCOUNT_C = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND h.FIELD IN ('Stage__c', 'Technical_Win__c', 'Actual_Go_Live_Date__c')
         AND h.CREATED_DATE >= DATEADD('day', -{days_safe}, CURRENT_DATE())
         AND h._FIVETRAN_DELETED = FALSE
@@ -470,8 +470,7 @@ def load_wow_projects(days: int = 7):
         FROM FIVETRAN.SALESFORCE.PSE_PROJ_HISTORY h
         JOIN FIVETRAN.SALESFORCE.PSE_PROJ_C p ON h.PARENT_ID = p.ID
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON p.PSE_ACCOUNT_C = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND h.FIELD IN ('pse__Stage__c', 'pse__Project_Status__c')
         AND h.CREATED_DATE >= DATEADD('day', -{days_safe}, CURRENT_DATE())
         AND h._FIVETRAN_DELETED = FALSE
@@ -498,8 +497,7 @@ def load_fq_closed_sd(fiscal_quarter: str):
         FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON opp.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
         JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = opp.CLOSE_DATE AND fc.FISCAL_PERIOD = '{fq_safe}'
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND opp.IS_WON = TRUE
         AND opp.IS_DELETED = FALSE
         AND (opp.SERVICES_TCV_LOOKER_C > 0 OR opp.SERVICES_FORECAST_C > 0)
@@ -563,8 +561,7 @@ def load_accounts_base():
         FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
         JOIN FIVETRAN.SALESFORCE.ACCOUNT fa ON a.ACCOUNT_ID = fa.ID
         LEFT JOIN FIVETRAN.SALESFORCE.USER lead_se ON fa.LEAD_SALES_ENGINEER_C = lead_se.ID
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND a.ACCOUNT_STATUS = 'Active'
         AND a.DS = CURRENT_DATE()
         ORDER BY a.ARR DESC
@@ -621,8 +618,7 @@ def load_capacity_renewals():
                 ROW_NUMBER() OVER (PARTITION BY o.ACCOUNT_ID ORDER BY o.CLOSE_DATE ASC) AS rn
             FROM FIVETRAN.SALESFORCE.OPPORTUNITY o
             JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON o.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
-            JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-            WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+            WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
             AND o.TYPE = 'Renewal'
             AND o.IS_CLOSED = FALSE
             AND o.IS_DELETED = FALSE
@@ -689,8 +685,7 @@ def load_capacity_pipeline():
         FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
         LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = o.CLOSE_DATE
         LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY sf ON sf.ID = o.OPP_ID
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON o.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND o.DS = CURRENT_DATE()
         AND o.IS_CLOSED = FALSE
         ORDER BY o.CLOSE_DATE ASC
@@ -702,18 +697,30 @@ def load_capacity_pipeline():
 def load_hierarchy():
     session = _get_session()
     df = session.sql("""
-        WITH active_dms AS (
+        WITH dm_primary AS (
+            SELECT DM, REGION_NAME,
+                RANK() OVER (PARTITION BY DM ORDER BY COUNT(DISTINCT ACCOUNT_ID) DESC) AS rk
+            FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
+            WHERE DS = CURRENT_DATE() AND ACCOUNT_STATUS = 'Active' AND DM IS NOT NULL
+            GROUP BY DM, REGION_NAME
+        ),
+        active_dms AS (
             SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true
         )
         SELECT DISTINCT
-            d.GEO        AS THEATER,
-            d.SALES_AREA AS REGION,
-            d.DISTRICT   AS DISTRICT,
-            d.DM
-        FROM SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS d
-        JOIN active_dms ON d.DM = active_dms.EMPLOYEE_NAME
-        WHERE d.SALES_AREA IS NOT NULL AND d.DISTRICT IS NOT NULL AND d.DM IS NOT NULL
-        ORDER BY d.GEO, d.SALES_AREA, d.DISTRICT
+            a.GEO_NAME    AS THEATER,
+            a.REGION_NAME AS REGION,
+            a.DISTRICT_NAME AS DISTRICT,
+            a.DM
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+        JOIN dm_primary p ON a.DM = p.DM AND a.REGION_NAME = p.REGION_NAME AND p.rk = 1
+        JOIN active_dms ON a.DM = active_dms.NAME
+        WHERE a.ACCOUNT_STATUS = 'Active'
+        AND a.DS = CURRENT_DATE()
+        AND a.GEO_NAME IS NOT NULL
+        AND a.DM IS NOT NULL
+        AND a.DISTRICT_NAME IS NOT NULL
+        ORDER BY a.GEO_NAME, a.REGION_NAME, a.DISTRICT_NAME
     """).to_pandas()
     return df
 
@@ -722,15 +729,20 @@ def load_hierarchy():
 def load_account_search_list():
     session = _get_session()
     df = session.sql("""
+        WITH active_dms AS (
+            SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true
+        )
         SELECT DISTINCT
-            d.SALESFORCE_ACCOUNT_NAME AS ACCOUNT_NAME,
-            d.DISTRICT                AS DISTRICT_NAME,
-            d.SALES_AREA              AS REGION_NAME,
-            d.GEO                     AS THEATER,
-            d.DM
-        FROM SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS d
-        JOIN (SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true) active_dms ON d.DM = active_dms.NAME
-        WHERE d.SALES_AREA IN (
+            a.ACCOUNT_NAME,
+            a.DISTRICT_NAME,
+            a.REGION_NAME,
+            a.GEO_NAME AS THEATER,
+            a.DM
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+        JOIN active_dms ON a.DM = active_dms.NAME
+        WHERE a.DS = CURRENT_DATE()
+        AND a.ACCOUNT_STATUS = 'Active'
+        AND a.REGION_NAME IN (
             'LATAM','MajorsAcq','CommAcqEast','CommAcqWest',
             'EntAcqCentral','EntAcqEast','EntAcqWest',
             'NortheastExp','SoutheastExp','CentralExp','Commercial',
@@ -821,8 +833,7 @@ def load_use_cases():
         FROM FIVETRAN.SALESFORCE.USE_CASE_C uc
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON uc.ACCOUNT_C = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
         LEFT JOIN FIVETRAN.SALESFORCE.USER u ON uc.OWNER_ID = u.ID
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND uc.STAGE_C IS NOT NULL
         AND uc.STAGE_C != '8 - Use Case Lost'
         AND uc._FIVETRAN_DELETED = FALSE
@@ -896,8 +907,7 @@ def load_ps_projects_active():
         LEFT JOIN FIVETRAN.SALESFORCE.USER ps_seller ON fo.PS_T_SELLER_C = ps_seller.ID
         LEFT JOIN SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o ON p.PSE_OPPORTUNITY_C = o.OPP_ID AND o.DS = CURRENT_DATE()
         LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc2 ON fc2._DATE = o.CLOSE_DATE
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND a.ACCOUNT_STATUS = 'Active'
         AND p.IS_DELETED = FALSE
         AND p.PSE_IS_ACTIVE_C = TRUE
@@ -935,8 +945,7 @@ def load_ps_pipeline():
             FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
             LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = o.CLOSE_DATE
             LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY fv ON fv.ID = o.OPP_ID
-            JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON o.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-            WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+            WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
             AND o.DS = CURRENT_DATE()
             AND o.IS_CLOSED = FALSE
         ),
@@ -966,8 +975,7 @@ def load_ps_pipeline():
             LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
             LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc2 ON fc2._DATE = opp.CLOSE_DATE
             LEFT JOIN (SELECT OPPORTUNITY_ID FROM sda_opps) sda_excl ON opp.ID = sda_excl.OPPORTUNITY_ID
-            JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-            WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+            WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
             AND a.ACCOUNT_STATUS = 'Active'
             AND opp.IS_CLOSED = FALSE
             AND opp.IS_DELETED = FALSE
@@ -1083,8 +1091,7 @@ def load_ps_history():
         JOIN opp_ps_summary ops ON opp.ID = ops.OPPORTUNITY_ID
         LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
         LEFT JOIN FIVETRAN.SALESFORCE.USER ps_seller ON opp.PS_T_SELLER_C = ps_seller.ID
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND a.ACCOUNT_STATUS = 'Active'
         AND opp.IS_WON = TRUE
         AND opp.IS_DELETED = FALSE
@@ -1121,9 +1128,8 @@ def load_action_planner_pipeline():
         JOIN FIVETRAN.SALESFORCE.USER u ON a.OWNER_ID = u.ID
         LEFT JOIN FIVETRAN.SALESFORCE.USER lead_se ON a.LEAD_SALES_ENGINEER_C = lead_se.ID
         JOIN FIVETRAN.SALESFORCE.USE_CASE_C uc ON uc.ACCOUNT_C = a.ID AND uc._FIVETRAN_DELETED = FALSE
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON sa.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
         WHERE sa.DS = CURRENT_DATE()
-        AND _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        AND sa.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND sa.ACCOUNT_STATUS = 'Active'
         AND uc.STAGE_C IS NOT NULL
         AND uc.STAGE_C != '8 - Use Case Lost'
@@ -1146,8 +1152,7 @@ def load_product_usage():
             NULL::FLOAT AS TOTAL_JOBS
         FROM SNOWHOUSE.PS_TAM.CSP_ACCOUNT_CONSUMPTION c
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON c.SALESFORCE_ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND a.ACCOUNT_STATUS = 'Active'
         GROUP BY c.SALESFORCE_ACCOUNT_ID, c.ACCOUNT_NAME, c.PRODUCT_CATEGORY
         HAVING SUM(c.CREDITS) > 0
@@ -1176,8 +1181,7 @@ def load_exec_software_renewals():
             a.DM
         FROM FIVETRAN.SALESFORCE.OPPORTUNITY o
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON o.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND o.IS_CLOSED = FALSE
         AND o.IS_DELETED = FALSE
         AND o.TYPE = 'Renewal'
@@ -1243,8 +1247,7 @@ def load_exec_new_opps():
                 o.DM
             FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
             LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY fv ON fv.ID = o.OPP_ID
-            JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON o.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-            WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+            WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
             AND o.DS = CURRENT_DATE()
             AND o.CREATED_DATE >= DATEADD('day', -90, CURRENT_DATE())
         ),
@@ -1300,8 +1303,7 @@ def load_exec_new_use_cases():
         FROM FIVETRAN.SALESFORCE.USE_CASE_C uc
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON uc.ACCOUNT_C = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
         LEFT JOIN FIVETRAN.SALESFORCE.USER u ON uc.OWNER_ID = u.ID
-        JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS _dsc ON a.ACCOUNT_ID = _dsc.SALESFORCE_ACCOUNT_ID
-        WHERE _dsc.DM IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND uc.STAGE_C IS NOT NULL
         AND uc.STAGE_C != '8 - Use Case Lost'
         AND uc._FIVETRAN_DELETED = FALSE
@@ -1315,25 +1317,34 @@ def load_exec_new_use_cases():
 def load_org_hierarchy():
     session = _get_session()
     df = session.sql("""
-        WITH active_dms AS (
+        WITH dm_primary AS (
+            SELECT DM, REGION_NAME,
+                RANK() OVER (PARTITION BY DM ORDER BY COUNT(DISTINCT ACCOUNT_ID) DESC) AS rk
+            FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
+            WHERE DS = CURRENT_DATE() AND ACCOUNT_STATUS = 'Active' AND DM IS NOT NULL
+            GROUP BY DM, REGION_NAME
+        ),
+        active_dms AS (
             SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true
         )
         SELECT DISTINCT
-            d.GEO        AS THEATRE,
-            d.SALES_AREA AS REGION,
-            d.DISTRICT   AS DISTRICT,
-            d.DM         AS DISTRICT_MANAGER
-        FROM SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS d
-        JOIN active_dms ON d.DM = active_dms.EMPLOYEE_NAME
-        WHERE d.SALES_AREA IN (
+            a.GEO_NAME      AS THEATRE,
+            a.REGION_NAME   AS REGION,
+            a.DISTRICT_NAME AS DISTRICT,
+            a.DM            AS DISTRICT_MANAGER
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+        JOIN dm_primary p ON a.DM = p.DM AND a.REGION_NAME = p.REGION_NAME AND p.rk = 1
+        JOIN active_dms ON a.DM = active_dms.NAME
+        WHERE a.DS = CURRENT_DATE()
+        AND a.REGION_NAME IN (
             'LATAM','MajorsAcq',
             'CommAcqEast','CommAcqWest',
             'EntAcqCentral','EntAcqEast','EntAcqWest',
             'NortheastExp','SoutheastExp','CentralExp','Commercial',
             'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp'
         )
-        AND d.DISTRICT IS NOT NULL
-        AND d.DM IS NOT NULL
+        AND a.DISTRICT_NAME IS NOT NULL
+        AND a.DM IS NOT NULL
         ORDER BY THEATRE, REGION, DISTRICT
     """).to_pandas()
     return df
