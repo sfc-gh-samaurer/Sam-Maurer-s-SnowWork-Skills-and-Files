@@ -703,7 +703,7 @@ def load_hierarchy():
     session = _get_session()
     df = session.sql("""
         WITH active_dms AS (
-            SELECT EMPLOYEE_NAME FROM SALES.RAVEN.RAVEN_EMPLOYEE WHERE IS_ACTIVE = true
+            SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true
         )
         SELECT DISTINCT
             d.GEO        AS THEATER,
@@ -729,7 +729,7 @@ def load_account_search_list():
             d.GEO                     AS THEATER,
             d.DM
         FROM SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS d
-        JOIN SALES.RAVEN.RAVEN_EMPLOYEE e ON d.DM = e.EMPLOYEE_NAME AND e.IS_ACTIVE = true
+        JOIN (SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true) active_dms ON d.DM = active_dms.NAME
         WHERE d.SALES_AREA IN (
             'LATAM','MajorsAcq','CommAcqEast','CommAcqWest',
             'EntAcqCentral','EntAcqEast','EntAcqWest',
@@ -1316,7 +1316,7 @@ def load_org_hierarchy():
     session = _get_session()
     df = session.sql("""
         WITH active_dms AS (
-            SELECT EMPLOYEE_NAME FROM SALES.RAVEN.RAVEN_EMPLOYEE WHERE IS_ACTIVE = true
+            SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true
         )
         SELECT DISTINCT
             d.GEO        AS THEATRE,
