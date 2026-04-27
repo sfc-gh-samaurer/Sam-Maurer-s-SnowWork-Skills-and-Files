@@ -1,5 +1,5 @@
 import streamlit as st
-from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness
+from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list
 from datetime import datetime
 import json
 import os
@@ -14,6 +14,11 @@ st.set_page_config(
 )
 
 _init_session()
+
+if "_hierarchy_cache_busted" not in st.session_state:
+    load_hierarchy.clear()
+    load_account_search_list.clear()
+    st.session_state["_hierarchy_cache_busted"] = True
 
 if "_prefs_loaded" not in st.session_state:
     _saved = load_user_prefs()
