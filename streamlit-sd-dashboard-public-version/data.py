@@ -397,9 +397,10 @@ def clear_all_caches():
 
 
 @st.cache_data(ttl=3600)
-def load_wow_use_cases():
+def load_wow_use_cases(days: int = 7):
     session = _get_session()
-    df = session.sql(_sql("""
+    days_safe = max(1, int(days))
+    df = session.sql(_sql(f"""
         SELECT
             a.ACCOUNT_NAME,
             uc.NAME_C                        AS USE_CASE_NAME,
@@ -419,7 +420,7 @@ def load_wow_use_cases():
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON uc.ACCOUNT_C = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
         WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND h.FIELD IN ('Stage__c', 'Technical_Win__c', 'Actual_Go_Live_Date__c')
-        AND h.CREATED_DATE >= DATEADD('day', -7, CURRENT_DATE())
+        AND h.CREATED_DATE >= DATEADD('day', -{days_safe}, CURRENT_DATE())
         AND h._FIVETRAN_DELETED = FALSE
         ORDER BY h.CREATED_DATE DESC
     """)).to_pandas()
@@ -427,9 +428,10 @@ def load_wow_use_cases():
 
 
 @st.cache_data(ttl=3600)
-def load_wow_projects():
+def load_wow_projects(days: int = 7):
     session = _get_session()
-    df = session.sql(_sql("""
+    days_safe = max(1, int(days))
+    df = session.sql(_sql(f"""
         SELECT
             a.ACCOUNT_NAME,
             p.NAME                               AS PROJECT_NAME,
@@ -451,7 +453,7 @@ def load_wow_projects():
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON p.PSE_ACCOUNT_C = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
         WHERE a.DM IN ('Erik Schneider', 'Raymond Navarro')
         AND h.FIELD IN ('pse__Stage__c', 'pse__Project_Status__c')
-        AND h.CREATED_DATE >= DATEADD('day', -7, CURRENT_DATE())
+        AND h.CREATED_DATE >= DATEADD('day', -{days_safe}, CURRENT_DATE())
         AND h._FIVETRAN_DELETED = FALSE
         ORDER BY h.CREATED_DATE DESC
     """)).to_pandas()

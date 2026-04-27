@@ -154,8 +154,8 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ── WoW SUMMARY ───────────────────────────────────────────────────────────────
-_wow_uc   = load_wow_use_cases()
-_wow_proj = load_wow_projects()
+_wow_uc   = load_wow_use_cases(days=days_window)
+_wow_proj = load_wow_projects(days=days_window)
 
 
 def _stage_num_ex(s):
