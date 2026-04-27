@@ -693,7 +693,7 @@ def load_capacity_pipeline():
     return _fix_decimals(df)
 
 
-@st.cache_data(ttl=86400)
+@st.cache_data(ttl=3600)
 def load_hierarchy():
     session = _get_session()
     df = session.sql("""
