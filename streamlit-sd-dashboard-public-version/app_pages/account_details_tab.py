@@ -319,7 +319,10 @@ if not _selected_dms:
     empty_state("Select a Scope in the sidebar to load accounts.", icon="🗺️")
     st.stop()
 
+_selected_districts = st.session_state.get("selected_districts") or []
 _scoped_df = _search_list[_search_list["DM"].isin(_selected_dms)]
+if _selected_districts:
+    _scoped_df = _scoped_df[_scoped_df["DISTRICT_NAME"].isin(_selected_districts)]
 account_names = sorted(_scoped_df["ACCOUNT_NAME"].dropna().unique().tolist())
 
 selected = st.selectbox(
