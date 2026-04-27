@@ -224,42 +224,97 @@ _ex_proj_cols = [
     {"col": "REVENUE_AMOUNT","label": "Revenue",        "fmt": "dollar"},
 ]
 
-_uc_parts = []
+_stage_parts = []
 if not _ex_adv.empty:
-    _uc_parts.append(_tag_ex(_ex_adv, "\u2191 Stage Advance"))
+    _stage_parts.append(_tag_ex(_ex_adv, "\u2191 Stage Advance"))
 if not _ex_reg.empty:
-    _uc_parts.append(_tag_ex(_ex_reg, "\u2193 Stage Regression"))
+    _stage_parts.append(_tag_ex(_ex_reg, "\u2193 Stage Regression"))
+
+_wins_parts = []
 if not _ex_wins.empty:
     _tw_wins = _ex_wins.copy()
     _tw_wins["NEW_VALUE"] = "Tech Win \u2713"
-    _uc_parts.append(_tag_ex(_tw_wins, "\u2713 Tech Win"))
+    _wins_parts.append(_tag_ex(_tw_wins, "\u2713 Tech Win"))
+
+_n_stage_changes = len(_ex_adv) + len(_ex_reg)
+_n_wins = len(_ex_wins)
 
 with st.expander(f"UC Changes ({_ew_uc_n})", expanded=False):
-    if _uc_parts:
-        _uc_merged = pd.concat(_uc_parts, ignore_index=True)
-        _uc_merged["UC_LINK"] = _uc_merged.apply(_ex_uc_link, axis=1)
-        render_html_table(_uc_merged, columns=[
-            {"col": "ACCOUNT_NAME",  "label": "Account"},
-            {"col": "USE_CASE_NAME", "label": "Use Case"},
-            {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
-            {"col": "CHANGE",        "label": "Change"},
-            {"col": "OLD_VALUE",     "label": "From"},
-            {"col": "NEW_VALUE",     "label": "To"},
-            {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
-            {"col": "CURRENT_STAGE", "label": "Current Stage"},
-            {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
-            {"col": "CHANGED_AT",    "label": "Changed",       "fmt": "date"},
-        ], height=max(120, min(450, len(_uc_merged) * 38 + 60)))
-    else:
-        empty_state("No use case changes this week.")
+    st.caption("Use case stage advances, regressions, and technical wins in the selected timeframe.")
+    _uc_tab_stage, _uc_tab_wins = st.tabs([
+        f"Stage Changes ({_n_stage_changes})",
+        f"Tech Wins ({_n_wins})",
+    ])
+
+    with _uc_tab_stage:
+        if _stage_parts:
+            _stage_merged = pd.concat(_stage_parts, ignore_index=True)
+            _stage_merged["UC_LINK"] = _stage_merged.apply(_ex_uc_link, axis=1)
+            _fc1, _fc2, _fc3 = st.columns([1.4, 1.4, 5])
+            _dir_filter = _fc1.radio(
+                "Direction", ["All", "Advances", "Regressions"],
+                index=1, horizontal=True, key="exec_uc_dir",
+                label_visibility="collapsed",
+            )
+            _min_stage = _fc2.selectbox(
+                "From Stage \u2265", ["Any", "2", "3", "4", "5"],
+                index=1, key="exec_uc_minstage",
+                label_visibility="collapsed",
+            )
+            _fc1.caption("Direction")
+            _fc2.caption("From Stage \u2265")
+            _stage_filtered = _stage_merged.copy()
+            if _dir_filter == "Advances":
+                _stage_filtered = _stage_filtered[_stage_filtered["CHANGE"] == "\u2191 Stage Advance"]
+            elif _dir_filter == "Regressions":
+                _stage_filtered = _stage_filtered[_stage_filtered["CHANGE"] == "\u2193 Stage Regression"]
+            if _min_stage != "Any":
+                _stage_filtered = _stage_filtered[
+                    _stage_filtered["OLD_VALUE"].apply(_stage_num_ex) >= int(_min_stage)
+                ]
+            if _stage_filtered.empty:
+                empty_state("No stage changes match the current filters.")
+            else:
+                render_html_table(_stage_filtered, columns=[
+                    {"col": "ACCOUNT_NAME",  "label": "Account"},
+                    {"col": "USE_CASE_NAME", "label": "Use Case"},
+                    {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
+                    {"col": "CHANGE",        "label": "Change"},
+                    {"col": "OLD_VALUE",     "label": "From"},
+                    {"col": "NEW_VALUE",     "label": "To"},
+                    {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
+                    {"col": "CURRENT_STAGE", "label": "Current Stage"},
+                    {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
+                    {"col": "CHANGED_AT",    "label": "Changed",       "fmt": "date"},
+                ], height=max(120, min(450, len(_stage_filtered) * 38 + 60)))
+        else:
+            empty_state("No stage changes this week.")
+
+    with _uc_tab_wins:
+        if _wins_parts:
+            _wins_merged = pd.concat(_wins_parts, ignore_index=True)
+            _wins_merged["UC_LINK"] = _wins_merged.apply(_ex_uc_link, axis=1)
+            render_html_table(_wins_merged, columns=[
+                {"col": "ACCOUNT_NAME",  "label": "Account"},
+                {"col": "USE_CASE_NAME", "label": "Use Case"},
+                {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
+                {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
+                {"col": "CURRENT_STAGE", "label": "Stage"},
+                {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
+                {"col": "CHANGED_AT",    "label": "Changed",       "fmt": "date"},
+            ], height=max(120, min(400, len(_wins_merged) * 38 + 60)))
+        else:
+            empty_state("No technical wins this week.")
 
 with st.expander(f"Project Changes ({len(_ex_pstage)})", expanded=False):
+    st.caption("PS project stage changes (advances, completions, and stalls) in the selected timeframe.")
     if _ex_pstage.empty:
         empty_state("No project stage changes this week.")
     else:
         render_html_table(_prep_ex_proj(_ex_pstage), columns=_ex_proj_cols, height=max(120, min(350, len(_ex_pstage) * 38 + 60)))
 
 with st.expander(f"New Opportunities — last {days_window} days ({opp_n})", expanded=False):
+    st.caption("New opportunities created in the selected timeframe across your scope.")
     if new_opps.empty:
         empty_state(f"No opportunities created in the last {days_window} days.")
     else:
@@ -280,6 +335,7 @@ with st.expander(f"New Opportunities — last {days_window} days ({opp_n})", exp
         ], height=max(200, min(500, opp_n * 38 + 60)))
 
 with st.expander(f"New Use Cases — last {days_window} days ({uc_n})", expanded=False):
+    st.caption("New use cases created in the selected timeframe across your scope.")
     if new_uc.empty:
         empty_state(f"No use cases created in the last {days_window} days.")
     else:
@@ -314,6 +370,7 @@ st.markdown("""
 
 # ── Section 1: Software Renewals ──────────────────────────────────────────────
 with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expanded=False):
+    st.caption("Open software renewal opportunities closing in the next 6 months. Excludes segment payments (Amount > $0 only).")
     if sw_renewals.empty:
         empty_state("No software renewal opportunities closing in the next 6 months.")
     else:
@@ -335,6 +392,7 @@ with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expan
 
 # ── Section 2: Services Renewals ──────────────────────────────────────────────
 with st.expander(f"Upcoming Services Renewals ({svc_n})", expanded=False):
+    st.caption("Active PS&T projects ending in the next 6 months — candidates for renewal or extension discussions.")
     if svc_renewals.empty:
         empty_state("No active PS projects ending in the next 6 months.")
     else:
@@ -356,10 +414,10 @@ with st.expander(f"Upcoming Services Renewals ({svc_n})", expanded=False):
 
 # ── Section 5: Capacity Conversion Candidates ─────────────────────────────────
 with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
+    st.caption("Capacity accounts predicted to have ≥$75K unused at contract end — opportunity to convert remaining capacity to services.")
     if conv_candidates.empty:
         empty_state("No capacity conversion candidates found.")
     else:
-        st.caption("Accounts predicted to have significant unused capacity at contract end. Consider converting remaining capacity into services.")
         conv_display = conv_candidates[[
             "ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
             "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP", "ACTUAL_CONSUMPTION_YTD_C", "OVERAGE_UNDERAGE_PREDICTION"
@@ -381,10 +439,10 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
 
 # ── Section 6: Investment Candidates ──────────────────────────────────────────
 with st.expander(f"Investment Candidates — {' & '.join(invest_fqs)} ({invest_n})", expanded=False):
+    st.caption(f"Future capacity opportunities (Calc TCV ≥$500K) closing in {' or '.join(invest_fqs)} — accounts worth proactive investment discussions.")
     if invest_df.empty:
         empty_state("No investment candidates found.")
     else:
-        st.caption(f"Future capacity opportunities with Calculated TCV ≥$500K closing in {' or '.join(invest_fqs)}.")
         inv_display = invest_df.copy()
         inv_display["OPP_LINK"] = inv_display.apply(
             lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1
