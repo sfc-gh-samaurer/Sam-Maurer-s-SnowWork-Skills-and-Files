@@ -37,7 +37,8 @@ st.markdown("""
 <style>
     /* ── Base & Typography ── */
     [data-testid="stAppViewContainer"] { background-color: #F2F4F7; }
-    [data-testid="stHeader"] { background-color: #11567F; height: 2px; }
+    [data-testid="stHeader"] { display: none; }
+    .block-container { margin-top: 0 !important; }
     .block-container { padding-top: 0.75rem; padding-bottom: 0.5rem; padding-left: 1.5rem; padding-right: 1.5rem; max-width: 100%; }
     h1, h2, h3 { color: #11567F; }
 
