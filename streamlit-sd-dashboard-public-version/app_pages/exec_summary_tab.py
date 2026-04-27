@@ -77,8 +77,8 @@ if not cap_pipe_df.empty:
     _ip = _ip[_ip["FISCAL_QUARTER"].isin(invest_fqs)]
     invest_df = _ip[_ip["CALCULATED_TCV"].fillna(0) >= 500_000]
 
-# ── TIMEFRAME: fixed 7 days ───────────────────────────────────────────────────
-days_window = 7
+# ── TIMEFRAME: 7 days default, toggle to 14 ──────────────────────────────────
+days_window = 14 if st.toggle("2 Weeks", value=False, key="exec_two_weeks") else 7
 
 st.warning("⚠️ Data access permissions to ACCOUNT CAPACITY DATA causing issues and limitations — working through resolution.", icon=None)
 
