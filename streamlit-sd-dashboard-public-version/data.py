@@ -678,18 +678,28 @@ def load_capacity_pipeline():
 def load_hierarchy():
     session = _get_session()
     df = session.sql("""
+        WITH dm_primary AS (
+            SELECT DM, REGION_NAME,
+                RANK() OVER (PARTITION BY DM ORDER BY COUNT(DISTINCT ACCOUNT_ID) DESC) AS rk
+            FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
+            WHERE DS = CURRENT_DATE()
+            AND ACCOUNT_STATUS = 'Active'
+            AND DM IS NOT NULL
+            GROUP BY DM, REGION_NAME
+        )
         SELECT DISTINCT
-            GEO_NAME    AS THEATER,
-            REGION_NAME AS REGION,
-            DISTRICT_NAME AS DISTRICT,
-            DM
-        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
-        WHERE ACCOUNT_STATUS = 'Active'
-        AND DS = CURRENT_DATE()
-        AND GEO_NAME IS NOT NULL
-        AND DM IS NOT NULL
-        AND DISTRICT_NAME IS NOT NULL
-        ORDER BY GEO_NAME, REGION_NAME, DISTRICT_NAME
+            a.GEO_NAME    AS THEATER,
+            a.REGION_NAME AS REGION,
+            a.DISTRICT_NAME AS DISTRICT,
+            a.DM
+        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+        JOIN dm_primary p ON a.DM = p.DM AND a.REGION_NAME = p.REGION_NAME AND p.rk = 1
+        WHERE a.ACCOUNT_STATUS = 'Active'
+        AND a.DS = CURRENT_DATE()
+        AND a.GEO_NAME IS NOT NULL
+        AND a.DM IS NOT NULL
+        AND a.DISTRICT_NAME IS NOT NULL
+        ORDER BY a.GEO_NAME, a.REGION_NAME, a.DISTRICT_NAME
     """).to_pandas()
     return df
 
