@@ -438,15 +438,19 @@ with st.sidebar:
 
     h4 = h3[h3["DISTRICT"].isin(sel_district)] if sel_district else h3
     new_dms = sorted(h4["DISTRICT_MANAGER"].dropna().unique().tolist())
+    new_districts = sorted(h4["DISTRICT"].dropna().unique().tolist())
     if not sel_theater and not sel_region and not sel_district:
         new_dms = []
+        new_districts = []
 
     prev_dms = st.session_state.get("selected_dms", None)
     if prev_dms is not None and set(new_dms) != set(prev_dms):
         st.session_state["selected_dms"] = new_dms
+        st.session_state["selected_districts"] = new_districts
         clear_all_caches()
         st.rerun()
     st.session_state["selected_dms"] = new_dms
+    st.session_state["selected_districts"] = new_districts
 
     st.divider()
     n_dms = len(new_dms)

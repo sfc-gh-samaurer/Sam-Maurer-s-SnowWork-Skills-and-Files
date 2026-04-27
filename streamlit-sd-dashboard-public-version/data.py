@@ -27,6 +27,8 @@ _ACCOUNT_SQL = """(
     WHERE a.DS = CURRENT_DATE()
 )"""
 
+import re as _re
+
 _DM_FILTER_HARDCODED = "IN ('Erik Schneider', 'Raymond Navarro')"
 
 
@@ -73,9 +75,24 @@ def _get_dm_in_clause():
     return f"({escaped})"
 
 
+def _get_district_in_clause():
+    districts = st.session_state.get("selected_districts") or []
+    if not districts:
+        return None
+    escaped = ", ".join(f"'{d.replace(chr(39), chr(39)*2)}'" for d in sorted(districts))
+    return f"({escaped})"
+
+
 def _sql(query):
     q = query.replace("SALES.RAVEN.ACCOUNT", _ACCOUNT_SQL)
     q = q.replace(_DM_FILTER_HARDCODED, f"IN {_get_dm_in_clause()}")
+    district_clause = _get_district_in_clause()
+    if district_clause:
+        q = _re.sub(
+            r'(\w+)\.DM IN \(([^)]+)\)',
+            lambda m: f"{m.group(1)}.DM IN ({m.group(2)}) AND {m.group(1)}.DISTRICT_NAME IN {district_clause}",
+            q
+        )
     return q
 
 
@@ -394,6 +411,8 @@ def clear_all_caches():
     load_wow_use_cases.clear()
     load_wow_projects.clear()
     load_fq_closed_sd.clear()
+    load_hierarchy.clear()
+    load_account_search_list.clear()
 
 
 @st.cache_data(ttl=3600)
