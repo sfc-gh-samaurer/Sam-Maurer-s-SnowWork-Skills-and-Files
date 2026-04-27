@@ -1326,11 +1326,12 @@ def load_org_hierarchy():
             a.GEO_NAME      AS THEATRE,
             a.REGION_NAME   AS REGION,
             a.DISTRICT_NAME AS DISTRICT,
-            a.DM            AS DISTRICT_MANAGER
+            a.DM            AS DISTRICT_MANAGER,
+            COALESCE(u.IS_ACTIVE, false) AS DM_IS_ACTIVE
         FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
         JOIN district_top_dm t ON a.DM = t.DM AND a.DISTRICT_NAME = t.DISTRICT_NAME AND t.rk = 1
-        JOIN (SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true) active_dms
-            ON a.DM = active_dms.NAME
+        LEFT JOIN (SELECT DISTINCT NAME, IS_ACTIVE FROM FIVETRAN.SALESFORCE.USER) u
+            ON a.DM = u.NAME
         WHERE a.DS = CURRENT_DATE()
         AND a.REGION_NAME IN (
             'LATAM','MajorsAcq',

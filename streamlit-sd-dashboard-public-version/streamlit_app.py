@@ -15,7 +15,7 @@ st.set_page_config(
 
 _init_session()
 
-_HIERARCHY_VERSION = "v6"
+_HIERARCHY_VERSION = "v7"
 if st.session_state.get("_hierarchy_version") != _HIERARCHY_VERSION:
     load_hierarchy.clear()
     load_org_hierarchy.clear()
@@ -451,6 +451,10 @@ with st.sidebar:
     h4 = h3[h3["DISTRICT"].isin(sel_district)] if sel_district else h3
     new_dms = sorted(h4["DISTRICT_MANAGER"].dropna().unique().tolist())
     new_districts = sorted(h4["DISTRICT"].dropna().unique().tolist())
+    # Build display labels: mark inactive DMs
+    _dm_active_map = h4.drop_duplicates("DISTRICT_MANAGER").set_index("DISTRICT_MANAGER")["DM_IS_ACTIVE"].to_dict() if "DM_IS_ACTIVE" in h4.columns else {}
+    def _dm_label(dm):
+        return dm if _dm_active_map.get(dm, True) else f"{dm} (inactive)"
     if not sel_theater and not sel_region and not sel_district:
         new_dms = []
         new_districts = []
@@ -468,7 +472,7 @@ with st.sidebar:
     n_dms = len(new_dms)
     if n_dms:
         with st.expander(f"**{n_dms}** DM(s) in scope", expanded=False):
-            st.markdown("\n".join(f"- {d}" for d in new_dms))
+            st.markdown("\n".join(f"- {_dm_label(d)}" for d in new_dms))
     else:
         st.caption("No DMs selected")
 
