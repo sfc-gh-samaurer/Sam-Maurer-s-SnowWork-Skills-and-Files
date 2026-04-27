@@ -697,24 +697,22 @@ def load_capacity_pipeline():
 def load_hierarchy():
     session = _get_session()
     df = session.sql("""
-        WITH dm_primary AS (
-            SELECT DM, REGION_NAME,
-                RANK() OVER (PARTITION BY DM ORDER BY COUNT(DISTINCT ACCOUNT_ID) DESC) AS rk
+        WITH district_top_dm AS (
+            SELECT DISTRICT_NAME, REGION_NAME, DM,
+                RANK() OVER (PARTITION BY DISTRICT_NAME ORDER BY COUNT(DISTINCT ACCOUNT_ID) DESC) AS rk
             FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
             WHERE DS = CURRENT_DATE() AND ACCOUNT_STATUS = 'Active' AND DM IS NOT NULL
-            GROUP BY DM, REGION_NAME
-        ),
-        active_dms AS (
-            SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true
+            GROUP BY DISTRICT_NAME, REGION_NAME, DM
         )
         SELECT DISTINCT
-            a.GEO_NAME    AS THEATER,
-            a.REGION_NAME AS REGION,
+            a.GEO_NAME      AS THEATER,
+            a.REGION_NAME   AS REGION,
             a.DISTRICT_NAME AS DISTRICT,
             a.DM
         FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
-        JOIN dm_primary p ON a.DM = p.DM AND a.REGION_NAME = p.REGION_NAME AND p.rk = 1
-        JOIN active_dms ON a.DM = active_dms.NAME
+        JOIN district_top_dm t ON a.DM = t.DM AND a.DISTRICT_NAME = t.DISTRICT_NAME AND t.rk = 1
+        JOIN (SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true) active_dms
+            ON a.DM = active_dms.NAME
         WHERE a.ACCOUNT_STATUS = 'Active'
         AND a.DS = CURRENT_DATE()
         AND a.GEO_NAME IS NOT NULL
@@ -1317,15 +1315,12 @@ def load_exec_new_use_cases():
 def load_org_hierarchy():
     session = _get_session()
     df = session.sql("""
-        WITH dm_primary AS (
-            SELECT DM, REGION_NAME,
-                RANK() OVER (PARTITION BY DM ORDER BY COUNT(DISTINCT ACCOUNT_ID) DESC) AS rk
+        WITH district_top_dm AS (
+            SELECT DISTRICT_NAME, REGION_NAME, DM,
+                RANK() OVER (PARTITION BY DISTRICT_NAME ORDER BY COUNT(DISTINCT ACCOUNT_ID) DESC) AS rk
             FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY
             WHERE DS = CURRENT_DATE() AND ACCOUNT_STATUS = 'Active' AND DM IS NOT NULL
-            GROUP BY DM, REGION_NAME
-        ),
-        active_dms AS (
-            SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true
+            GROUP BY DISTRICT_NAME, REGION_NAME, DM
         )
         SELECT DISTINCT
             a.GEO_NAME      AS THEATRE,
@@ -1333,8 +1328,9 @@ def load_org_hierarchy():
             a.DISTRICT_NAME AS DISTRICT,
             a.DM            AS DISTRICT_MANAGER
         FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
-        JOIN dm_primary p ON a.DM = p.DM AND a.REGION_NAME = p.REGION_NAME AND p.rk = 1
-        JOIN active_dms ON a.DM = active_dms.NAME
+        JOIN district_top_dm t ON a.DM = t.DM AND a.DISTRICT_NAME = t.DISTRICT_NAME AND t.rk = 1
+        JOIN (SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true) active_dms
+            ON a.DM = active_dms.NAME
         WHERE a.DS = CURRENT_DATE()
         AND a.REGION_NAME IN (
             'LATAM','MajorsAcq',
