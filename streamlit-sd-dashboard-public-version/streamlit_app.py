@@ -15,10 +15,11 @@ st.set_page_config(
 
 _init_session()
 
-if "_hierarchy_cache_busted" not in st.session_state:
+_HIERARCHY_VERSION = "v2"
+if st.session_state.get("_hierarchy_version") != _HIERARCHY_VERSION:
     load_hierarchy.clear()
     load_account_search_list.clear()
-    st.session_state["_hierarchy_cache_busted"] = True
+    st.session_state["_hierarchy_version"] = _HIERARCHY_VERSION
 
 if "_prefs_loaded" not in st.session_state:
     _saved = load_user_prefs()
