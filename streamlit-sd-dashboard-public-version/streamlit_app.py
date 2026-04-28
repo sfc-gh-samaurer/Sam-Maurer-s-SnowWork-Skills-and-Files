@@ -359,26 +359,6 @@ st.markdown("""
     .wow-negative { color: #DC2626; font-weight: 700; }
     .wow-neutral  { color: #8A999E; font-weight: 600; }
 
-    /* ── nav scroll bar (legacy render_nav_bar) ── */
-    .tab-nav {
-        display: flex; align-items: center; gap: 8px;
-        background: white; border: 1px solid #E4E7EB;
-        border-radius: 8px; padding: 8px 14px;
-        margin-bottom: 14px; flex-wrap: wrap;
-        box-shadow: 0 1px 2px rgba(16,24,40,0.04);
-    }
-    .tab-nav-label {
-        color: #11567F; font-weight: 700; font-size: 0.78rem;
-        text-transform: uppercase; letter-spacing: 0.08em;
-        white-space: nowrap; margin-right: 4px;
-    }
-    .tab-nav-link {
-        background: linear-gradient(135deg, #0C4A6E 0%, #0284C7 100%);
-        color: white !important; text-decoration: none !important;
-        padding: 4px 12px; border-radius: 20px; font-size: 0.76rem;
-        font-weight: 600; cursor: pointer; white-space: nowrap; display: inline-block;
-    }
-    .tab-nav-link:hover { background: linear-gradient(135deg, #164E63 0%, #0369A1 100%); }
 </style>
 """, unsafe_allow_html=True)
 
@@ -415,8 +395,6 @@ with st.sidebar:
         st.session_state["sf_theater"] = []
     if "sf_region" not in st.session_state:
         st.session_state["sf_region"] = []
-    if "sf_pm" not in st.session_state:
-        st.session_state["sf_pm"] = []
     if "sf_district" not in st.session_state:
         st.session_state["sf_district"] = []
     if "selected_dms" not in st.session_state:
@@ -493,7 +471,6 @@ with st.sidebar:
     def _load_preset(p):
         st.session_state["sf_theater"] = p.get("sf_theater", [])
         st.session_state["sf_region"]  = p.get("sf_region", [])
-        st.session_state["sf_pm"]      = p.get("sf_pm", [])
         st.session_state["sf_district"]= p.get("sf_district", [])
         clear_all_caches()
 
@@ -511,7 +488,6 @@ with st.sidebar:
                     save_user_prefs({
                         "sf_theater": st.session_state.get("sf_theater", []),
                         "sf_region":  st.session_state.get("sf_region", []),
-                        "sf_pm":      st.session_state.get("sf_pm", []),
                         "sf_district":st.session_state.get("sf_district", []),
                         "filter_presets": _saved_presets,
                         "last_seen_at": st.session_state.get("_last_seen_at", ""),
@@ -527,7 +503,6 @@ with st.sidebar:
                 "name":        _new_preset_name.strip(),
                 "sf_theater":  st.session_state.get("sf_theater", []),
                 "sf_region":   st.session_state.get("sf_region", []),
-                "sf_pm":       st.session_state.get("sf_pm", []),
                 "sf_district": st.session_state.get("sf_district", []),
             }
             _saved_presets.append(_new_preset)
@@ -535,7 +510,6 @@ with st.sidebar:
             save_user_prefs({
                 "sf_theater": st.session_state.get("sf_theater", []),
                 "sf_region":  st.session_state.get("sf_region", []),
-                "sf_pm":      st.session_state.get("sf_pm", []),
                 "sf_district":st.session_state.get("sf_district", []),
                 "filter_presets": _saved_presets,
                 "last_seen_at": st.session_state.get("_last_seen_at", ""),
@@ -546,7 +520,6 @@ with st.sidebar:
     _cur_prefs = {
         "sf_theater": st.session_state.get("sf_theater", []),
         "sf_region":  st.session_state.get("sf_region", []),
-        "sf_pm":      st.session_state.get("sf_pm", []),
         "sf_district": st.session_state.get("sf_district", []),
     }
     _cur_hash = json.dumps(
@@ -558,7 +531,6 @@ with st.sidebar:
 
 # ── PAGE HEADER ───────────────────────────────────────────────────────────────
 _theaters_str = ", ".join(st.session_state.get("sf_theater", [])) or "All Theaters"
-_pms_str      = ", ".join(st.session_state.get("sf_pm", []))      or "All PMs"
 _n_dms        = len(st.session_state.get("selected_dms", []))
 _page_label   = st.session_state.get("current_page", "").split(": ")[-1]
 
@@ -618,7 +590,6 @@ if st.session_state.get("_last_seen_at") != _today_str[:10]:
     _wn_prefs = {
         "sf_theater":   st.session_state.get("sf_theater", []),
         "sf_region":    st.session_state.get("sf_region", []),
-        "sf_pm":        st.session_state.get("sf_pm", []),
         "sf_district":  st.session_state.get("sf_district", []),
         "last_seen_at": _today_str[:10],
     }

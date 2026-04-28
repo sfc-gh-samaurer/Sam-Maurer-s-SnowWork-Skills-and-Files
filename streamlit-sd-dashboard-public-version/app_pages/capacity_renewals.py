@@ -58,7 +58,7 @@ with tab_active:
                 {"col": "CONTRACT_END_DATE", "label": "End",        "fmt": "date"},
                 {"col": "TOTAL_CAP",                    "label": "Total Cap",        "fmt": "dollar"},
                 {"col": "ACTUAL_CONSUMPTION_YTD_C",       "label": "YTD Consumption", "fmt": "dollar"},
-                {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Underage", "fmt": "dollar"},
+                {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Over/Underage", "fmt": "dollar"},
                 {"col": "OVERAGE_DATE",      "label": "Overage Date","fmt": "date"},
             ], height=600)
             st.download_button(":material/download: Export CSV", filtered.to_csv(index=False), "capacity_contracts.csv", "text/csv", key="cap_csv")

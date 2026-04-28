@@ -1,5 +1,4 @@
 import streamlit as st
-import streamlit.components.v1 as components
 import pandas as pd
 from decimal import Decimal
 import html as html_mod
@@ -7,7 +6,7 @@ import json
 import os
 
 _ROLE = "TECHNICAL_ACCOUNT_MANAGER"
-_WAREHOUSE = "SNOWADHOC"
+_WAREHOUSE = "PST_STEAMLIT_APPS"
 
 _ACCOUNT_SQL = """(
     SELECT
@@ -33,39 +32,6 @@ import re as _re
 _DM_FILTER_HARDCODED = "IN ('Erik Schneider', 'Raymond Navarro')"
 
 
-def render_nav_bar(links):
-    buttons_html = "".join(
-        f'<button class="nav-btn" onclick="scrollParent(\'{anchor_id}\')">{label}</button>'
-        for label, anchor_id in links
-    )
-    html = f"""<style>
-*{{box-sizing:border-box;margin:0;padding:0;}}
-body{{background:transparent;overflow:hidden;}}
-.nav-container{{display:flex;align-items:center;gap:10px;background:white;
-  border:1px solid #e2e8f0;border-radius:12px;padding:10px 18px;flex-wrap:wrap;
-  box-shadow:0 2px 8px rgba(0,0,0,0.06);}}
-.nav-label{{color:#11567F;font-weight:700;font-size:0.82rem;text-transform:uppercase;
-  letter-spacing:0.08em;white-space:nowrap;margin-right:2px;
-  font-family:"Source Sans Pro",sans-serif;}}
-.nav-btn{{background:#d45b90;color:white;
-  border:none;cursor:pointer;padding:5px 14px;border-radius:20px;font-size:0.80rem;
-  font-weight:600;white-space:nowrap;font-family:"Source Sans Pro",sans-serif;
-  transition:background 0.15s ease;}}
-.nav-btn:hover{{background:#b84079;}}
-</style>
-<div class="nav-container">
-  <span class="nav-label">Page Navigation</span>
-  {buttons_html}
-</div>
-<script>
-function scrollParent(id){{
-  try{{
-    var el=window.parent.document.getElementById(id);
-    if(el)el.scrollIntoView({{behavior:'smooth',block:'start'}});
-  }}catch(e){{console.warn('Scroll error:',e);}}
-}}
-</script>"""
-    components.html(html, height=68)
 
 
 def _get_dm_in_clause():
@@ -120,18 +86,20 @@ def _get_session():
         session = get_active_session()
     except Exception:
         session = _local_session()
-    try:
-        session.sql(f"USE ROLE {_ROLE}").collect()
-    except Exception:
-        pass
-    try:
-        session.sql(f"USE WAREHOUSE {_WAREHOUSE}").collect()
-    except Exception:
-        pass
-    try:
-        session.sql("USE SECONDARY ROLES ALL").collect()
-    except Exception:
-        pass
+    if not st.session_state.get("_session_initialized"):
+        try:
+            session.sql(f"USE ROLE {_ROLE}").collect()
+        except Exception:
+            pass
+        try:
+            session.sql(f"USE WAREHOUSE {_WAREHOUSE}").collect()
+        except Exception:
+            pass
+        try:
+            session.sql("USE SECONDARY ROLES ALL").collect()
+        except Exception:
+            pass
+        st.session_state["_session_initialized"] = True
     return _SessionWrapper(session)
 
 
@@ -402,7 +370,6 @@ def clear_all_caches():
     load_ps_projects_active.clear()
     load_ps_pipeline.clear()
     load_accounts_base.clear()
-    load_product_usage.clear()
     load_ps_history.clear()
     load_action_planner_pipeline.clear()
     load_exec_software_renewals.clear()
@@ -411,7 +378,6 @@ def clear_all_caches():
     load_exec_new_use_cases.clear()
     load_wow_use_cases.clear()
     load_wow_projects.clear()
-    load_fq_closed_sd.clear()
     load_hierarchy.clear()
     load_org_hierarchy.clear()
     load_account_search_list.clear()
@@ -485,33 +451,8 @@ def load_wow_projects(days: int = 7):
     return _fix_decimals(df)
 
 
-@st.cache_data(ttl=3600)
-def load_fq_closed_sd(fiscal_quarter: str):
-    session = _get_session()
-    fq_safe = fiscal_quarter.replace("'", "''")
-    df = session.sql(_sql(f"""
-        SELECT
-            opp.ID            AS OPPORTUNITY_ID,
-            opp.NAME          AS OPPORTUNITY_NAME,
-            a.ACCOUNT_NAME,
-            a.REP_NAME        AS AE,
-            opp.CLOSE_DATE,
-            opp.TYPE          AS OPP_TYPE,
-            opp.AGREEMENT_TYPE_C AS AGREEMENT_TYPE,
-            CAST(COALESCE(NULLIF(opp.SERVICES_FORECAST_C, 0), opp.SERVICES_TCV_LOOKER_C, 0) AS FLOAT) AS PS_SERVICES_ACV,
-            CAST(COALESCE(NULLIF(opp.SERVICES_FORECAST_C, 0), opp.SERVICES_TCV_LOOKER_C, 0) AS FLOAT) AS TOTAL_PST
-        FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
-        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON opp.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
-        LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
-        LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = opp.CLOSE_DATE AND fc.FISCAL_PERIOD = '{fq_safe}'
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
-        AND opp.IS_WON = TRUE
-        AND opp.IS_DELETED = FALSE
-        AND (opp.SERVICES_TCV_LOOKER_C > 0 OR opp.SERVICES_FORECAST_C > 0)
-        ORDER BY opp.CLOSE_DATE DESC
-    """)).to_pandas()
-    return _fix_decimals(df)
+
+
 
 
 @st.cache_data(ttl=3600)
@@ -1166,29 +1107,6 @@ def load_action_planner_pipeline():
     return _fix_decimals(df)
 
 
-@st.cache_data(ttl=86400)
-def load_product_usage():
-    session = _get_session()
-    df = session.sql(_sql("""
-        SELECT
-            c.SALESFORCE_ACCOUNT_ID,
-            c.ACCOUNT_NAME AS ACCOUNT_NAME,
-            c.PRODUCT_CATEGORY,
-            NULL AS USE_CASE,
-            NULL AS PRIMARY_FEATURE,
-            CAST(SUM(c.CREDITS) AS FLOAT) AS TOTAL_CREDITS,
-            NULL::FLOAT AS TOTAL_JOBS
-        FROM SNOWHOUSE.PS_TAM.CSP_ACCOUNT_CONSUMPTION c
-        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON c.SALESFORCE_ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = CURRENT_DATE()
-        LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
-        LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
-        AND a.ACCOUNT_STATUS = 'Active'
-        GROUP BY c.SALESFORCE_ACCOUNT_ID, c.ACCOUNT_NAME, c.PRODUCT_CATEGORY
-        HAVING SUM(c.CREDITS) > 0
-        ORDER BY c.ACCOUNT_NAME, SUM(c.CREDITS) DESC
-    """)).to_pandas()
-    return _fix_decimals(df)
 
 
 @st.cache_data(ttl=86400)
