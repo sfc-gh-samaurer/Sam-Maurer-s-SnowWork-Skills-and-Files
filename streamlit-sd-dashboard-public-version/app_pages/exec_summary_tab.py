@@ -222,6 +222,7 @@ def _tag_ex(df, label):
 
 _ex_proj_cols = [
     {"col": "ACCOUNT_NAME",  "label": "Account"},
+    {"col": "AE",           "label": "AE"},
     {"col": "PROJECT_NAME",  "label": "Project"},
     {"col": "PROJ_LINK",     "label": "SFDC",       "fmt": "link"},
     {"col": "CHANGE_DESC",   "label": "Change"},
@@ -387,6 +388,7 @@ with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expan
         )
         render_html_table(sw_display, columns=[
             {"col": "ACCOUNT_NAME",    "label": "Account"},
+            {"col": "OWNER",           "label": "AE"},
             {"col": "OPPORTUNITY_NAME","label": "Opportunity"},
             {"col": "OPP_LINK",        "label": "SFDC",     "fmt": "link"},
             {"col": "STAGE_NAME",      "label": "Stage"},
@@ -395,7 +397,6 @@ with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expan
             {"col": "TOTAL_ACV",            "label": "Target ACV",  "fmt": "dollar"},
             {"col": "RENEWAL_ACV",           "label": "Prev ACV",    "fmt": "dollar"},
             {"col": "PRODUCT_FORECAST_TCV",  "label": "Fcst TCV",    "fmt": "dollar"},
-            {"col": "OWNER",           "label": "AE"},
         ], height=max(200, min(400, sw_n * 38 + 60)))
 
 # ── Section 2: Services Renewals ──────────────────────────────────────────────
@@ -410,6 +411,7 @@ with st.expander(f"Upcoming Services Renewals ({svc_n})", expanded=False):
         )
         render_html_table(svc_display, columns=[
             {"col": "ACCOUNT_NAME",  "label": "Account"},
+            {"col": "AE",            "label": "AE"},
             {"col": "ACCT_LINK",     "label": "SFDC",     "fmt": "link"},
             {"col": "PROJECT_NAME",  "label": "Project"},
             {"col": "PROJECT_STAGE", "label": "Stage"},
@@ -417,7 +419,6 @@ with st.expander(f"Upcoming Services Renewals ({svc_n})", expanded=False):
             {"col": "END_DATE",      "label": "End",      "fmt": "date"},
             {"col": "DAYS_TO_END",   "label": "Days Left","fmt": "number"},
             {"col": "PROJECT_MANAGER","label": "PM"},
-            {"col": "AE",            "label": "AE"},
         ], height=max(200, min(400, svc_n * 38 + 60)))
 
 # ── Section 5: Capacity Conversion Candidates ─────────────────────────────────
@@ -435,8 +436,8 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
         )
         render_html_table(conv_display, columns=[
             {"col": "ACCOUNT_NAME",       "label": "Account"},
-            {"col": "ACCT_LINK",          "label": "SFDC",       "fmt": "link"},
             {"col": "ACCOUNT_OWNER",      "label": "AE"},
+            {"col": "ACCT_LINK",          "label": "SFDC",       "fmt": "link"},
             {"col": "DM",                 "label": "DM"},
             {"col": "CONTRACT_END_DATE",  "label": "End Date",   "fmt": "date"},
             {"col": "DAYS_LEFT",          "label": "Days Left",  "fmt": "number"},
@@ -458,6 +459,7 @@ with st.expander(f"Investment Candidates — {' & '.join(invest_fqs)} ({invest_n
         inv_display["EST_INVESTMENT"] = inv_display["CALCULATED_TCV"].fillna(0) * 0.10
         render_html_table(inv_display, columns=[
             {"col": "ACCOUNT_NAME",    "label": "Account"},
+            {"col": "OWNER",           "label": "AE"},
             {"col": "OPPORTUNITY_NAME","label": "Opportunity"},
             {"col": "OPP_LINK",        "label": "SFDC",       "fmt": "link"},
             {"col": "AGREEMENT_TYPE",  "label": "Agreement Type"},

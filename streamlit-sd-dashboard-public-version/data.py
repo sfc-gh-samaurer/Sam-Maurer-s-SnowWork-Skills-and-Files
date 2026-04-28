@@ -424,6 +424,7 @@ def load_wow_projects(days: int = 7):
     df = session.sql(_sql(f"""
         SELECT
             a.ACCOUNT_NAME,
+            a.REP_NAME                           AS AE,
             p.NAME                               AS PROJECT_NAME,
             p.ID                                 AS PROJECT_ID,
             p.PSE_STAGE_C                        AS CURRENT_STAGE,

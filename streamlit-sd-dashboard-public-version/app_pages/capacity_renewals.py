@@ -50,8 +50,8 @@ with tab_active:
         with st.expander(f"{len(filtered)} contracts", expanded=True):
             render_html_table(display, columns=[
                 {"col": "ACCOUNT_NAME",      "label": "Account"},
-                {"col": "ACCOUNT_LINK",      "label": "SFDC",       "fmt": "link"},
                 {"col": "ACCOUNT_OWNER",     "label": "AE"},
+                {"col": "ACCOUNT_LINK",      "label": "SFDC",       "fmt": "link"},
                 {"col": "DM",                "label": "DM"},
                 {"col": "LEAD_SE",           "label": "Lead SE"},
                 {"col": "CONTRACT_START_DATE","label": "Start",     "fmt": "date"},
@@ -95,8 +95,8 @@ with tab_candidates:
             with st.expander(f"{len(candidates)} conversion candidates", expanded=True):
                 render_html_table(conv_display, columns=[
                     {"col": "ACCOUNT_NAME",             "label": "Account"},
-                    {"col": "ACCOUNT_LINK",             "label": "SFDC",         "fmt": "link"},
                     {"col": "ACCOUNT_OWNER",            "label": "AE"},
+                    {"col": "ACCOUNT_LINK",             "label": "SFDC",         "fmt": "link"},
                     {"col": "DM",                       "label": "DM"},
                     {"col": "CONTRACT_END_DATE",        "label": "End Date",     "fmt": "date"},
                     {"col": "DAYS_LEFT",                "label": "Days Left",    "fmt": "number"},
@@ -171,6 +171,7 @@ with tab_pipeline:
         with st.expander(f"{len(filtered_p)} opportunities", expanded=True):
             render_html_table(display_p, columns=[
                 {"col": "ACCOUNT_NAME",        "label": "Account"},
+                {"col": "OWNER",               "label": "AE"},
                 {"col": "OPPORTUNITY_NAME",    "label": "Opportunity"},
                 {"col": "OPP_LINK",            "label": "SFDC",       "fmt": "link"},
                 {"col": "AGREEMENT_TYPE",      "label": "Agreement Type"},
@@ -180,7 +181,6 @@ with tab_pipeline:
                 {"col": "PRODUCT_FORECAST_TCV","label": "Fcst TCV",   "fmt": "dollar"},
                 {"col": "CALCULATED_TCV",      "label": "Calc TCV",   "fmt": "dollar"},
                 {"col": "CLOSE_DATE",          "label": "Close Date", "fmt": "date"},
-                {"col": "OWNER",               "label": "AE"},
                 {"col": "DM",                  "label": "DM"},
             ], height=500)
             st.download_button(":material/download: Export CSV", filtered_p.to_csv(index=False), "capacity_pipeline.csv", "text/csv", key="cpipe_csv")
@@ -237,6 +237,7 @@ with tab_invest:
         with st.expander(f"{len(invest_df)} opportunities", expanded=True):
             render_html_table(invest_df, columns=[
                 {"col": "ACCOUNT_NAME",    "label": "Account"},
+                {"col": "OWNER",           "label": "AE"},
                 {"col": "OPPORTUNITY_NAME","label": "Opportunity"},
                 {"col": "OPP_LINK",        "label": "SFDC",       "fmt": "link"},
                 {"col": "AGREEMENT_TYPE",  "label": "Agreement Type"},
@@ -245,7 +246,6 @@ with tab_invest:
                 {"col": "PRODUCT_FORECAST_ACV","label": "Fcst ACV","fmt": "dollar"},
                 {"col": "CALCULATED_TCV",  "label": "Calc TCV",   "fmt": "dollar"},
                 {"col": "CLOSE_DATE",      "label": "Close Date", "fmt": "date"},
-                {"col": "OWNER",           "label": "AE"},
                 {"col": "EST_INVESTMENT",  "label": "Est. Invest","fmt": "dollar"},
             ], height=500)
             st.download_button(":material/download: Export CSV", invest_df.to_csv(index=False), "investment_opps.csv", "text/csv", key="invest_csv")

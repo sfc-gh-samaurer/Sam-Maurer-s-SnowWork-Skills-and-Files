@@ -57,6 +57,7 @@ if not pipeline_df.empty:
     with st.expander(f"{len(filtered_p)} opportunities", expanded=True):
         render_html_table(display_p, columns=[
             {"col": "ACCOUNT_NAME",              "label": "Account"},
+            {"col": "OWNER",                      "label": "AE"},
             {"col": "OPPORTUNITY_NAME",           "label": "Opportunity"},
             {"col": "OPP_LINK",                   "label": "SFDC",         "fmt": "link"},
             {"col": "AGREEMENT_TYPE",             "label": "Agreement Type"},
@@ -71,7 +72,6 @@ if not pipeline_df.empty:
             {"col": "TOTAL_PST_TCV",              "label": "PS&T TCV",     "fmt": "dollar"},
             {"col": "PS_SERVICES_FORECAST",       "label": "PS Fcast $",   "fmt": "dollar"},
             {"col": "DM",                         "label": "DM"},
-            {"col": "OWNER",                      "label": "AE"},
             {"col": "PS_SELLER_NAME",             "label": "PS Seller"},
 
             {"col": "OPP_PROBABILITY",            "label": "Prob %",       "fmt": "pct"},
@@ -126,10 +126,10 @@ if not history_df.empty:
     with st.expander(f"{len(filtered_h)} closed won opportunities", expanded=True):
         render_html_table(display_h, columns=[
             {"col": "ACCOUNT_NAME",     "label": "Account"},
+            {"col": "AE",               "label": "AE"},
             {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
             {"col": "OPP_LINK",         "label": "SFDC",         "fmt": "link"},
             {"col": "DM",               "label": "DM"},
-            {"col": "AE",               "label": "AE"},
             {"col": "OPP_OWNER",        "label": "Opp Owner"},
             {"col": "AGREEMENT_TYPE",   "label": "Agreement Type"},
             {"col": "CLOSE_DATE",       "label": "Close Date",   "fmt": "date"},

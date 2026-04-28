@@ -85,6 +85,7 @@ with st.expander(_wow_label, expanded=False):
         _merged["UC_LINK"] = _merged.apply(_uc_link, axis=1)
         render_html_table(_merged, columns=[
             {"col": "ACCOUNT_NAME",  "label": "Account"},
+            {"col": "AE",           "label": "AE"},
             {"col": "USE_CASE_NAME", "label": "Use Case"},
             {"col": "UC_LINK",       "label": "SFDC",           "fmt": "link"},
             {"col": "CHANGE",        "label": "Change"},
@@ -167,6 +168,7 @@ with tab_all:
         with st.expander(f"{len(filtered)} use cases", expanded=True):
             render_html_table(display, columns=[
                 {"col": "ACCOUNT_NAME",     "label": "Account"},
+                {"col": "OWNER",            "label": "AE"},
                 {"col": "USE_CASE_NAME",    "label": "Use Case"},
                 {"col": "UC_LINK",          "label": "UC #",           "fmt": "link", "display_col": "UC_DISPLAY"},
                 {"col": "STAGE",            "label": "Stage"},
@@ -176,7 +178,6 @@ with tab_all:
                 {"col": "CREATED_DATE",     "label": "Created",        "fmt": "date"},
                 {"col": "LAST_MODIFIED_DATE","label": "Modified",      "fmt": "date"},
                 {"col": "DAYS_IN_STAGE",    "label": "Days Since Mod", "fmt": "number"},
-                {"col": "OWNER",            "label": "AE"},
                 {"col": "IMPLEMENTER",      "label": "Implementer"},
                 {"col": "PS_ENGAGEMENT",    "label": "PS Engagement"},
             ], height=600)

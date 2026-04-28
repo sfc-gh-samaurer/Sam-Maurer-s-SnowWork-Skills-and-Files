@@ -60,6 +60,7 @@ def _add_proj_links(df_in):
 
 _stage_cols = [
     {"col": "ACCOUNT_NAME",  "label": "Account"},
+    {"col": "AE",           "label": "AE"},
     {"col": "PROJECT_NAME",  "label": "Project"},
     {"col": "PROJ_LINK",     "label": "SFDC",        "fmt": "link"},
     {"col": "OLD_VALUE",     "label": "From Stage"},
@@ -124,6 +125,7 @@ with st.expander(_proj_wow_label, expanded=False):
             _expiring_linked = _add_proj_links(_expiring)
             render_html_table(_expiring_linked, columns=[
                 {"col": "ACCOUNT_NAME", "label": "Account"},
+                {"col": "AE",          "label": "AE"},
                 {"col": "PROJECT_NAME", "label": "Project"},
                 {"col": "PROJ_LINK",    "label": "SFDC",        "fmt": "link"},
                 {"col": "PROJECT_STAGE","label": "Stage"},
@@ -217,12 +219,12 @@ if not active_df.empty:
     with st.expander(f"{len(filtered_a)} projects", expanded=True):
         render_html_table(display_a, columns=[
             {"col": "ACCOUNT_NAME",        "label": "Account"},
+            {"col": "AE",                  "label": "AE"},
             {"col": "OPPORTUNITY_NAME",    "label": "Opportunity"},
             {"col": "OPP_LINK",            "label": "Opp SFDC",      "fmt": "link"},
             {"col": "PROJECT_NAME",        "label": "Project"},
             {"col": "PRACTICE",            "label": "Practice"},
             {"col": "DM",                  "label": "DM"},
-            {"col": "AE",                  "label": "AE"},
             {"col": "PROJECT_STAGE",       "label": "Stage"},
             {"col": "BILLING_TYPE",        "label": "Billing"},
             {"col": "SKU_TYPE",            "label": "SKU"},
