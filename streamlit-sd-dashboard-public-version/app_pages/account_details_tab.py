@@ -488,7 +488,7 @@ with col1:
         cap_html = f"""
         <div class="stat-row"><span class="stat-label">Total Capacity</span><span class="stat-value">{fmt_currency(r.get("TOTAL_CAP"))}</span></div>
         <div class="stat-row"><span class="stat-label">YTD Consumption</span><span class="stat-value">{fmt_currency(r.get("ACTUAL_CONSUMPTION_YTD_C"))}</span></div>
-        <div class="stat-row"><span class="stat-label">Predicted Underage</span><span class="stat-value">{fmt_currency(r.get("OVERAGE_UNDERAGE_PREDICTION"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Predicted Over/Underage</span><span class="stat-value" style="color:{'#2ecc71' if (r.get('OVERAGE_UNDERAGE_PREDICTION') or 0) >= 0 else '#e74c3c'}">{'▲' if (r.get('OVERAGE_UNDERAGE_PREDICTION') or 0) >= 0 else '▼'} {fmt_currency(r.get("OVERAGE_UNDERAGE_PREDICTION"))}</span></div>
         <div class="stat-row"><span class="stat-label">Contract Start</span><span class="stat-value">{fmt_date(r.get("CONTRACT_START_DATE"))}</span></div>
         <div class="stat-row"><span class="stat-label">Contract End</span><span class="stat-value">{fmt_date(r.get("CONTRACT_END_DATE"))}</span></div>
         <div class="stat-row"><span class="stat-label">Overage Date</span><span class="stat-value">{fmt_date(r.get("OVERAGE_DATE"))}</span></div>
