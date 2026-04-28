@@ -390,6 +390,7 @@ def load_wow_use_cases(days: int = 7):
     df = session.sql(_sql(f"""
         SELECT
             a.ACCOUNT_NAME,
+            a.REP_NAME                       AS AE,
             uc.NAME_C                        AS USE_CASE_NAME,
             uc.ID                            AS USE_CASE_ID,
             uc.NAME                          AS USE_CASE_NUMBER,

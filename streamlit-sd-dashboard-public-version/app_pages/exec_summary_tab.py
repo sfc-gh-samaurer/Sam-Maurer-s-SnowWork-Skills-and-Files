@@ -282,6 +282,7 @@ with st.expander(f"UC Changes ({_ew_uc_n})", expanded=False):
             else:
                 render_html_table(_stage_filtered, columns=[
                     {"col": "ACCOUNT_NAME",  "label": "Account"},
+                    {"col": "AE",           "label": "AE"},
                     {"col": "USE_CASE_NAME", "label": "Use Case"},
                     {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
                     {"col": "CHANGE",        "label": "Change"},
@@ -301,6 +302,7 @@ with st.expander(f"UC Changes ({_ew_uc_n})", expanded=False):
             _wins_merged["UC_LINK"] = _wins_merged.apply(_ex_uc_link, axis=1)
             render_html_table(_wins_merged, columns=[
                 {"col": "ACCOUNT_NAME",  "label": "Account"},
+                {"col": "AE",           "label": "AE"},
                 {"col": "USE_CASE_NAME", "label": "Use Case"},
                 {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
                 {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
