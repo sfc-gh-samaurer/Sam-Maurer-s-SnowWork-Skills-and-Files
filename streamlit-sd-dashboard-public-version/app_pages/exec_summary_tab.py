@@ -232,28 +232,6 @@ _ex_pstage = _wow_proj[_wow_proj["FIELD"] == "pse__Stage__c"]
 _ex_comp   = _ex_pstage[_ex_pstage["NEW_VALUE"] == "Completed"]
 _ex_stall  = _ex_pstage[_ex_pstage["NEW_VALUE"].isin(["Stalled", "Stalled - Expiring"])]
 
-# ── 8-WEEK PIPELINE TREND ─────────────────────────────────────────────────────
-_ot = new_opps_all.copy()
-_ot["CREATED_DATE"] = pd.to_datetime(_ot["CREATED_DATE"], errors="coerce")
-_ot["WEEK"] = _ot["CREATED_DATE"].dt.to_period("W").apply(lambda p: p.start_time)
-
-_ut = new_uc_all.copy()
-_ut["CREATED_DATE"] = pd.to_datetime(_ut["CREATED_DATE"], errors="coerce")
-_ut["WEEK"] = _ut["CREATED_DATE"].dt.to_period("W").apply(lambda p: p.start_time)
-
-_ow = _ot.groupby("WEEK").size().reset_index(name="New Opps")
-_uw = _ut.groupby("WEEK").size().reset_index(name="New Use Cases")
-_trend_df = _ow.merge(_uw, on="WEEK", how="outer").sort_values("WEEK").fillna(0).tail(8)
-_trend_df["Week"] = _trend_df["WEEK"].apply(lambda x: x.strftime("%b %d") if pd.notna(x) else "")
-_trend_df = _trend_df.set_index("Week")[["New Opps", "New Use Cases"]].astype(int)
-
-with st.expander("📈 Pipeline Momentum — 8-Week Trend", expanded=False):
-    st.caption("New opportunities and new use cases created per week. Based on last 90 days of data.")
-    if not _trend_df.empty:
-        st.bar_chart(_trend_df, color=["#3B82F6", "#9333EA"], height=220)
-    else:
-        st.caption("No trend data available.")
-
 # ── THIS WEEK SECTION ────────────────────────────────────────────────────────
 _ew_uc_n = len(_ex_adv) + len(_ex_reg) + len(_ex_wins)
 
