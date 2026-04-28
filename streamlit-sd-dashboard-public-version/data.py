@@ -117,7 +117,7 @@ def _fix_decimals(df):
     return df
 
 
-def render_html_table(df, columns, height=500):
+def render_html_table(df, columns, height=500, row_style_fn=None):
     """Render a DataFrame as a scrollable HTML table with text wrapping.
 
     columns: list of dicts with keys:
@@ -199,7 +199,9 @@ def render_html_table(df, columns, height=500):
             f'<td class="{"hl" if c.get("highlight") else ""}" data-val="{_raw_val(row.get(c["col"]))}">'
             f'{fmt_cell(row.get(c["col"]), c, row)}</td>' for c in columns
         )
-        rows_html.append(f"<tr>{cells}</tr>")
+        row_bg = row_style_fn(row) if row_style_fn else None
+        row_attr = f' style="background:{row_bg};"' if row_bg else ""
+        rows_html.append(f"<tr{row_attr}>{cells}</tr>")
 
     col_types_js = str(col_types).replace("'", '"')
     table_html = f"""

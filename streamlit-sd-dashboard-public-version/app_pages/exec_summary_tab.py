@@ -151,6 +151,59 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
+# ── MONEY AT STAKE ROW ────────────────────────────────────────────────────────
+_renewal_acv  = sw_renewals["TOTAL_ACV"].fillna(0).sum()
+_cap_acv      = cap_pipe_df["PRODUCT_FORECAST_ACV"].fillna(0).sum() if not cap_pipe_df.empty else 0
+_conv_opp     = abs(conv_candidates["OVERAGE_UNDERAGE_PREDICTION"].fillna(0).sum()) if not conv_candidates.empty else 0
+_invest_tcv   = invest_df["CALCULATED_TCV"].fillna(0).sum() if not invest_df.empty else 0
+
+def _fmt_m(v):
+    if v >= 1_000_000:
+        return f"${v/1_000_000:.1f}M"
+    if v >= 1_000:
+        return f"${v/1_000:.0f}K"
+    return f"${v:,.0f}"
+
+st.markdown(f"""
+<style>
+.money-grid{{display:flex;gap:10px;margin:8px 0 10px 0;flex-wrap:wrap;}}
+.money-card{{
+    flex:1;min-width:160px;
+    background:linear-gradient(135deg,#1e293b,#334155);
+    border-radius:10px;padding:12px 18px;
+    box-shadow:0 2px 6px rgba(0,0,0,0.18);
+    display:flex;flex-direction:column;gap:3px;
+}}
+.mc-label{{font-size:0.67rem;font-weight:700;text-transform:uppercase;
+           letter-spacing:0.08em;color:rgba(255,255,255,0.5);}}
+.mc-value{{font-size:1.35rem;font-weight:900;color:white;
+           font-variant-numeric:tabular-nums;line-height:1.1;}}
+.mc-sub{{font-size:0.67rem;color:rgba(255,255,255,0.4);margin-top:2px;}}
+</style>
+<div class="money-grid">
+  <div class="money-card">
+    <span class="mc-label">Renewal ACV</span>
+    <span class="mc-value">{_fmt_m(_renewal_acv)}</span>
+    <span class="mc-sub">Open renewals · next 6 mo</span>
+  </div>
+  <div class="money-card">
+    <span class="mc-label">Cap Pipeline ACV</span>
+    <span class="mc-value">{_fmt_m(_cap_acv)}</span>
+    <span class="mc-sub">Forecast ACV · all open</span>
+  </div>
+  <div class="money-card">
+    <span class="mc-label">Conversion Opportunity</span>
+    <span class="mc-value">{_fmt_m(_conv_opp)}</span>
+    <span class="mc-sub">Predicted unused capacity</span>
+  </div>
+  <div class="money-card">
+    <span class="mc-label">Investment Pipeline TCV</span>
+    <span class="mc-value">{_fmt_m(_invest_tcv)}</span>
+    <span class="mc-sub">Cap deals &gt;$500K · 2 qtrs</span>
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
 # ── WoW SUMMARY ───────────────────────────────────────────────────────────────
 _wow_uc   = load_wow_use_cases(days=days_window)
 _wow_proj = load_wow_projects(days=days_window)
@@ -179,8 +232,29 @@ _ex_pstage = _wow_proj[_wow_proj["FIELD"] == "pse__Stage__c"]
 _ex_comp   = _ex_pstage[_ex_pstage["NEW_VALUE"] == "Completed"]
 _ex_stall  = _ex_pstage[_ex_pstage["NEW_VALUE"].isin(["Stalled", "Stalled - Expiring"])]
 
-# ── THIS WEEK SECTION ────────────────────────────────────────────────────────
-_ew_uc_n = len(_ex_adv) + len(_ex_reg) + len(_ex_wins)
+# ── 8-WEEK PIPELINE TREND ─────────────────────────────────────────────────────
+_ot = new_opps_all.copy()
+_ot["CREATED_DATE"] = pd.to_datetime(_ot["CREATED_DATE"], errors="coerce")
+_ot["WEEK"] = _ot["CREATED_DATE"].dt.to_period("W").apply(lambda p: p.start_time)
+
+_ut = new_uc_all.copy()
+_ut["CREATED_DATE"] = pd.to_datetime(_ut["CREATED_DATE"], errors="coerce")
+_ut["WEEK"] = _ut["CREATED_DATE"].dt.to_period("W").apply(lambda p: p.start_time)
+
+_ow = _ot.groupby("WEEK").size().reset_index(name="New Opps")
+_uw = _ut.groupby("WEEK").size().reset_index(name="New Use Cases")
+_trend_df = _ow.merge(_uw, on="WEEK", how="outer").sort_values("WEEK").fillna(0).tail(8)
+_trend_df["Week"] = _trend_df["WEEK"].apply(lambda x: x.strftime("%b %d") if pd.notna(x) else "")
+_trend_df = _trend_df.set_index("Week")[["New Opps", "New Use Cases"]].astype(int)
+
+with st.expander("📈 Pipeline Momentum — 8-Week Trend", expanded=False):
+    st.caption("New opportunities and new use cases created per week. Based on last 90 days of data.")
+    if not _trend_df.empty:
+        st.bar_chart(_trend_df, color=["#3B82F6", "#9333EA"], height=220)
+    else:
+        st.caption("No trend data available.")
+
+# ── THIS WEEK SECTION ────────────────────────────────────────────────────────_ew_uc_n = len(_ex_adv) + len(_ex_reg) + len(_ex_wins)
 
 st.markdown(f"""
 <div style="
@@ -386,6 +460,14 @@ with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expan
         sw_display["OPP_LINK"] = sw_display["OPPORTUNITY_ID"].apply(
             lambda x: f"{SFDC_BASE}/Opportunity/{x}/view" if pd.notna(x) and x else None
         )
+        def _sw_urgency(row):
+            try:
+                days = (pd.to_datetime(row.get("CLOSE_DATE")) - today).days
+            except Exception:
+                return None
+            if days < 30:  return "#fff1f2"
+            if days < 60:  return "#fffbeb"
+            return None
         render_html_table(sw_display, columns=[
             {"col": "ACCOUNT_NAME",    "label": "Account"},
             {"col": "OWNER",           "label": "AE"},
@@ -397,7 +479,7 @@ with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expan
             {"col": "TOTAL_ACV",            "label": "Target ACV",  "fmt": "dollar"},
             {"col": "RENEWAL_ACV",           "label": "Prev ACV",    "fmt": "dollar"},
             {"col": "PRODUCT_FORECAST_TCV",  "label": "Fcst TCV",    "fmt": "dollar"},
-        ], height=max(200, min(400, sw_n * 38 + 60)))
+        ], height=max(200, min(400, sw_n * 38 + 60)), row_style_fn=_sw_urgency)
 
 # ── Section 2: Services Renewals ──────────────────────────────────────────────
 with st.expander(f"Upcoming Services Renewals ({svc_n})", expanded=False):

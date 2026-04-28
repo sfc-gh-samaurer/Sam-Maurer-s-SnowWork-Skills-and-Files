@@ -456,7 +456,14 @@ with st.sidebar:
 
     if "last_refresh" not in st.session_state:
         st.session_state.last_refresh = datetime.now()
-    st.caption(f"Data as of: **{datetime.now().strftime('%b %d, %Y')}**")
+    try:
+        _fdata = load_data_freshness()
+        _fdate = _fdata.get("accounts_date", "Unknown")
+        _fok   = _fdata.get("today_loaded", False)
+        _fdot  = "🟢" if _fok else "🟡"
+        st.caption(f"{_fdot} Data as of: **{_fdate}**")
+    except Exception:
+        st.caption(f"Data as of: **{datetime.now().strftime('%b %d, %Y')}**")
 
     if st.button(":material/refresh: Refresh Data", type="primary", use_container_width=True):
         clear_all_caches()
