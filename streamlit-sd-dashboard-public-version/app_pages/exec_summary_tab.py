@@ -331,6 +331,7 @@ with st.expander(f"New Opportunities — last {days_window} days ({opp_n})", exp
         )
         render_html_table(new_opps_display, columns=[
             {"col": "ACCOUNT_NAME",    "label": "Account"},
+            {"col": "OWNER",           "label": "AE"},
             {"col": "OPPORTUNITY_NAME","label": "Opportunity"},
             {"col": "OPP_LINK",        "label": "SFDC",      "fmt": "link"},
             {"col": "AGREEMENT_TYPE",  "label": "Agreement Type"},
@@ -338,7 +339,6 @@ with st.expander(f"New Opportunities — last {days_window} days ({opp_n})", exp
             {"col": "FORECAST_STATUS", "label": "Forecast"},
             {"col": "TOTAL_ACV",       "label": "ACV",       "fmt": "dollar"},
             {"col": "CREATED_DATE",    "label": "Created",   "fmt": "date"},
-            {"col": "OWNER",           "label": "AE"},
         ], height=max(200, min(500, opp_n * 38 + 60)))
 
 with st.expander(f"New Use Cases — last {days_window} days ({uc_n})", expanded=False):
@@ -352,12 +352,12 @@ with st.expander(f"New Use Cases — last {days_window} days ({uc_n})", expanded
         )
         render_html_table(uc_display, columns=[
             {"col": "ACCOUNT_NAME",  "label": "Account"},
+            {"col": "OWNER",         "label": "AE"},
             {"col": "ACCT_LINK",     "label": "SFDC",    "fmt": "link"},
             {"col": "USE_CASE_NAME", "label": "Use Case"},
             {"col": "STAGE",         "label": "Stage"},
             {"col": "CREATED_DATE",  "label": "Created", "fmt": "date"},
             {"col": "ACV",           "label": "eACV",    "fmt": "dollar"},
-            {"col": "OWNER",         "label": "AE"},
         ], height=max(200, min(500, uc_n * 38 + 60)))
 
 # ── PIPELINE & CAPACITY SECTION ───────────────────────────────────────────────
