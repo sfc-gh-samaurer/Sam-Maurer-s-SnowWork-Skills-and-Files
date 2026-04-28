@@ -254,7 +254,8 @@ with st.expander("📈 Pipeline Momentum — 8-Week Trend", expanded=False):
     else:
         st.caption("No trend data available.")
 
-# ── THIS WEEK SECTION ────────────────────────────────────────────────────────_ew_uc_n = len(_ex_adv) + len(_ex_reg) + len(_ex_wins)
+# ── THIS WEEK SECTION ────────────────────────────────────────────────────────
+_ew_uc_n = len(_ex_adv) + len(_ex_reg) + len(_ex_wins)
 
 st.markdown(f"""
 <div style="
