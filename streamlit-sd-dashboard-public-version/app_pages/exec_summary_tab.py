@@ -197,7 +197,7 @@ st.markdown(f"""
     <span class="mc-sub">Predicted unused capacity</span>
   </div>
   <div class="money-card">
-    <span class="mc-label">Investment Pipeline TCV</span>
+    <span class="mc-label">Potential Investment Opportunity TCV</span>
     <span class="mc-value">{_fmt_m(_invest_tcv)}</span>
     <span class="mc-sub">Cap deals &gt;$500K · 2 qtrs</span>
   </div>
