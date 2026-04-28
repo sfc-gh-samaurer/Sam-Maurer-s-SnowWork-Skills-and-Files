@@ -79,7 +79,7 @@ if not cap_pipe_df.empty:
 _tw = st.radio("**Timeframe:**", ["7 days", "14 days"], horizontal=True, key="exec_days", label_visibility="visible")
 days_window = int(_tw.split()[0])
 
-st.warning("⚠️ Data access permissions to ACCOUNT CAPACITY DATA causing issues and limitations — working through resolution.", icon=None)
+st.warning("**⚠️ Data access permissions to ACCOUNT CAPACITY DATA causing issues and limitations — working through resolution. Validate all consumption data in A360 before decision making or actions.**", icon=None)
 
 cutoff       = today - pd.Timedelta(days=days_window)
 prior_cutoff = cutoff - pd.Timedelta(days=days_window)
