@@ -446,6 +446,43 @@ with st.sidebar:
     st.session_state["selected_dms"] = new_dms
     st.session_state["selected_districts"] = new_districts
 
+    # ── Feedback Button ────────────────────────────────────────────────────────
+    @st.dialog("Bugs & Enhancement Requests", width="large")
+    def _feedback_dialog():
+        st.caption("Report a bug or suggest an improvement. Submissions go directly to Sam Maurer.")
+        _fb_name    = st.text_input("Your Name", key="_fb_name")
+        _fb_type    = st.radio("Type", ["Bug Report", "Enhancement Request"], horizontal=True, key="_fb_type")
+        _fb_subject = st.text_input("Subject", key="_fb_subject")
+        _fb_desc    = st.text_area("Description", height=160, key="_fb_desc")
+        st.markdown("")
+        if st.button("Send", type="primary", use_container_width=True, key="_fb_send"):
+            if not _fb_name.strip() or not _fb_subject.strip() or not _fb_desc.strip():
+                st.warning("Please fill in all fields before sending.")
+            else:
+                try:
+                    from snowflake.snowpark.context import get_active_session
+                    _fb_session = get_active_session()
+                    _subj = f"[SD Dashboard] {_fb_type}: {_fb_subject.strip()}"
+                    _body = (
+                        f"SD Dashboard Feedback\n"
+                        f"{'─'*40}\n"
+                        f"From:    {_fb_name.strip()}\n"
+                        f"Type:    {_fb_type}\n"
+                        f"Subject: {_fb_subject.strip()}\n\n"
+                        f"Description:\n{_fb_desc.strip()}"
+                    )
+                    _subj_esc = _subj.replace("'", "''")
+                    _body_esc = _body.replace("'", "''")
+                    _fb_session.sql(
+                        f"SELECT SYSTEM$SEND_EMAIL('SD_CENTER_EMAIL_INT', 'sam.maurer@snowflake.com', '{_subj_esc}', '{_body_esc}')"
+                    ).collect()
+                    st.success("✅ Sent! Thank you for your feedback.")
+                except Exception as _fb_err:
+                    st.error(f"Could not send email: {_fb_err}")
+
+    if st.button("🐛 Bugs & Enhancement Requests", use_container_width=True, type="secondary", key="_feedback_btn"):
+        _feedback_dialog()
+
     st.divider()
     n_dms = len(new_dms)
     if n_dms:
