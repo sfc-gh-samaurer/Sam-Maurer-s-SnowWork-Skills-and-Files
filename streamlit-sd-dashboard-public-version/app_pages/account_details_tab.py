@@ -508,7 +508,9 @@ with col2:
         <div class="stat-row"><span class="stat-label">Opportunity</span><span class="stat-value" style="font-size:0.76rem">{esc(str(r.get("OPPORTUNITY_NAME") or "—")[:45])}</span></div>
         <div class="stat-row"><span class="stat-label">Stage</span><span class="stat-value">{esc(str(r.get("STAGE_NAME") or "—"))}</span></div>
         <div class="stat-row"><span class="stat-label">Forecast</span><span class="stat-value">{esc(str(r.get("FORECAST_STATUS") or "—"))}</span></div>
-        <div class="stat-row"><span class="stat-label">ACV</span><span class="stat-value">{fmt_currency(r.get("TOTAL_ACV"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Prior Avg ACV</span><span class="stat-value">{fmt_currency(r.get("RENEWAL_ACV"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Product Forecast TCV</span><span class="stat-value">{fmt_currency(r.get("PRODUCT_FORECAST_TCV"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Total ACV</span><span class="stat-value">{fmt_currency(r.get("TOTAL_ACV"))}</span></div>
         <div class="stat-row"><span class="stat-label">Close Date</span><span class="stat-value">{fmt_date(r.get("CLOSE_DATE"))}</span></div>
         """
     else:
@@ -611,12 +613,16 @@ if not _sd_acct.empty:
     _sd_acct["OPP_TYPE"] = "PS & Services"
     if "TOTAL_ACV" not in _sd_acct.columns:
         _sd_acct["TOTAL_ACV"] = None
+    if "PRODUCT_FORECAST_ACV" not in _sd_acct.columns:
+        _sd_acct["PRODUCT_FORECAST_ACV"] = None
+    if "PRODUCT_FORECAST_TCV" not in _sd_acct.columns:
+        _sd_acct["PRODUCT_FORECAST_TCV"] = None
 if not _cap_acct.empty:
     _cap_acct["OPP_TYPE"] = "Capacity Renewal"
-    if "TOTAL_ACV" not in _cap_acct.columns and "CALCULATED_TCV" in _cap_acct.columns:
-        _cap_acct["TOTAL_ACV"] = _cap_acct["CALCULATED_TCV"]
+    if "TOTAL_ACV" not in _cap_acct.columns:
+        _cap_acct["TOTAL_ACV"] = _cap_acct.get("PRODUCT_FORECAST_ACV")
 
-_opp_cols = ["OPPORTUNITY_NAME", "OPPORTUNITY_ID", "OPP_TYPE", "STAGE_NAME", "FORECAST_STATUS", "CLOSE_DATE", "TOTAL_ACV"]
+_opp_cols = ["OPPORTUNITY_NAME", "OPPORTUNITY_ID", "OPP_TYPE", "STAGE_NAME", "FORECAST_STATUS", "CLOSE_DATE", "PRODUCT_FORECAST_ACV", "PRODUCT_FORECAST_TCV", "TOTAL_ACV"]
 _opps_combined = pd.concat(
     [df[[c for c in _opp_cols if c in df.columns]] for df in [_sd_acct, _cap_acct] if not df.empty],
     ignore_index=True
@@ -629,13 +635,15 @@ else:
         lambda x: f"{SFDC_BASE}/Opportunity/{x}/view" if pd.notna(x) and x else None
     )
     render_html_table(_opps_combined, columns=[
-        {"col": "OPPORTUNITY_NAME", "label": "Opportunity"},
-        {"col": "OPP_LINK",         "label": "SFDC",        "fmt": "link"},
-        {"col": "OPP_TYPE",         "label": "Type"},
-        {"col": "STAGE_NAME",       "label": "Stage"},
-        {"col": "FORECAST_STATUS",  "label": "Forecast"},
-        {"col": "CLOSE_DATE",       "label": "Close Date",  "fmt": "date"},
-        {"col": "TOTAL_ACV",        "label": "ACV",         "fmt": "dollar"},
+        {"col": "OPPORTUNITY_NAME",     "label": "Opportunity"},
+        {"col": "OPP_LINK",             "label": "SFDC",              "fmt": "link"},
+        {"col": "OPP_TYPE",             "label": "Type"},
+        {"col": "STAGE_NAME",           "label": "Stage"},
+        {"col": "FORECAST_STATUS",      "label": "Forecast"},
+        {"col": "CLOSE_DATE",           "label": "Close Date",        "fmt": "date"},
+        {"col": "PRODUCT_FORECAST_ACV", "label": "Prior Avg ACV",     "fmt": "dollar"},
+        {"col": "PRODUCT_FORECAST_TCV", "label": "Product Fcst TCV",  "fmt": "dollar"},
+        {"col": "TOTAL_ACV",            "label": "Total ACV",         "fmt": "dollar"},
     ], height=max(120, min(400, len(_opps_combined) * 38 + 60)))
 
 # ─────────────────────────────────────────────────────────────────────────────
