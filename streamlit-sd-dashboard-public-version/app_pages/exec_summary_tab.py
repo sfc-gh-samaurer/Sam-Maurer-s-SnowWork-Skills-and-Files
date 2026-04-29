@@ -153,7 +153,11 @@ st.markdown(f"""
 
 # ── MONEY AT STAKE ROW ────────────────────────────────────────────────────────
 _renewal_acv  = sw_renewals["TOTAL_ACV"].fillna(0).sum()
-_cap_acv      = cap_pipe_df["PRODUCT_FORECAST_ACV"].fillna(0).sum() if not cap_pipe_df.empty else 0
+_cap_pipe_filtered = cap_pipe_df[
+    (cap_pipe_df["FORECAST_STATUS"].fillna("") != "Omitted") &
+    (pd.to_datetime(cap_pipe_df["CLOSE_DATE"], errors="coerce") <= today + pd.Timedelta(days=365))
+] if not cap_pipe_df.empty else cap_pipe_df
+_cap_acv      = _cap_pipe_filtered["PRODUCT_FORECAST_ACV"].fillna(0).sum()
 _conv_opp     = abs(conv_candidates["OVERAGE_UNDERAGE_PREDICTION"].fillna(0).sum()) if not conv_candidates.empty else 0
 _invest_tcv   = invest_df["CALCULATED_TCV"].fillna(0).sum() if not invest_df.empty else 0
 
@@ -189,7 +193,7 @@ st.markdown(f"""
   <div class="money-card">
     <span class="mc-label">Cap Pipeline ACV</span>
     <span class="mc-value">{_fmt_m(_cap_acv)}</span>
-    <span class="mc-sub">Forecast ACV · all open</span>
+    <span class="mc-sub">Fcst ACV · next 12mo · ex. Omitted</span>
   </div>
   <div class="money-card">
     <span class="mc-label">Conversion Opportunity</span>
