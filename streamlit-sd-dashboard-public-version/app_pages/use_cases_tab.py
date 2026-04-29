@@ -38,9 +38,12 @@ _reg_n = len(wow_regressions)
 _win_n = len(wow_tech_wins)
 _gl_n  = len(wow_golive)
 
-_wow_label = f"📅 This Week's Use Case Changes  \u2014  {_adv_n} advances\u00a0\u00b7\u00a0{_reg_n} regressions\u00a0\u00b7\u00a0{_win_n} tech wins\u00a0\u00b7\u00a0{_gl_n} go-live shifts"
+_n_stage_changes = _adv_n + _reg_n
+_wow_label = f"📅 This Week's Use Case Changes  \u2014  {_n_stage_changes} stage changes\u00a0\u00b7\u00a0{_win_n} tech wins\u00a0\u00b7\u00a0{_gl_n} go-live shifts"
 
 with st.expander(_wow_label, expanded=False):
+    st.caption("Use case stage advances, regressions, and technical wins in the last 7 days.")
+
     def _uc_link(row):
         uid = row.get("USE_CASE_ID")
         return f"{SFDC_BASE}/{uid}/view" if uid and str(uid).strip() else None
@@ -50,36 +53,75 @@ with st.expander(_wow_label, expanded=False):
         d["CHANGE"] = label
         return d
 
-    _merged_parts = []
-    if not wow_advances.empty:
-        _merged_parts.append(_tag_event(wow_advances, "↑ Stage Advance"))
-    if not wow_regressions.empty:
-        _merged_parts.append(_tag_event(wow_regressions, "↓ Stage Regression"))
-    if not wow_tech_wins.empty:
-        _tw = wow_tech_wins.copy()
-        _tw["NEW_VALUE"] = "Tech Win ✓"
-        _merged_parts.append(_tag_event(_tw, "✓ Tech Win"))
-    if not wow_golive.empty:
-        _merged_parts.append(_tag_event(wow_golive, "Go-Live Shift"))
+    _uc_tab_stage, _uc_tab_wins = st.tabs([
+        f"Stage Changes ({_n_stage_changes})",
+        f"Tech Wins ({_win_n})",
+    ])
 
-    if _merged_parts:
-        _merged = pd.concat(_merged_parts, ignore_index=True)
-        _merged["UC_LINK"] = _merged.apply(_uc_link, axis=1)
-        render_html_table(_merged, columns=[
-            {"col": "ACCOUNT_NAME",  "label": "Account"},
-            {"col": "AE",           "label": "AE"},
-            {"col": "USE_CASE_NAME", "label": "Use Case"},
-            {"col": "UC_LINK",       "label": "SFDC",           "fmt": "link"},
-            {"col": "CHANGE",        "label": "Change"},
-            {"col": "OLD_VALUE",     "label": "From"},
-            {"col": "NEW_VALUE",     "label": "To"},
-            {"col": "ACV",           "label": "UC eACV",        "fmt": "dollar"},
-            {"col": "CURRENT_STAGE", "label": "Current Stage"},
-            {"col": "DECISION_DATE", "label": "Decision Date",  "fmt": "date"},
-            {"col": "CHANGED_AT",   "label": "Changed",        "fmt": "date"},
-        ], height=max(180, min(600, len(_merged) * 40 + 60)))
-    else:
-        empty_state("No use case changes this week.")
+    _uc_cols = [
+        {"col": "ACCOUNT_NAME",  "label": "Account"},
+        {"col": "AE",            "label": "AE"},
+        {"col": "USE_CASE_NAME", "label": "Use Case"},
+        {"col": "UC_LINK",       "label": "SFDC",          "fmt": "link"},
+        {"col": "CHANGE",        "label": "Change"},
+        {"col": "OLD_VALUE",     "label": "From"},
+        {"col": "NEW_VALUE",     "label": "To"},
+        {"col": "ACV",           "label": "UC eACV",       "fmt": "dollar"},
+        {"col": "CURRENT_STAGE", "label": "Current Stage"},
+        {"col": "DECISION_DATE", "label": "Decision Date", "fmt": "date"},
+        {"col": "CHANGED_AT",    "label": "Changed",       "fmt": "date"},
+    ]
+
+    with _uc_tab_stage:
+        _stage_parts = []
+        if not wow_advances.empty:
+            _stage_parts.append(_tag_event(wow_advances, "\u2191 Stage Advance"))
+        if not wow_regressions.empty:
+            _stage_parts.append(_tag_event(wow_regressions, "\u2193 Stage Regression"))
+
+        if _stage_parts:
+            _stage_merged = pd.concat(_stage_parts, ignore_index=True)
+            _stage_merged["UC_LINK"] = _stage_merged.apply(_uc_link, axis=1)
+            _fc1, _fc2, _fc3 = st.columns([1.4, 1.4, 5])
+            _dir_filter = _fc1.radio(
+                "Direction", ["All", "Advances", "Regressions"],
+                index=1, horizontal=True, key="uc_tab_dir",
+                label_visibility="collapsed",
+            )
+            _min_stage = _fc2.selectbox(
+                "From Stage \u2265", ["Any", "2", "3", "4", "5"],
+                index=1, key="uc_tab_minstage",
+                label_visibility="collapsed",
+            )
+            _fc1.caption("Direction")
+            _fc2.caption("From Stage \u2265")
+            _stage_filtered = _stage_merged.copy()
+            if _dir_filter == "Advances":
+                _stage_filtered = _stage_filtered[_stage_filtered["CHANGE"] == "\u2191 Stage Advance"]
+            elif _dir_filter == "Regressions":
+                _stage_filtered = _stage_filtered[_stage_filtered["CHANGE"] == "\u2193 Stage Regression"]
+            if _min_stage != "Any":
+                _stage_filtered = _stage_filtered[
+                    _stage_filtered["OLD_VALUE"].apply(_stage_num) >= int(_min_stage)
+                ]
+            if _stage_filtered.empty:
+                empty_state("No stage changes match the current filters.")
+            else:
+                render_html_table(_stage_filtered, columns=_uc_cols,
+                                  height=max(120, min(450, len(_stage_filtered) * 38 + 60)))
+        else:
+            empty_state("No stage changes this week.")
+
+    with _uc_tab_wins:
+        if not wow_tech_wins.empty:
+            _wins = wow_tech_wins.copy()
+            _wins["NEW_VALUE"] = "Tech Win \u2713"
+            _wins["CHANGE"] = "\u2713 Tech Win"
+            _wins["UC_LINK"] = _wins.apply(_uc_link, axis=1)
+            render_html_table(_wins, columns=_uc_cols,
+                              height=max(120, min(400, len(_wins) * 38 + 60)))
+        else:
+            empty_state("No technical wins this week.")
 
 def _latest_se_comment_uc(full_text):
     if pd.isna(full_text) or not str(full_text).strip():
