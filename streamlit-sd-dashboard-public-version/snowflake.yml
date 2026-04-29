@@ -6,7 +6,7 @@ entities:
       name: '"SD Presales Run the Business Dashboard"'
       database: SD_APPS_DB
       schema: SD_Center
-    query_warehouse: SNOWADHOC
+    query_warehouse: PST_STEAMLIT_APPS
     compute_pool: STREAMLIT_DEDICATED_POOL
     runtime_name: SYSTEM$ST_CONTAINER_RUNTIME_PY3_11
     external_access_integrations:
@@ -15,12 +15,12 @@ entities:
     artifacts:
       - streamlit_app.py
       - data.py
+      - components.py
+      - constants.py
       - pyproject.toml
       - app_pages/exec_summary_tab.py
       - app_pages/capacity_renewals.py
       - app_pages/use_cases_tab.py
       - app_pages/pst_tab.py
       - app_pages/sd_opportunities_tab.py
-      - app_pages/action_planner_tab.py
-      - app_pages/pipeline_snowwork_tab.py
       - app_pages/account_details_tab.py
