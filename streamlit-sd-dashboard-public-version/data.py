@@ -648,6 +648,7 @@ def load_capacity_pipeline():
         WHERE COALESCE(_dm.NAME, o.DM) IN ('Erik Schneider', 'Raymond Navarro')
         AND o.DS = CURRENT_DATE()
         AND o.IS_CLOSED = FALSE
+        AND o.CLOSE_DATE >= CURRENT_DATE()
         ORDER BY o.CLOSE_DATE ASC
     """)).to_pandas()
     return _fix_decimals(df)
