@@ -26,14 +26,6 @@ wow_status = wow_proj[wow_proj["FIELD"] == "pse__Project_Status__c"]
 
 wow_completed  = wow_stages[wow_stages["NEW_VALUE"] == "Completed"]
 wow_kicked_off = wow_stages[wow_stages["NEW_VALUE"].isin(["In Progress", "Scheduled"])]
-wow_stalled    = wow_stages[wow_stages["NEW_VALUE"].isin(["Stalled", "Stalled - Expiring"])]
-wow_red        = wow_status[wow_status["NEW_VALUE"] == "Red"]
-
-_stalled_tagged = wow_stalled.copy()
-_stalled_tagged["RISK_TYPE"] = "Went Stalled"
-_red_tagged = wow_red.copy()
-_red_tagged["RISK_TYPE"] = "Status \u2192 Red"
-wow_at_risk = pd.concat([_stalled_tagged, _red_tagged], ignore_index=True) if (not wow_stalled.empty or not wow_red.empty) else pd.DataFrame()
 
 if not active_df.empty and "END_DATE" in active_df.columns:
     _end_col = pd.to_datetime(active_df["END_DATE"], errors="coerce")
@@ -47,12 +39,11 @@ else:
 
 _comp_n  = len(wow_completed)
 _kick_n  = len(wow_kicked_off)
-_risk_n  = len(wow_at_risk)
 _exp_n   = len(_expiring)
 
 _proj_wow_label = (
     f"📅 This Week's Project Changes  —  "
-    f"{_comp_n} completed · {_kick_n} kicked off · {_risk_n} at risk · {_exp_n} expiring <30d"
+    f"{_comp_n} completed · {_kick_n} kicking off · {_exp_n} expiring <30d"
 )
 
 def _proj_link(row):
@@ -81,9 +72,8 @@ _stage_cols = [
 ]
 
 with st.expander(_proj_wow_label, expanded=False):
-    _pt1, _pt2, _pt3, _pt4 = st.tabs([
-        f"Completions & Kickoffs ({_comp_n + _kick_n})",
-        f"Newly At Risk ({_risk_n})",
+    _pt1, _pt2, _pt3 = st.tabs([
+        f"Scheduled & Kicking Off ({_comp_n + _kick_n})",
         f"Expiring in 30 Days ({_exp_n})",
         f"All Stage Changes ({len(wow_stages)})",
     ])
@@ -99,32 +89,11 @@ with st.expander(_proj_wow_label, expanded=False):
             if not wow_kicked_off.empty:
                 if not wow_completed.empty:
                     st.markdown("---")
-                st.caption(f"**🚀 Kicked Off ({_kick_n})**")
+                st.caption(f"**🚀 Kicking Off ({_kick_n})**")
                 render_html_table(_add_proj_links(wow_kicked_off), columns=_stage_cols,
                                   height=max(100, min(400, _kick_n * 40 + 60)))
 
     with _pt2:
-        if wow_at_risk.empty:
-            empty_state("No projects newly at risk this week.")
-        else:
-            st.caption("Projects that went Stalled or turned Red status this week.")
-            render_html_table(_add_proj_links(wow_at_risk), columns=[
-                {"col": "ACCOUNT_NAME",  "label": "Account"},
-                {"col": "AE",            "label": "AE"},
-                {"col": "PROJECT_NAME",  "label": "Project"},
-                {"col": "PROJ_LINK",     "label": "SFDC",        "fmt": "link"},
-                {"col": "RISK_TYPE",     "label": "Risk Type"},
-                {"col": "OLD_VALUE",     "label": "From"},
-                {"col": "NEW_VALUE",     "label": "To"},
-                {"col": "CHANGED_AT",    "label": "Changed",     "fmt": "date"},
-                {"col": "BILLING_TYPE",  "label": "Billing"},
-                {"col": "END_DATE",      "label": "End",         "fmt": "date"},
-                {"col": "REVENUE_AMOUNT","label": "Revenue",     "fmt": "dollar"},
-                {"col": "PCT_COMPLETE",  "label": "% Complete",  "fmt": "pct"},
-            ], height=max(140, min(500, _risk_n * 40 + 60)),
-            row_style_fn=lambda r: "#fff1f2" if r.get("RISK_TYPE") else None)
-
-    with _pt3:
         if _expiring.empty:
             empty_state("No projects expiring in the next 30 days.")
         else:
@@ -143,7 +112,7 @@ with st.expander(_proj_wow_label, expanded=False):
                 {"col": "PROJECT_MANAGER","label": "PM"},
             ], height=max(140, min(500, _exp_n * 40 + 60)))
 
-    with _pt4:
+    with _pt3:
         if wow_stages.empty:
             empty_state("No project stage changes this week.")
         else:
