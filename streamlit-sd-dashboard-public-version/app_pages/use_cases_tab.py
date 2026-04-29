@@ -1,12 +1,9 @@
 import streamlit as st
 import pandas as pd
 import re
-import html as _html_mod
 from data import load_use_cases, load_action_planner_pipeline, render_html_table, load_wow_use_cases
 from constants import SFDC_BASE
 from components import section_banner, empty_state
-
-today = pd.Timestamp.now().normalize()
 
 df    = load_use_cases()
 ap_df = load_action_planner_pipeline()
@@ -20,41 +17,6 @@ def _stage_num(s):
         return int(str(s).split(" - ")[0].strip())
     except Exception:
         return -1
-
-
-def _stage_risk_html(row):
-    stage = str(row.get("STAGE") or "")
-    days  = row.get("DAYS_IN_STAGE")
-    dec   = row.get("DECISION_DATE")
-    badges = []
-    if days is not None and not pd.isna(days):
-        try:
-            d = float(days)
-            if d > 90:
-                badges.append(
-                    f'<span style="background:#fee2e2;color:#dc2626;border-radius:3px;'
-                    f'padding:1px 5px;font-size:0.68rem;font-weight:700;margin-left:4px;">⚠ {int(d)}d</span>'
-                )
-            elif d > 60:
-                badges.append(
-                    f'<span style="background:#fef3c7;color:#b45309;border-radius:3px;'
-                    f'padding:1px 5px;font-size:0.68rem;font-weight:700;margin-left:4px;">⚡ {int(d)}d</span>'
-                )
-        except Exception:
-            pass
-    if pd.notna(dec):
-        try:
-            dd = pd.to_datetime(dec)
-            if hasattr(dd, "tz") and dd.tz is not None:
-                dd = dd.tz_localize(None)
-            if dd < today:
-                badges.append(
-                    '<span style="background:#fce7f3;color:#9d174d;border-radius:3px;'
-                    'padding:1px 5px;font-size:0.68rem;font-weight:700;margin-left:4px;">📅 Overdue</span>'
-                )
-        except Exception:
-            pass
-    return _html_mod.escape(stage) + "".join(badges)
 
 
 wow_stages = wow[wow["FIELD"] == "Stage__c"].copy()
@@ -186,13 +148,12 @@ with tab_all:
         display["UC_DISPLAY"] = display["USE_CASE_NUMBER"].fillna("")
 
         with st.expander(f"{len(filtered)} use cases", expanded=True):
-            display["STAGE_DISPLAY"] = display.apply(_stage_risk_html, axis=1)
             render_html_table(display, columns=[
                 {"col": "ACCOUNT_NAME",     "label": "Account"},
                 {"col": "OWNER",            "label": "AE"},
                 {"col": "USE_CASE_NAME",    "label": "Use Case"},
                 {"col": "UC_LINK",          "label": "UC #",           "fmt": "link", "display_col": "UC_DISPLAY"},
-                {"col": "STAGE_DISPLAY",    "label": "Stage",          "fmt": "html"},
+                {"col": "STAGE",            "label": "Stage"},
                 {"col": "DECISION_DATE",    "label": "Decision Date",  "fmt": "date"},
                 {"col": "USE_CASE_STATUS",  "label": "Status"},
                 {"col": "ACV",              "label": "eACV",           "fmt": "dollar"},
