@@ -9,7 +9,7 @@ active_df = load_ps_projects_active()
 if not active_df.empty and "PRACTICE" in active_df.columns:
     active_df = active_df[active_df["PRACTICE"] != "Education Services"]
 
-section_banner("Active SD Projects", "In-progress and pipeline services delivery engagements")
+section_banner("Active SD Projects", "Active services delivery projects across all accounts")
 
 k1, k2, k3, k4 = st.columns(4)
 k1.metric("Active Projects", len(active_df))
