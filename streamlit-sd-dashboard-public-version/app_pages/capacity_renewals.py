@@ -152,7 +152,7 @@ with tab_pipeline:
         with cd2:
             search_p = st.text_input("Search opportunity", "", key="cpipe_search", placeholder="Account or opportunity…")
 
-        filtered_p = cap_pipe_df.copy()
+        filtered_p = cap_pipe_df[cap_pipe_df["FORECAST_STATUS"].fillna("") != "Omitted"].copy()
         if dm_filter_p:
             filtered_p = filtered_p[filtered_p["DM"].isin(dm_filter_p)]
         if type_filter:
