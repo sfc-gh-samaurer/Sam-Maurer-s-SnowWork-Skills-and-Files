@@ -159,7 +159,7 @@ _cap_pipe_filtered = cap_pipe_df[
 ] if not cap_pipe_df.empty else cap_pipe_df
 _cap_acv      = _cap_pipe_filtered["PRODUCT_FORECAST_ACV"].fillna(0).sum()
 _conv_opp     = abs(conv_candidates["OVERAGE_UNDERAGE_PREDICTION"].fillna(0).sum()) if not conv_candidates.empty else 0
-_invest_tcv   = invest_df["CALCULATED_TCV"].fillna(0).sum() if not invest_df.empty else 0
+_invest_tcv   = (invest_df["CALCULATED_TCV"].fillna(0) * 0.10).sum() if not invest_df.empty else 0
 
 def _fmt_m(v):
     if v >= 1_000_000:
@@ -201,9 +201,9 @@ st.markdown(f"""
     <span class="mc-sub">Predicted unused capacity</span>
   </div>
   <div class="money-card">
-    <span class="mc-label">Potential Investment Opportunity TCV</span>
+    <span class="mc-label">Est. Services Investment Pool</span>
     <span class="mc-value">{_fmt_m(_invest_tcv)}</span>
-    <span class="mc-sub">Cap deals &gt;$500K · 2 qtrs</span>
+    <span class="mc-sub">10% of cap TCV · next 2 qtrs</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
