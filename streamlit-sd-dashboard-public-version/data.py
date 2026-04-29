@@ -708,7 +708,8 @@ def load_account_search_list():
             'LATAM','MajorsAcq','CommAcqEast','CommAcqWest',
             'EntAcqCentral','EntAcqEast','EntAcqWest',
             'NortheastExp','SoutheastExp','CentralExp','Commercial',
-            'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp'
+            'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp',
+            'FSI','HCLS','MFG','RCG','TMT'
         )
         ORDER BY ACCOUNT_NAME
     """).to_pandas()
@@ -1288,7 +1289,8 @@ def load_org_hierarchy():
                 'CommAcqEast','CommAcqWest',
                 'EntAcqCentral','EntAcqEast','EntAcqWest',
                 'NortheastExp','SoutheastExp','CentralExp','Commercial',
-                'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp'
+                'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp',
+                'FSI','HCLS','MFG','RCG','TMT'
             )
         ),
         district_top_dm AS (

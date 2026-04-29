@@ -15,7 +15,7 @@ st.set_page_config(
 
 _init_session()
 
-_HIERARCHY_VERSION = "v8"
+_HIERARCHY_VERSION = "v9"
 if st.session_state.get("_hierarchy_version") != _HIERARCHY_VERSION:
     load_hierarchy.clear()
     load_org_hierarchy.clear()
