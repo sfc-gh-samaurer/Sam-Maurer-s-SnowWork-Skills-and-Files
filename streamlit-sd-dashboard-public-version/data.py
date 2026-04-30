@@ -599,7 +599,7 @@ def load_capacity_renewals():
         LEFT JOIN lead_se ls ON b.SALESFORCE_ACCOUNT_ID = ls.SALESFORCE_ACCOUNT_ID
         WHERE c.TOTAL_CAP > 0
         ORDER BY c.CONTRACT_END_DATE ASC NULLS LAST
-    """
+    """)
     df = session._s.sql(_raw_sql).to_pandas()
     return _fix_decimals(df)
 
