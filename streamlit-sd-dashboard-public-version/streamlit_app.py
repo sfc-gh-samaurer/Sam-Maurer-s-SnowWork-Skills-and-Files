@@ -1,5 +1,5 @@
 import streamlit as st
-from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list, get_current_user
+from data import clear_all_caches, _init_session, _get_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list, get_current_user
 from datetime import datetime
 import json
 import os
@@ -461,8 +461,7 @@ with st.sidebar:
                 st.warning("Please fill in all fields before sending.")
             else:
                 try:
-                    from snowflake.snowpark.context import get_active_session
-                    _fb_session = get_active_session()
+                    _fb_session = _get_session()
                     _subj = f"[SD Dashboard] {_fb_type}: {_fb_subject.strip()}"
                     _body = (
                         f"SD Dashboard Feedback\n"
