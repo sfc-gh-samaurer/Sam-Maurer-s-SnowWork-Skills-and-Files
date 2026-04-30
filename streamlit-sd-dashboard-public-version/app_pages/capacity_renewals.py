@@ -19,6 +19,7 @@ today       = pd.Timestamp.now().normalize()
 section_banner("Capacity & Renewals", "Active contracts, conversion candidates, pipeline, and investment opportunities")
 
 st.caption(f"🔍 Debug — selected_dms: `{st.session_state.get('selected_dms')}` | rows: `{len(df)}`")
+st.caption(f"🔍 SQL: `{st.session_state.get('_cap_debug_sql', 'not set')}`")
 
 
 tab_active, tab_candidates, tab_pipeline, tab_invest = st.tabs([
