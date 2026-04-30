@@ -526,31 +526,71 @@ def load_accounts_base():
 
 
 @st.cache_data(ttl=86400)
-def load_capacity_renewals(dms: tuple = ()):
-    if not dms:
-        return pd.DataFrame()
+def load_capacity_renewals():
     session = _get_session()
-    dm_clause = ", ".join(f"'{d.replace(chr(39), chr(39)*2)}'" for d in dms)
-    df = session._s.sql(f"""
+    df = session.sql(_sql("""
+        WITH base AS (
+            SELECT
+                a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
+                a.ACCOUNT_NAME,
+                a.REP_NAME AS ACCOUNT_OWNER,
+                COALESCE(dm_user.NAME, a.DM) AS DM,
+                a.ACCOUNT_TIER AS TIER
+            FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+            LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) ae_user ON a.REP_NAME = ae_user.NAME
+            LEFT JOIN FIVETRAN.SALESFORCE.USER dm_user ON ae_user.MANAGER_ID = dm_user.ID
+            WHERE a.DS = CURRENT_DATE()
+            AND COALESCE(dm_user.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+            AND a.ACCOUNT_STATUS = 'Active'
+        ),
+        capacity AS (
+            SELECT
+                dc.SALESFORCE_ACCOUNT_ID,
+                dc.CONTRACT_START_DATE,
+                dc.CONTRACT_END_DATE,
+                CAST(dc.CAPACITY_PURCHASED AS FLOAT) AS TOTAL_CAP,
+                CAST(dc.CAPACITY_PURCHASED - dc.CAPACITY_USAGE_REMAINING AS FLOAT) AS ACTUAL_CONSUMPTION_YTD_C
+            FROM SALES.RAVEN.DIM_CONTRACT_VIEW dc
+            WHERE dc.AGREEMENT_TYPE = 'Capacity'
+            AND dc.CAPACITY_PURCHASED > 0
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY dc.SALESFORCE_ACCOUNT_ID ORDER BY dc.CONTRACT_END_DATE DESC) = 1
+        ),
+        overage AS (
+            SELECT
+                ov.SALESFORCE_ACCOUNT_ID,
+                CAST(ov.OVERAGE_UNDERAGE_PREDICTION AS FLOAT) AS OVERAGE_UNDERAGE_PREDICTION,
+                ov.DAY_OF_OVERAGE AS OVERAGE_DATE,
+                ov.DAYS_TILL_OVERAGE AS DAYS_TO_CAPACITY
+            FROM SALES.RAVEN.A360_OVERAGE_UNDERAGE_PREDICTION_VIEW ov
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY ov.SALESFORCE_ACCOUNT_ID ORDER BY ov.CONTRACT_END_DATE DESC) = 1
+        ),
+        lead_se AS (
+            SELECT fa.ID AS SALESFORCE_ACCOUNT_ID, u.NAME AS LEAD_SE
+            FROM FIVETRAN.SALESFORCE.ACCOUNT fa
+            LEFT JOIN FIVETRAN.SALESFORCE.USER u ON fa.LEAD_SALES_ENGINEER_C = u.ID
+            WHERE fa.ID IN (SELECT SALESFORCE_ACCOUNT_ID FROM base)
+        )
         SELECT
-            csw.SALESFORCE_ACCOUNT_ID,
-            csw.ACCOUNT_NAME,
-            csw.ACCOUNT_OWNER,
-            csw.DM,
-            NULL AS LEAD_SE,
-            csw.CONTRACT_START_DATE,
-            csw.CONTRACT_END_DATE,
-            CAST(csw.CAPACITY_AVAILABLE AS FLOAT) AS TOTAL_CAP,
-            CAST(csw.CAPACITY_PURCHASED - csw.CAPACITY_USAGE_REMAINING AS FLOAT) AS ACTUAL_CONSUMPTION_YTD_C,
-            CAST(csw.OVERAGE_UNDERAGE_PREDICTION AS FLOAT) AS OVERAGE_UNDERAGE_PREDICTION,
-            csw.OVERAGE_DATE,
-            csw.DAYS_TO_OVERAGE AS DAYS_TO_CAPACITY
-        FROM SALES.RAVEN.SDA_CONSUMPTION_SUMMARY_VIEW csw
-        WHERE csw.DM IN ({dm_clause})
-        AND csw.IS_CAP1 = TRUE
-        AND csw.CAPACITY_AVAILABLE > 0
-        ORDER BY csw.CONTRACT_END_DATE ASC NULLS LAST
-    """).to_pandas()
+            b.ACCOUNT_NAME,
+            b.SALESFORCE_ACCOUNT_ID,
+            b.ACCOUNT_OWNER,
+            b.DM,
+            b.TIER,
+            ls.LEAD_SE,
+            c.CONTRACT_START_DATE,
+            c.CONTRACT_END_DATE,
+            c.TOTAL_CAP,
+            c.ACTUAL_CONSUMPTION_YTD_C,
+            ov.OVERAGE_UNDERAGE_PREDICTION,
+            ov.OVERAGE_DATE,
+            ov.DAYS_TO_CAPACITY
+        FROM base b
+        LEFT JOIN capacity c ON b.SALESFORCE_ACCOUNT_ID = c.SALESFORCE_ACCOUNT_ID
+        LEFT JOIN overage ov ON b.SALESFORCE_ACCOUNT_ID = ov.SALESFORCE_ACCOUNT_ID
+        LEFT JOIN lead_se ls ON b.SALESFORCE_ACCOUNT_ID = ls.SALESFORCE_ACCOUNT_ID
+        WHERE c.TOTAL_CAP > 0
+        ORDER BY c.CONTRACT_END_DATE ASC NULLS LAST
+    """)).to_pandas()
     return _fix_decimals(df)
 
 
