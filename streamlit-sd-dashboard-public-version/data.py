@@ -528,6 +528,15 @@ def load_accounts_base():
 @st.cache_data(ttl=86400)
 def load_capacity_renewals():
     session = _get_session()
+    # --- DEBUG: count each CTE source independently
+    try:
+        _dim_cnt = session._s.sql("SELECT COUNT(*) FROM SALES.RAVEN.DIM_CONTRACT_VIEW WHERE AGREEMENT_TYPE='Capacity' AND CAPACITY_PURCHASED>0").collect()[0][0]
+        _a360_cnt = session._s.sql("SELECT COUNT(*) FROM SALES.RAVEN.A360_OVERAGE_UNDERAGE_PREDICTION_VIEW").collect()[0][0]
+    except Exception as _ex:
+        _dim_cnt = f"ERR:{_ex}"
+        _a360_cnt = "ERR"
+    st.session_state["_cap_debug_counts"] = f"DIM_CONTRACT={_dim_cnt} | A360={_a360_cnt} | dms_in_sql={_get_dm_in_clause()[:60]}"
+    # --- END DEBUG
     _raw_sql = _sql("""
         WITH base AS (
             SELECT
