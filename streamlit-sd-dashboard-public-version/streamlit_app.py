@@ -1,5 +1,5 @@
 import streamlit as st
-from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list, load_capacity_renewals, load_capacity_pipeline
+from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list
 from datetime import datetime
 import json
 import os
@@ -15,13 +15,11 @@ st.set_page_config(
 
 _init_session()
 
-_HIERARCHY_VERSION = "v10"
+_HIERARCHY_VERSION = "v9"
 if st.session_state.get("_hierarchy_version") != _HIERARCHY_VERSION:
     load_hierarchy.clear()
     load_org_hierarchy.clear()
     load_account_search_list.clear()
-    load_capacity_renewals.clear()
-    load_capacity_pipeline.clear()
     st.session_state["_hierarchy_version"] = _HIERARCHY_VERSION
 
 if "_prefs_loaded" not in st.session_state:
