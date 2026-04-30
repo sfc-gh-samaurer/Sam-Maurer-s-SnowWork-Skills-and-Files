@@ -507,13 +507,6 @@ with st.sidebar:
         st.session_state.last_refresh = datetime.now()
         st.rerun()
 
-    if st.button(":material/filter_alt_off: Clear Filters", use_container_width=True):
-        for _k in ["sf_theater", "sf_region", "sf_district", "selected_dms"]:
-            st.session_state[_k] = []
-        save_user_prefs({"sf_theater": [], "sf_region": [], "sf_district": [], "selected_dms": []})
-        clear_all_caches()
-        st.rerun()
-
     # ── Saved Views ───────────────────────────────────────────────────────────
     st.divider()
     st.markdown("### :material/bookmark: Saved Views")
