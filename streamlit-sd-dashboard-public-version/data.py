@@ -880,6 +880,7 @@ def load_ps_projects_active():
         AND p.IS_DELETED = FALSE
         AND p.PSE_IS_ACTIVE_C = TRUE
         AND p.PSE_STAGE_C IN ('In Progress', 'Stalled', 'Stalled - Expiring', 'Pipeline', 'Out Year')
+        AND (p.PSE_END_DATE_C IS NULL OR p.PSE_END_DATE_C >= CURRENT_DATE())
         ORDER BY a.ACCOUNT_NAME, p.NAME
     """)).to_pandas()
     return _fix_decimals(df)
