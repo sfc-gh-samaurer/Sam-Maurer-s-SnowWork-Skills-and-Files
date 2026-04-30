@@ -532,30 +532,24 @@ def load_capacity_renewals(dms: tuple = ()):
     session = _get_session()
     dm_clause = ", ".join(f"'{d.replace(chr(39), chr(39)*2)}'" for d in dms)
     df = session._s.sql(f"""
-        WITH capacity AS (
-            SELECT
-                csw.SALESFORCE_ACCOUNT_ID,
-                csw.ACCOUNT_NAME,
-                csw.ACCOUNT_OWNER,
-                csw.DM,
-                raven.LEAD_SALES_ENGINEER_NAME AS LEAD_SE,
-                csw.CONTRACT_START_DATE,
-                csw.CONTRACT_END_DATE,
-                CAST(csw.CAPACITY_AVAILABLE AS FLOAT) AS TOTAL_CAP,
-                CAST(csw.CAPACITY_PURCHASED - csw.CAPACITY_USAGE_REMAINING AS FLOAT) AS ACTUAL_CONSUMPTION_YTD_C,
-                CAST(csw.OVERAGE_UNDERAGE_PREDICTION AS FLOAT) AS OVERAGE_UNDERAGE_PREDICTION,
-                csw.OVERAGE_DATE,
-                csw.DAYS_TO_OVERAGE AS DAYS_TO_CAPACITY
-            FROM SALES.RAVEN.SDA_CONSUMPTION_SUMMARY_VIEW csw
-            LEFT JOIN SALES.RAVEN.D_SALESFORCE_ACCOUNT_CUSTOMERS raven
-                ON csw.SALESFORCE_ACCOUNT_ID = raven.SALESFORCE_ACCOUNT_ID
-            WHERE csw.DM IN ({dm_clause})
-            AND csw.IS_CAP1 = TRUE
-        )
-        SELECT *
-        FROM capacity
-        WHERE TOTAL_CAP > 0
-        ORDER BY CONTRACT_END_DATE ASC NULLS LAST
+        SELECT
+            csw.SALESFORCE_ACCOUNT_ID,
+            csw.ACCOUNT_NAME,
+            csw.ACCOUNT_OWNER,
+            csw.DM,
+            NULL AS LEAD_SE,
+            csw.CONTRACT_START_DATE,
+            csw.CONTRACT_END_DATE,
+            CAST(csw.CAPACITY_AVAILABLE AS FLOAT) AS TOTAL_CAP,
+            CAST(csw.CAPACITY_PURCHASED - csw.CAPACITY_USAGE_REMAINING AS FLOAT) AS ACTUAL_CONSUMPTION_YTD_C,
+            CAST(csw.OVERAGE_UNDERAGE_PREDICTION AS FLOAT) AS OVERAGE_UNDERAGE_PREDICTION,
+            csw.OVERAGE_DATE,
+            csw.DAYS_TO_OVERAGE AS DAYS_TO_CAPACITY
+        FROM SALES.RAVEN.SDA_CONSUMPTION_SUMMARY_VIEW csw
+        WHERE csw.DM IN ({dm_clause})
+        AND csw.IS_CAP1 = TRUE
+        AND csw.CAPACITY_AVAILABLE > 0
+        ORDER BY csw.CONTRACT_END_DATE ASC NULLS LAST
     """).to_pandas()
     return _fix_decimals(df)
 
