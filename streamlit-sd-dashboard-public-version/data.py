@@ -528,7 +528,7 @@ def load_accounts_base():
 @st.cache_data(ttl=86400)
 def load_capacity_renewals():
     session = _get_session()
-    _raw_sql = """
+    _raw_sql = _sql("""
         WITH base AS (
             SELECT
                 a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
@@ -591,9 +591,7 @@ def load_capacity_renewals():
         WHERE c.TOTAL_CAP > 0
         ORDER BY c.CONTRACT_END_DATE ASC NULLS LAST
     """
-    _final_sql = _sql(_raw_sql)
-    st.session_state["_cap_debug_sql"] = _final_sql[:500]
-    df = session._s.sql(_final_sql).to_pandas()
+    df = session._s.sql(_raw_sql).to_pandas()
     return _fix_decimals(df)
 
 
