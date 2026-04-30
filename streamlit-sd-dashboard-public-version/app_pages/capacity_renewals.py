@@ -5,13 +5,20 @@ from data import load_capacity_renewals, load_capacity_pipeline, render_html_tab
 from constants import SFDC_BASE
 from components import section_banner, empty_state
 
-df          = load_capacity_renewals()
+try:
+    df = load_capacity_renewals()
+except Exception as _e:
+    st.error(f"**load_capacity_renewals error:** {_e}")
+    df = pd.DataFrame()
+    st.stop()
 cap_pipe_df = load_capacity_pipeline()
 if "AGREEMENT_TYPE" not in cap_pipe_df.columns:
     cap_pipe_df["AGREEMENT_TYPE"] = cap_pipe_df.get("OPPORTUNITY_TYPE", "")
 today       = pd.Timestamp.now().normalize()
 
 section_banner("Capacity & Renewals", "Active contracts, conversion candidates, pipeline, and investment opportunities")
+
+st.caption(f"🔍 Debug — selected_dms: `{st.session_state.get('selected_dms')}` | rows: `{len(df)}`")
 
 
 tab_active, tab_candidates, tab_pipeline, tab_invest = st.tabs([
