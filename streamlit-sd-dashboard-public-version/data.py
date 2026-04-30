@@ -534,12 +534,14 @@ def load_capacity_renewals():
         pass
     # --- DEBUG: count each CTE source independently
     try:
+        _who = session._s.sql("SELECT CURRENT_USER(), CURRENT_ROLE(), CURRENT_SECONDARY_ROLES()").collect()[0]
         _dim_cnt = session._s.sql("SELECT COUNT(*) FROM SALES.RAVEN.DIM_CONTRACT_VIEW WHERE AGREEMENT_TYPE='Capacity' AND CAPACITY_PURCHASED>0").collect()[0][0]
         _a360_cnt = session._s.sql("SELECT COUNT(*) FROM SALES.RAVEN.A360_OVERAGE_UNDERAGE_PREDICTION_VIEW").collect()[0][0]
     except Exception as _ex:
-        _dim_cnt = f"ERR:{_ex}"
+        _who = f"ERR:{_ex}"
+        _dim_cnt = "ERR"
         _a360_cnt = "ERR"
-    st.session_state["_cap_debug_counts"] = f"DIM_CONTRACT={_dim_cnt} | A360={_a360_cnt} | dms_in_sql={_get_dm_in_clause()[:60]}"
+    st.session_state["_cap_debug_counts"] = f"user={_who[0]} role={_who[1]} secondary={_who[2]} | DIM={_dim_cnt} | A360={_a360_cnt}"
     # --- END DEBUG
     _raw_sql = _sql("""
         WITH base AS (
