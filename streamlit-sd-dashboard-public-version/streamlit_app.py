@@ -1,5 +1,5 @@
 import streamlit as st
-from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list
+from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list, get_current_user
 from datetime import datetime
 import json
 import os
@@ -22,12 +22,13 @@ if st.session_state.get("_hierarchy_version") != _HIERARCHY_VERSION:
     load_account_search_list.clear()
     st.session_state["_hierarchy_version"] = _HIERARCHY_VERSION
 
-if "_prefs_loaded" not in st.session_state:
+_current_user = get_current_user()
+_prefs_key = f"_prefs_loaded_{_current_user}"
+if _prefs_key not in st.session_state:
     _saved = load_user_prefs()
     for _k, _v in _saved.items():
-        if _k not in st.session_state:
-            st.session_state[_k] = _v
-    st.session_state["_prefs_loaded"] = True
+        st.session_state[_k] = _v
+    st.session_state[_prefs_key] = True
     st.session_state["_prefs_hash"] = ""
     st.session_state["_last_seen_at"] = _saved.get("last_seen_at", None)
     st.session_state["_whats_new_shown"] = False
