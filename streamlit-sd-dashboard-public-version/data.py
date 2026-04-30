@@ -528,6 +528,10 @@ def load_accounts_base():
 @st.cache_data(ttl=86400)
 def load_capacity_renewals():
     session = _get_session()
+    try:
+        session._s.sql("USE SECONDARY ROLES ALL").collect()
+    except Exception:
+        pass
     # --- DEBUG: count each CTE source independently
     try:
         _dim_cnt = session._s.sql("SELECT COUNT(*) FROM SALES.RAVEN.DIM_CONTRACT_VIEW WHERE AGREEMENT_TYPE='Capacity' AND CAPACITY_PURCHASED>0").collect()[0][0]
