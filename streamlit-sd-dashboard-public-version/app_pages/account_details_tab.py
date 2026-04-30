@@ -659,44 +659,28 @@ _ps_acct = _ps_all[_ps_all["ACCOUNT_NAME"] == selected].copy() if not _ps_all.em
 if _ps_acct.empty:
     empty_state("No active PS engagements found for this account.")
 else:
-    def _ps_card(r):
-        def _sv(key, default="—"):
-            v = r.get(key)
-            return default if v is None or (not isinstance(v, str) and pd.isna(v)) else str(v)
-        stage = esc(_sv("PROJECT_STAGE"))
-        pct = r.get("PCT_HOURS_COMPLETE")
-        pct_str = f"{float(pct):.0f}%" if pct is not None and not (isinstance(pct, float) and pd.isna(pct)) else "—"
-        svc = esc(_sv("SERVICE_TYPE"))
-        billing = esc(_sv("BILLING_TYPE"))
-        end_d = fmt_date(r.get("END_DATE"), "—")
-        pm = esc(_sv("PROJECT_MANAGER"))
-        notes = _sv("STATUS_NOTES", "")
-        notes_html = f'<div class="comment-block" style="margin-top:7px">{esc(notes)}</div>' if notes.strip() else ""
-        stage_color = {"In Progress": "#22c55e", "Stalled": "#ef4444", "Stalled - Expiring": "#dc2626",
-                       "Pipeline": "#3b82f6", "Out Year": "#94a3b8"}.get(stage, "#94a3b8")
-        return f"""
-        <div class="snapshot-card" style="margin-bottom:10px">
-          <div class="card-header">
-            {esc(_sv("PROJECT_NAME"))}
-            <span style="background:{stage_color}22;color:{stage_color};padding:2px 9px;border-radius:10px;font-size:0.68rem;font-weight:700;">{stage}</span>
-          </div>
-          <div class="card-body" style="font-size:0.8rem;color:#475569">
-            Service: <strong>{svc}</strong> &nbsp;·&nbsp; Billing: <strong>{billing}</strong>
-            &nbsp;·&nbsp; % Complete: <strong>{pct_str}</strong>
-            &nbsp;·&nbsp; End: <strong>{end_d}</strong>
-            &nbsp;·&nbsp; PM: <strong>{pm}</strong>
-            {notes_html}
-          </div>
-        </div>"""
-
-    _ps_show = _ps_acct.head(5)
-    _ps_extra = _ps_acct.iloc[5:] if len(_ps_acct) > 5 else pd.DataFrame()
-    for _, _row in _ps_show.iterrows():
-        st.markdown(_ps_card(_row), unsafe_allow_html=True)
-    if not _ps_extra.empty:
-        with st.expander(f"Show {len(_ps_extra)} more project(s)"):
-            for _, _row in _ps_extra.iterrows():
-                st.markdown(_ps_card(_row), unsafe_allow_html=True)
+    _ps_acct["OPP_LINK"] = _ps_acct.apply(
+        lambda r: f'{SFDC_BASE}/Opportunity/{r["OPPORTUNITY_ID"]}/view' if pd.notna(r.get("OPPORTUNITY_ID")) else None, axis=1
+    )
+    with st.expander(f"{len(_ps_acct)} project(s)", expanded=True):
+        render_html_table(_ps_acct, columns=[
+            {"col": "PROJECT_NAME",          "label": "Project"},
+            {"col": "OPP_LINK",              "label": "SFDC",              "fmt": "link"},
+            {"col": "PROJECT_STAGE",         "label": "Stage"},
+            {"col": "BILLING_TYPE",          "label": "Billing"},
+            {"col": "PRACTICE",              "label": "Practice"},
+            {"col": "SKU_TYPE",              "label": "SKU"},
+            {"col": "INVESTMENT_TYPE",       "label": "Invest"},
+            {"col": "START_DATE",            "label": "Start",             "fmt": "date"},
+            {"col": "END_DATE",              "label": "Proj End",          "fmt": "date"},
+            {"col": "LAST_RESOURCE_END_DATE","label": "Last Rsrc End",     "fmt": "date", "highlight": True},
+            {"col": "BILLABLE_HOURS",        "label": "Bill Hrs",          "fmt": "number"},
+            {"col": "REVENUE_AMOUNT",        "label": "Revenue",           "fmt": "dollar"},
+            {"col": "PROJECT_MANAGER",       "label": "PM"},
+            {"col": "PS_SELLER_NAME",        "label": "PS Seller"},
+            {"col": "ASSIGNED_RESOURCES",    "label": "Resources"},
+            {"col": "PS_FORECAST_CATEGORY",  "label": "Fcast Cat"},
+        ], height=400)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ── SECTION: Strategic Insights (claude-4-opus) ───────────────────────────────
