@@ -21,7 +21,7 @@ sw_renewals_raw = load_exec_software_renewals()
 svc_renewals    = load_exec_services_renewals()
 new_opps_all    = load_exec_new_opps()
 new_uc_all      = load_exec_new_use_cases()
-cap_df          = load_capacity_renewals()
+cap_df          = load_capacity_renewals(tuple(st.session_state.get("selected_dms") or []))
 for _d in [sw_renewals_raw, svc_renewals, new_opps_all]:
     if "AGREEMENT_TYPE" not in _d.columns:
         _d["AGREEMENT_TYPE"] = _d.get("OPPORTUNITY_TYPE", "")

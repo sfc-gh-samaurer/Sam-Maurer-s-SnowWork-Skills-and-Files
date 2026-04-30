@@ -5,7 +5,7 @@ from data import load_capacity_renewals, load_capacity_pipeline, render_html_tab
 from constants import SFDC_BASE
 from components import section_banner, empty_state
 
-df          = load_capacity_renewals()
+df          = load_capacity_renewals(tuple(st.session_state.get("selected_dms") or []))
 cap_pipe_df = load_capacity_pipeline()
 if "AGREEMENT_TYPE" not in cap_pipe_df.columns:
     cap_pipe_df["AGREEMENT_TYPE"] = cap_pipe_df.get("OPPORTUNITY_TYPE", "")
