@@ -494,7 +494,7 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
     else:
         conv_display = conv_candidates[[
             "ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
-            "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP", "ACTUAL_CONSUMPTION_YTD_C", "CAPACITY_REMAINING", "OVERAGE_UNDERAGE_PREDICTION"
+            "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP", "ACTUAL_CONSUMPTION_YTD_C", "OVERAGE_UNDERAGE_PREDICTION"
         ]].copy()
         conv_display["ACCT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
@@ -508,7 +508,6 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
             {"col": "DAYS_LEFT",          "label": "Days Left",  "fmt": "number"},
             {"col": "TOTAL_CAP",                    "label": "Total Cap",        "fmt": "dollar"},
             {"col": "ACTUAL_CONSUMPTION_YTD_C",       "label": "YTD Consumed",    "fmt": "dollar"},
-            {"col": "CAPACITY_REMAINING",            "label": "Unused Capacity",  "fmt": "dollar"},
             {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Underage", "fmt": "dollar"},
         ], height=max(200, min(500, cv_n * 38 + 60)))
 
