@@ -809,7 +809,7 @@ _ins_key = f"_insights_{selected}"
 
 if _ins_key not in st.session_state:
     if st.button("Generate Strategic Insights", type="primary", key="gen_insights_btn"):
-        with st.spinner("Analyzing account with claude-4-opus..."):
+        with st.spinner("Analyzing account with claude-sonnet-4-5..."):
             try:
                 _prompt = _build_pm_insights_prompt(
                     selected, a,
@@ -822,7 +822,7 @@ if _ins_key not in st.session_state:
                 _sess = _get_session()
                 _safe_prompt = _prompt.replace("'", "''")
                 _raw = _sess.sql(
-                    f"SELECT SNOWFLAKE.CORTEX.COMPLETE('claude-4-opus', [{{'role':'user','content':'{_safe_prompt}'}}], {{'temperature': 0}})"
+                    f"SELECT SNOWFLAKE.CORTEX.COMPLETE('claude-sonnet-4-5', [{{'role':'user','content':'{_safe_prompt}'}}], {{'temperature': 0}})"
                 ).collect()[0][0]
                 st.session_state[_ins_key] = _parse_cortex_response(_raw)
             except Exception as _e:
