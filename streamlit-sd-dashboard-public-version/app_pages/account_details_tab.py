@@ -696,10 +696,12 @@ def _build_pm_insights_prompt(acct_name, acct_data, ucs, opps, ps_proj, cap_data
     cap_text = "No capacity contract on file."
     if not cap_data.empty:
         cr = cap_data.iloc[0]
+        _pred = cr.get('OVERAGE_UNDERAGE_PREDICTION') or 0
+        _pred_label = f"Predicted OVERAGE (customer will EXCEED capacity): {fmt_currency(abs(_pred))}" if _pred > 0 else f"Predicted UNDERAGE (customer will NOT use all capacity): {fmt_currency(abs(_pred))}"
         cap_text = (
             f"Total Capacity: {fmt_currency(cr.get('TOTAL_CAP'))}"
             f" | Contract End: {fmt_date(cr.get('CONTRACT_END_DATE'))}"
-            f" | Predicted Underage: {fmt_currency(cr.get('OVERAGE_UNDERAGE_PREDICTION'))}"
+            f" | {_pred_label}"
         )
 
     uc_lines, at_risk_lines = [], []
@@ -769,7 +771,7 @@ FORMAT RULES — return ONLY a numbered list 1 through 7 (or fewer if fewer are 
 2. Reference specific data from above (use case names, amounts, dates, stage names)
 3. End with "Suggested next step: [concrete action for the PM or SE to take]"
 
-Focus on: PS engagement gaps, at-risk use case acceleration, converting unused capacity to services, renewal expansion, and new services opportunities tied to the account's active use cases."""
+Focus on: PS engagement gaps, at-risk use case acceleration, capacity situation (if OVERAGE: customer is consuming well and may need expansion; if UNDERAGE: opportunity to convert unused capacity to services), renewal expansion, and new services opportunities tied to the account's active use cases."""
     return prompt
 
 
