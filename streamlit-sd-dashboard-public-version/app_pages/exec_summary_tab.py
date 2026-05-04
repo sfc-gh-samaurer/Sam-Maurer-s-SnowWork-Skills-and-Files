@@ -158,7 +158,7 @@ _cap_pipe_filtered = cap_pipe_df[
     (pd.to_datetime(cap_pipe_df["CLOSE_DATE"], errors="coerce") <= today + pd.Timedelta(days=365))
 ] if not cap_pipe_df.empty else cap_pipe_df
 _cap_acv      = _cap_pipe_filtered["PRODUCT_FORECAST_ACV"].fillna(0).sum()
-_conv_opp     = abs(conv_candidates["OVERAGE_UNDERAGE_PREDICTION"].fillna(0).sum()) if not conv_candidates.empty else 0
+_conv_opp     = conv_candidates["CAPACITY_REMAINING"].fillna(0).sum() * 0.50 if not conv_candidates.empty else 0
 _invest_tcv   = (invest_df["CALCULATED_TCV"].fillna(0) * 0.10).sum() if not invest_df.empty else 0
 
 def _fmt_m(v):
@@ -198,7 +198,7 @@ st.markdown(f"""
   <div class="money-card">
     <span class="mc-label">Conversion Opportunity</span>
     <span class="mc-value">{_fmt_m(_conv_opp)}</span>
-    <span class="mc-sub">Predicted unused capacity</span>
+    <span class="mc-sub">50% of unused capacity · predicted underage accts</span>
   </div>
   <div class="money-card">
     <span class="mc-label">Est. Services Investment Pool</span>
@@ -494,7 +494,7 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
     else:
         conv_display = conv_candidates[[
             "ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
-            "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP", "ACTUAL_CONSUMPTION_YTD_C", "OVERAGE_UNDERAGE_PREDICTION"
+            "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP", "ACTUAL_CONSUMPTION_YTD_C", "CAPACITY_REMAINING", "OVERAGE_UNDERAGE_PREDICTION"
         ]].copy()
         conv_display["ACCT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
@@ -507,7 +507,8 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
             {"col": "CONTRACT_END_DATE",  "label": "End Date",   "fmt": "date"},
             {"col": "DAYS_LEFT",          "label": "Days Left",  "fmt": "number"},
             {"col": "TOTAL_CAP",                    "label": "Total Cap",        "fmt": "dollar"},
-            {"col": "ACTUAL_CONSUMPTION_YTD_C",       "label": "YTD Consumption", "fmt": "dollar"},
+            {"col": "ACTUAL_CONSUMPTION_YTD_C",       "label": "YTD Consumed",    "fmt": "dollar"},
+            {"col": "CAPACITY_REMAINING",            "label": "Unused Capacity",  "fmt": "dollar"},
             {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Underage", "fmt": "dollar"},
         ], height=max(200, min(500, cv_n * 38 + 60)))
 
