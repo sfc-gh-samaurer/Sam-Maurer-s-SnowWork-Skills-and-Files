@@ -47,17 +47,6 @@ with tab_active:
         display["ACCOUNT_LINK"] = display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
         )
-        def _contract_urgency(row):
-            try:
-                days = (pd.to_datetime(row.get("CONTRACT_END_DATE")) - today).days
-            except Exception:
-                days = 999
-            pred = row.get("OVERAGE_UNDERAGE_PREDICTION") or 0
-            if days < 60 or pred < -200000:
-                return "#fff1f2"
-            if days < 180 or pred < -75000:
-                return "#fffbeb"
-            return None
         with st.expander(f"{len(filtered)} contracts", expanded=True):
             render_html_table(display, columns=[
                 {"col": "ACCOUNT_NAME",      "label": "Account"},
@@ -73,7 +62,7 @@ with tab_active:
                 {"col": "CAP_REMAINING",     "label": "Cap Remain", "fmt": "dollar"},
                 {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
                 {"col": "OVERAGE_DATE",      "label": "Overage Date","fmt": "date"},
-            ], height=600, row_style_fn=_contract_urgency)
+            ], height=600)
             st.download_button(":material/download: Export CSV", filtered.to_csv(index=False), "capacity_contracts.csv", "text/csv", key="cap_csv")
 
     else:
@@ -106,14 +95,6 @@ with tab_candidates:
             conv_display["ACCOUNT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
                 lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
             )
-            def _conv_urgency(row):
-                days = row.get("DAYS_LEFT") or 999
-                pred = row.get("OVERAGE_UNDERAGE_PREDICTION") or 0
-                if days < 60 or pred < -200000:
-                    return "#fff1f2"
-                if days < 180:
-                    return "#fffbeb"
-                return None
             with st.expander(f"{len(candidates)} conversion candidates", expanded=True):
                 render_html_table(conv_display, columns=[
                     {"col": "ACCOUNT_NAME",             "label": "Account"},
@@ -126,7 +107,7 @@ with tab_candidates:
                     {"col": "CAP_REMAINING",            "label": "Cap Remain",   "fmt": "dollar"},
                     {"col": "PCT_REMAINING",            "label": "% Remain"},
                     {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Pred Under", "fmt": "dollar"},
-                ], row_style_fn=_conv_urgency)
+                ], row_style_fn=None)
     else:
         empty_state("No capacity data available.")
 
