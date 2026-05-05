@@ -528,6 +528,13 @@ def load_accounts_base():
 @st.cache_data(ttl=86400)
 def load_capacity_renewals():
     session = _get_session()
+    try:
+        _caller_session = st.connection("snowflake").session()
+        _dim_test = _caller_session.sql("SELECT COUNT(*) FROM SALES.RAVEN.DIM_CONTRACT_VIEW WHERE AGREEMENT_TYPE='Capacity' LIMIT 1").collect()[0][0]
+    except Exception:
+        _dim_test = 0
+        _caller_session = None
+    st.session_state["_cap_raven_test"] = f"caller_dim={_dim_test}"
     df = session.sql(_sql("""
         WITH base AS (
             SELECT
