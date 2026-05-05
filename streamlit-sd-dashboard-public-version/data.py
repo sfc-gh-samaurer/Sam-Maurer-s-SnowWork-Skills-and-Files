@@ -528,13 +528,6 @@ def load_accounts_base():
 @st.cache_data(ttl=86400)
 def load_capacity_renewals():
     session = _get_session()
-    try:
-        _caller_session = st.connection("snowflake").session()
-        _dim_test = _caller_session.sql("SELECT COUNT(*) FROM SALES.RAVEN.DIM_CONTRACT_VIEW WHERE AGREEMENT_TYPE='Capacity' LIMIT 1").collect()[0][0]
-    except Exception:
-        _dim_test = 0
-        _caller_session = None
-    st.session_state["_cap_raven_test"] = f"caller_dim={_dim_test}"
     df = session.sql(_sql("""
         WITH base AS (
             SELECT
@@ -542,7 +535,6 @@ def load_capacity_renewals():
                 a.ACCOUNT_NAME,
                 a.REP_NAME AS ACCOUNT_OWNER,
                 COALESCE(dm_user.NAME, a.DM) AS DM,
-                CAST(a.ARR AS FLOAT) AS ARR,
                 a.ACCOUNT_TIER AS TIER
             FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
             LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) ae_user ON a.REP_NAME = ae_user.NAME
@@ -556,9 +548,10 @@ def load_capacity_renewals():
                 dc.SALESFORCE_ACCOUNT_ID,
                 dc.CONTRACT_START_DATE,
                 dc.CONTRACT_END_DATE,
-                CAST(dc.CAPACITY_PURCHASED AS FLOAT) AS TOTAL_CAP,
-                CAST(dc.CAPACITY_PURCHASED - dc.CAPACITY_USAGE_REMAINING AS FLOAT) AS ACTUAL_CONSUMPTION_YTD_C,
-                CAST(dc.CAPACITY_USAGE_REMAINING AS FLOAT) AS CAPACITY_REMAINING
+                CAST(dc.CAPACITY_PURCHASED AS FLOAT) AS CAP_PURCHASED,
+                CAST(dc.TOTAL_CAPACITY AS FLOAT) AS TOTAL_CAP,
+                CAST(dc.TOTAL_CAPACITY - dc.CAPACITY_USAGE_REMAINING AS FLOAT) AS CAP_USED,
+                CAST(dc.CAPACITY_USAGE_REMAINING AS FLOAT) AS CAP_REMAINING
             FROM SALES.RAVEN.DIM_CONTRACT_VIEW dc
             WHERE dc.AGREEMENT_TYPE = 'Capacity'
             AND dc.CAPACITY_PURCHASED > 0
@@ -568,8 +561,7 @@ def load_capacity_renewals():
             SELECT
                 ov.SALESFORCE_ACCOUNT_ID,
                 CAST(ov.OVERAGE_UNDERAGE_PREDICTION AS FLOAT) AS OVERAGE_UNDERAGE_PREDICTION,
-                ov.DAY_OF_OVERAGE AS OVERAGE_DATE,
-                ov.DAYS_TILL_OVERAGE AS DAYS_TO_CAPACITY
+                ov.DAY_OF_OVERAGE AS OVERAGE_DATE
             FROM SALES.RAVEN.A360_OVERAGE_UNDERAGE_PREDICTION_VIEW ov
             QUALIFY ROW_NUMBER() OVER (PARTITION BY ov.SALESFORCE_ACCOUNT_ID ORDER BY ov.CONTRACT_END_DATE DESC) = 1
         ),
@@ -584,23 +576,22 @@ def load_capacity_renewals():
             b.SALESFORCE_ACCOUNT_ID,
             b.ACCOUNT_OWNER,
             b.DM,
-            b.ARR,
             b.TIER,
             ls.LEAD_SE,
             c.CONTRACT_START_DATE,
             c.CONTRACT_END_DATE,
+            c.CAP_PURCHASED,
             c.TOTAL_CAP,
-            c.ACTUAL_CONSUMPTION_YTD_C,
-            c.CAPACITY_REMAINING,
+            c.CAP_USED,
+            c.CAP_REMAINING,
             ov.OVERAGE_UNDERAGE_PREDICTION,
-            ov.OVERAGE_DATE,
-            ov.DAYS_TO_CAPACITY
+            ov.OVERAGE_DATE
         FROM base b
         LEFT JOIN capacity c ON b.SALESFORCE_ACCOUNT_ID = c.SALESFORCE_ACCOUNT_ID
         LEFT JOIN overage ov ON b.SALESFORCE_ACCOUNT_ID = ov.SALESFORCE_ACCOUNT_ID
         LEFT JOIN lead_se ls ON b.SALESFORCE_ACCOUNT_ID = ls.SALESFORCE_ACCOUNT_ID
         WHERE c.TOTAL_CAP > 0
-        ORDER BY c.CONTRACT_END_DATE ASC NULLS LAST
+        ORDER BY c.CAP_PURCHASED DESC NULLS LAST
     """)).to_pandas()
     return _fix_decimals(df)
 

@@ -13,8 +13,6 @@ today       = pd.Timestamp.now().normalize()
 
 section_banner("Capacity & Renewals", "Active contracts, conversion candidates, pipeline, and investment opportunities")
 
-st.caption(f"🔍 rows={len(df)} | {st.session_state.get('_cap_raven_test','')}")
-
 
 tab_active, tab_candidates, tab_pipeline, tab_invest = st.tabs([
     "Active Contracts",
@@ -44,7 +42,8 @@ with tab_active:
 
         display = filtered[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                              "LEAD_SE", "CONTRACT_START_DATE", "CONTRACT_END_DATE",
-                             "TOTAL_CAP", "ACTUAL_CONSUMPTION_YTD_C", "OVERAGE_UNDERAGE_PREDICTION", "OVERAGE_DATE"]].copy()
+                             "CAP_PURCHASED", "TOTAL_CAP", "CAP_USED", "CAP_REMAINING",
+                             "OVERAGE_UNDERAGE_PREDICTION", "OVERAGE_DATE"]].copy()
         display["ACCOUNT_LINK"] = display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
         )
@@ -68,9 +67,11 @@ with tab_active:
                 {"col": "LEAD_SE",           "label": "Lead SE"},
                 {"col": "CONTRACT_START_DATE","label": "Start",     "fmt": "date"},
                 {"col": "CONTRACT_END_DATE", "label": "End",        "fmt": "date"},
-                {"col": "TOTAL_CAP",                    "label": "Total Cap",        "fmt": "dollar"},
-                {"col": "ACTUAL_CONSUMPTION_YTD_C",       "label": "YTD Consumption", "fmt": "dollar"},
-                {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Over/Underage", "fmt": "dollar"},
+                {"col": "CAP_PURCHASED",     "label": "Cap Purch",  "fmt": "dollar"},
+                {"col": "TOTAL_CAP",         "label": "Total Cap",  "fmt": "dollar"},
+                {"col": "CAP_USED",          "label": "Cap Used",   "fmt": "dollar"},
+                {"col": "CAP_REMAINING",     "label": "Cap Remain", "fmt": "dollar"},
+                {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
                 {"col": "OVERAGE_DATE",      "label": "Overage Date","fmt": "date"},
             ], height=600, row_style_fn=_contract_urgency)
             st.download_button(":material/download: Export CSV", filtered.to_csv(index=False), "capacity_contracts.csv", "text/csv", key="cap_csv")
@@ -100,7 +101,7 @@ with tab_candidates:
 
             conv_display = candidates[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                                        "CONTRACT_END_DATE", "DAYS_LEFT",
-                                       "TOTAL_CAP", "ACTUAL_CONSUMPTION_YTD_C", "OVERAGE_UNDERAGE_PREDICTION"]].copy()
+                                       "CAP_PURCHASED", "TOTAL_CAP", "CAP_USED", "CAP_REMAINING", "OVERAGE_UNDERAGE_PREDICTION"]].copy()
             conv_display["ACCOUNT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
                 lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
             )
@@ -120,9 +121,11 @@ with tab_candidates:
                     {"col": "DM",                       "label": "DM"},
                     {"col": "CONTRACT_END_DATE",        "label": "End Date",     "fmt": "date"},
                     {"col": "DAYS_LEFT",                "label": "Days Left",    "fmt": "number"},
-                    {"col": "TOTAL_CAP",                    "label": "Total Cap",        "fmt": "dollar"},
-                    {"col": "ACTUAL_CONSUMPTION_YTD_C",       "label": "YTD Consumed",    "fmt": "dollar"},
-                    {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Underage", "fmt": "dollar"},
+                    {"col": "CAP_PURCHASED",            "label": "Cap Purch",    "fmt": "dollar"},
+                    {"col": "TOTAL_CAP",                "label": "Total Cap",    "fmt": "dollar"},
+                    {"col": "CAP_USED",                 "label": "Cap Used",     "fmt": "dollar"},
+                    {"col": "CAP_REMAINING",            "label": "Cap Remain",   "fmt": "dollar"},
+                    {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
                 ], row_style_fn=_conv_urgency)
     else:
         empty_state("No capacity data available.")

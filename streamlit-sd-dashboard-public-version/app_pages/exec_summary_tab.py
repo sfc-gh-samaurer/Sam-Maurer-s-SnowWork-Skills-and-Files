@@ -158,7 +158,7 @@ _cap_pipe_filtered = cap_pipe_df[
     (pd.to_datetime(cap_pipe_df["CLOSE_DATE"], errors="coerce") <= today + pd.Timedelta(days=365))
 ] if not cap_pipe_df.empty else cap_pipe_df
 _cap_acv      = _cap_pipe_filtered["PRODUCT_FORECAST_ACV"].fillna(0).sum()
-_conv_opp     = conv_candidates["CAPACITY_REMAINING"].fillna(0).sum() * 0.50 if not conv_candidates.empty else 0
+_conv_opp     = conv_candidates["CAP_REMAINING"].fillna(0).sum() * 0.50 if not conv_candidates.empty else 0
 _invest_tcv   = (invest_df["CALCULATED_TCV"].fillna(0) * 0.10).sum() if not invest_df.empty else 0
 
 def _fmt_m(v):
@@ -494,7 +494,7 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
     else:
         conv_display = conv_candidates[[
             "ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
-            "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP", "ACTUAL_CONSUMPTION_YTD_C", "OVERAGE_UNDERAGE_PREDICTION"
+            "CONTRACT_END_DATE", "DAYS_LEFT", "CAP_PURCHASED", "TOTAL_CAP", "CAP_USED", "CAP_REMAINING", "OVERAGE_UNDERAGE_PREDICTION"
         ]].copy()
         conv_display["ACCT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
@@ -506,9 +506,11 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
             {"col": "DM",                 "label": "DM"},
             {"col": "CONTRACT_END_DATE",  "label": "End Date",   "fmt": "date"},
             {"col": "DAYS_LEFT",          "label": "Days Left",  "fmt": "number"},
-            {"col": "TOTAL_CAP",                    "label": "Total Cap",        "fmt": "dollar"},
-            {"col": "ACTUAL_CONSUMPTION_YTD_C",       "label": "YTD Consumed",    "fmt": "dollar"},
-            {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Predicted Underage", "fmt": "dollar"},
+            {"col": "CAP_PURCHASED",      "label": "Cap Purch",  "fmt": "dollar"},
+            {"col": "TOTAL_CAP",          "label": "Total Cap",  "fmt": "dollar"},
+            {"col": "CAP_USED",           "label": "Cap Used",   "fmt": "dollar"},
+            {"col": "CAP_REMAINING",      "label": "Cap Remain", "fmt": "dollar"},
+            {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
         ], height=max(200, min(500, cv_n * 38 + 60)))
 
 # ── Section 6: Investment Candidates ──────────────────────────────────────────
