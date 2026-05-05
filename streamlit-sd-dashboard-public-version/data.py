@@ -208,15 +208,6 @@ def render_html_table(df, columns, height=500, row_style_fn=None):
     <html><head><style>
     body {{ margin:0;padding:0;font-family:'Source Sans Pro',sans-serif; }}
     .table-wrapper {{ position:relative; }}
-    .fs-bar {{
-        display:flex;justify-content:flex-end;padding:2px 4px 4px 0;
-    }}
-    .fs-btn {{
-        background:#f1f5f9;border:1px solid #cbd5e1;border-radius:4px;
-        padding:4px 8px;cursor:pointer;font-size:12px;color:#11567F;
-        font-family:'Source Sans Pro',sans-serif;
-    }}
-    .fs-btn:hover {{ background:#e2e8f0; }}
     table {{ width:100%;border-collapse:collapse;font-size:13px; }}
     th {{
         padding:8px 10px;text-align:left;font-weight:600;color:#11567F;
@@ -236,33 +227,14 @@ def render_html_table(df, columns, height=500, row_style_fn=None):
     a:hover {{ text-decoration:underline; }}
     th.hl {{ background:#e6f4e6; }}
     td.hl {{ background:#f0faf0; }}
-    :fullscreen {{ background:#fff; overflow:auto; padding:10px; }}
-    :fullscreen .fs-bar {{ position:sticky;top:0;z-index:10;background:#fff; }}
     </style></head><body>
     <div class="table-wrapper" id="tableWrapper">
-    <div class="fs-bar"><button class="fs-btn" onclick="toggleFullscreen()" id="fsBtn">⛶ Fullscreen</button></div>
     <table>
     <thead><tr>{headers}</tr></thead>
     <tbody>{"".join(rows_html)}</tbody>
     </table>
     </div>
     <script>
-    function toggleFullscreen() {{
-        var el = document.getElementById('tableWrapper');
-        if (!document.fullscreenElement) {{
-            el.requestFullscreen().catch(function(e) {{}});
-        }} else {{
-            document.exitFullscreen();
-        }}
-    }}
-    document.addEventListener('fullscreenchange', function() {{
-        var btn = document.getElementById('fsBtn');
-        if (document.fullscreenElement) {{
-            btn.textContent = '✕ Exit Fullscreen';
-        }} else {{
-            btn.textContent = '⛶ Fullscreen';
-        }}
-    }});
     var sortDir = {{}};
     var colTypes = {col_types_js};
     function sortTable(colIdx) {{
