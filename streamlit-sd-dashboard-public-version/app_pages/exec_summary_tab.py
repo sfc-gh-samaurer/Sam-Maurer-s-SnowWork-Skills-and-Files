@@ -29,6 +29,7 @@ cap_pipe_df     = load_capacity_pipeline()
 
 sw_renewals = sw_renewals_raw[
     ~sw_renewals_raw["OPPORTUNITY_NAME"].str.contains("Segment", case=False, na=False)
+    & (sw_renewals_raw["TOTAL_ACV"].fillna(0) > 0)
 ].copy()
 
 
