@@ -165,7 +165,7 @@ with tab_pipeline:
         pk1, pk2, pk3, pk4 = st.columns(4)
         pk1.metric("Open Opps",   len(filtered_p))
         pk2.metric("Forecast ACV",f"${filtered_p['PRODUCT_FORECAST_ACV'].sum():,.0f}")
-        pk3.metric("Calc TCV",    f"${filtered_p['CALCULATED_TCV'].sum():,.0f}")
+        pk3.metric("Forecast TCV",f"${filtered_p['PRODUCT_FORECAST_TCV'].sum():,.0f}")
         pk4.metric("Renewals",    len(filtered_p[filtered_p["OPPORTUNITY_TYPE"] == "Renewal"]))
 
         display_p = filtered_p.copy()
@@ -181,10 +181,9 @@ with tab_pipeline:
                 {"col": "AGREEMENT_TYPE",      "label": "Agreement Type"},
                 {"col": "STAGE_NAME",          "label": "Stage"},
                 {"col": "FORECAST_STATUS",     "label": "Forecast"},
+                {"col": "CLOSE_DATE",          "label": "Close Date", "fmt": "date"},
                 {"col": "PRODUCT_FORECAST_ACV","label": "Fcst ACV",   "fmt": "dollar"},
                 {"col": "PRODUCT_FORECAST_TCV","label": "Fcst TCV",   "fmt": "dollar"},
-                {"col": "CALCULATED_TCV",      "label": "Calc TCV",   "fmt": "dollar"},
-                {"col": "CLOSE_DATE",          "label": "Close Date", "fmt": "date"},
                 {"col": "DM",                  "label": "DM"},
             ], height=500)
             st.download_button(":material/download: Export CSV", filtered_p.to_csv(index=False), "capacity_pipeline.csv", "text/csv", key="cpipe_csv")
