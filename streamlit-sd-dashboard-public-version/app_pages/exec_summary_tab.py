@@ -494,23 +494,23 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
     else:
         conv_display = conv_candidates[[
             "ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
-            "CONTRACT_END_DATE", "DAYS_LEFT", "CAP_PURCHASED", "TOTAL_CAP", "CAP_USED", "CAP_REMAINING", "OVERAGE_UNDERAGE_PREDICTION"
+            "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP", "CAP_REMAINING", "OVERAGE_UNDERAGE_PREDICTION"
         ]].copy()
+        conv_display["PCT_REMAINING"] = (conv_display["CAP_REMAINING"] / conv_display["TOTAL_CAP"] * 100).round(0).astype(int).astype(str) + "%"
         conv_display["ACCT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
         )
         render_html_table(conv_display, columns=[
             {"col": "ACCOUNT_NAME",       "label": "Account"},
-            {"col": "ACCOUNT_OWNER",      "label": "AE"},
             {"col": "ACCT_LINK",          "label": "SFDC",       "fmt": "link"},
+            {"col": "ACCOUNT_OWNER",      "label": "AE"},
             {"col": "DM",                 "label": "DM"},
             {"col": "CONTRACT_END_DATE",  "label": "End Date",   "fmt": "date"},
             {"col": "DAYS_LEFT",          "label": "Days Left",  "fmt": "number"},
-            {"col": "CAP_PURCHASED",      "label": "Cap Purch",  "fmt": "dollar"},
             {"col": "TOTAL_CAP",          "label": "Total Cap",  "fmt": "dollar"},
-            {"col": "CAP_USED",           "label": "Cap Used",   "fmt": "dollar"},
             {"col": "CAP_REMAINING",      "label": "Cap Remain", "fmt": "dollar"},
-            {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Over/Under", "fmt": "dollar"},
+            {"col": "PCT_REMAINING",      "label": "% Remain"},
+            {"col": "OVERAGE_UNDERAGE_PREDICTION", "label": "Pred Under", "fmt": "dollar"},
         ], height=max(200, min(500, cv_n * 38 + 60)))
 
 # ── Section 6: Investment Candidates ──────────────────────────────────────────
