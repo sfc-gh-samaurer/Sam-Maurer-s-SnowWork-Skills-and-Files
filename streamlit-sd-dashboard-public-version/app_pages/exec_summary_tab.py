@@ -442,14 +442,6 @@ with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expan
         sw_display["OPP_LINK"] = sw_display["OPPORTUNITY_ID"].apply(
             lambda x: f"{SFDC_BASE}/Opportunity/{x}/view" if pd.notna(x) and x else None
         )
-        def _sw_urgency(row):
-            try:
-                days = (pd.to_datetime(row.get("CLOSE_DATE")) - today).days
-            except Exception:
-                return None
-            if days < 30:  return "#fff1f2"
-            if days < 60:  return "#fffbeb"
-            return None
         render_html_table(sw_display, columns=[
             {"col": "ACCOUNT_NAME",    "label": "Account"},
             {"col": "OWNER",           "label": "AE"},
@@ -461,7 +453,7 @@ with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expan
             {"col": "TOTAL_ACV",            "label": "Target ACV",  "fmt": "dollar"},
             {"col": "RENEWAL_ACV",           "label": "Prev ACV",    "fmt": "dollar"},
             {"col": "PRODUCT_FORECAST_TCV",  "label": "Fcst TCV",    "fmt": "dollar"},
-        ], height=max(200, min(400, sw_n * 38 + 60)), row_style_fn=_sw_urgency)
+        ], height=max(200, min(400, sw_n * 38 + 60)))
 
 # ── Section 2: Services Renewals ──────────────────────────────────────────────
 with st.expander(f"Upcoming Services Renewals ({svc_n})", expanded=False):
