@@ -604,6 +604,7 @@ def load_capacity_pipeline():
         AND o.DS = CURRENT_DATE()
         AND o.IS_CLOSED = FALSE
         AND o.CLOSE_DATE >= CURRENT_DATE()
+        QUALIFY ROW_NUMBER() OVER (PARTITION BY o.ACCOUNT_ID, o.OPP_NAME ORDER BY o.OPP_ID DESC) = 1
         ORDER BY o.CLOSE_DATE ASC
     """)).to_pandas()
     return _fix_decimals(df)
