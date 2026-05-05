@@ -486,9 +486,11 @@ with col1:
     if not acct_cap.empty:
         r = acct_cap.iloc[0]
         cap_html = f"""
+        <div class="stat-row"><span class="stat-label">Cap Purchased</span><span class="stat-value">{fmt_currency(r.get("CAP_PURCHASED"))}</span></div>
         <div class="stat-row"><span class="stat-label">Total Capacity</span><span class="stat-value">{fmt_currency(r.get("TOTAL_CAP"))}</span></div>
-        <div class="stat-row"><span class="stat-label">YTD Consumption</span><span class="stat-value">{fmt_currency(r.get("ACTUAL_CONSUMPTION_YTD_C"))}</span></div>
-        <div class="stat-row"><span class="stat-label">Predicted Over/Underage</span><span class="stat-value" style="color:{'#2ecc71' if (r.get('OVERAGE_UNDERAGE_PREDICTION') or 0) >= 0 else '#e74c3c'}">{'▲' if (r.get('OVERAGE_UNDERAGE_PREDICTION') or 0) >= 0 else '▼'} {fmt_currency(r.get("OVERAGE_UNDERAGE_PREDICTION"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Cap Used</span><span class="stat-value">{fmt_currency(r.get("CAP_USED"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Cap Remaining</span><span class="stat-value">{fmt_currency(r.get("CAP_REMAINING"))}</span></div>
+        <div class="stat-row"><span class="stat-label">Over/Under Prediction</span><span class="stat-value" style="color:{'#2ecc71' if (r.get('OVERAGE_UNDERAGE_PREDICTION') or 0) >= 0 else '#e74c3c'}">{'▲' if (r.get('OVERAGE_UNDERAGE_PREDICTION') or 0) >= 0 else '▼'} {fmt_currency(r.get("OVERAGE_UNDERAGE_PREDICTION"))}</span></div>
         <div class="stat-row"><span class="stat-label">Contract Start</span><span class="stat-value">{fmt_date(r.get("CONTRACT_START_DATE"))}</span></div>
         <div class="stat-row"><span class="stat-label">Contract End</span><span class="stat-value">{fmt_date(r.get("CONTRACT_END_DATE"))}</span></div>
         <div class="stat-row"><span class="stat-label">Overage Date</span><span class="stat-value">{fmt_date(r.get("OVERAGE_DATE"))}</span></div>
@@ -699,7 +701,10 @@ def _build_pm_insights_prompt(acct_name, acct_data, ucs, opps, ps_proj, cap_data
         _pred = cr.get('OVERAGE_UNDERAGE_PREDICTION') or 0
         _pred_label = f"Predicted OVERAGE (customer will EXCEED capacity): {fmt_currency(abs(_pred))}" if _pred > 0 else f"Predicted UNDERAGE (customer will NOT use all capacity): {fmt_currency(abs(_pred))}"
         cap_text = (
-            f"Total Capacity: {fmt_currency(cr.get('TOTAL_CAP'))}"
+            f"Cap Purchased: {fmt_currency(cr.get('CAP_PURCHASED'))}"
+            f" | Total Capacity: {fmt_currency(cr.get('TOTAL_CAP'))}"
+            f" | Cap Used: {fmt_currency(cr.get('CAP_USED'))}"
+            f" | Cap Remaining: {fmt_currency(cr.get('CAP_REMAINING'))}"
             f" | Contract End: {fmt_date(cr.get('CONTRACT_END_DATE'))}"
             f" | {_pred_label}"
         )
