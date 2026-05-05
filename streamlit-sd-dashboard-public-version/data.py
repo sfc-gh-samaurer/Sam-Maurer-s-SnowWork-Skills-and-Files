@@ -1084,7 +1084,7 @@ def load_exec_software_renewals():
             a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
             o.STAGE_NAME,
             o.FORECAST_CATEGORY_NAME AS FORECAST_STATUS,
-            CAST(COALESCE(o.PRODUCT_ACV_LOOKER_C, o.ACV_C, o.AMOUNT) AS FLOAT) AS TOTAL_ACV,
+            CAST(COALESCE(o.FORECAST_ACV_C, o.PRODUCT_ACV_LOOKER_C, o.ACV_C, o.AMOUNT) AS FLOAT) AS TOTAL_ACV,
             CAST(COALESCE(o.RENEWAL_ACV_LOOKER_C, o.ACV_C, 0) AS FLOAT) AS RENEWAL_ACV,
             CAST(o.PRODUCT_FORECAST_TCV_C AS FLOAT) AS PRODUCT_FORECAST_TCV,
             o.CLOSE_DATE,
@@ -1099,7 +1099,6 @@ def load_exec_software_renewals():
         AND o.IS_CLOSED = FALSE
         AND o.IS_DELETED = FALSE
         AND o.TYPE = 'Renewal'
-        AND o.AMOUNT > 0
         AND o.CLOSE_DATE BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 6, CURRENT_DATE())
         ORDER BY o.CLOSE_DATE ASC
     """)).to_pandas()
