@@ -463,13 +463,13 @@ with st.expander(f"Upcoming Services Renewals ({svc_n})", expanded=False):
         empty_state("No active PS projects ending in the next 6 months.")
     else:
         svc_display = svc_renewals.copy()
-        svc_display["ACCT_LINK"] = svc_display["SALESFORCE_ACCOUNT_ID"].apply(
-            lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
+        svc_display["OPP_LINK"] = svc_display["OPPORTUNITY_ID"].apply(
+            lambda x: f"{SFDC_BASE}/Opportunity/{x}/view" if pd.notna(x) and x else None
         )
         render_html_table(svc_display, columns=[
             {"col": "ACCOUNT_NAME",  "label": "Account"},
             {"col": "AE",            "label": "AE"},
-            {"col": "ACCT_LINK",     "label": "SFDC",     "fmt": "link"},
+            {"col": "OPP_LINK",     "label": "SFDC",     "fmt": "link"},
             {"col": "PROJECT_NAME",  "label": "Project"},
             {"col": "PROJECT_STAGE", "label": "Stage"},
             {"col": "START_DATE",    "label": "Start",    "fmt": "date"},
