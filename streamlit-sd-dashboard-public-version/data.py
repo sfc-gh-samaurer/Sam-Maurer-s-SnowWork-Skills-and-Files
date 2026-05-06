@@ -501,19 +501,26 @@ def load_accounts_base():
 def load_capacity_renewals():
     session = _get_session()
     df = session.sql(_sql("""
-        WITH base AS (
+        WITH opp_dm AS (
+            SELECT DISTINCT o.ACCOUNT_ID, o.DM
+            FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
+            WHERE o.DS = CURRENT_DATE() AND o.IS_CLOSED = FALSE
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY o.ACCOUNT_ID ORDER BY o.CLOSE_DATE DESC) = 1
+        ),
+        base AS (
             SELECT
                 a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
                 a.ACCOUNT_NAME,
                 a.REP_NAME AS ACCOUNT_OWNER,
-                COALESCE(dm_user.NAME, a.DM) AS DM,
+                COALESCE(od.DM, dm_user.NAME, a.DM) AS DM,
                 a.ACCOUNT_TIER AS TIER
             FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
             LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) ae_user ON a.REP_NAME = ae_user.NAME
             LEFT JOIN FIVETRAN.SALESFORCE.USER dm_user ON ae_user.MANAGER_ID = dm_user.ID
+            LEFT JOIN opp_dm od ON a.ACCOUNT_ID = od.ACCOUNT_ID
             WHERE a.DS = CURRENT_DATE()
             AND (
-                COALESCE(dm_user.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+                COALESCE(od.DM, dm_user.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
                 OR a.ACCOUNT_ID IN (
                     SELECT DISTINCT o.ACCOUNT_ID FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
                     WHERE o.DS = CURRENT_DATE() AND o.DM IN ('Erik Schneider', 'Raymond Navarro')
