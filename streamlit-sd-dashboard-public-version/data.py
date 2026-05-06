@@ -512,7 +512,13 @@ def load_capacity_renewals():
             LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) ae_user ON a.REP_NAME = ae_user.NAME
             LEFT JOIN FIVETRAN.SALESFORCE.USER dm_user ON ae_user.MANAGER_ID = dm_user.ID
             WHERE a.DS = CURRENT_DATE()
-            AND COALESCE(dm_user.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+            AND (
+                COALESCE(dm_user.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+                OR a.ACCOUNT_ID IN (
+                    SELECT DISTINCT o.ACCOUNT_ID FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
+                    WHERE o.DS = CURRENT_DATE() AND o.DM IN ('Erik Schneider', 'Raymond Navarro')
+                )
+            )
             AND a.ACCOUNT_STATUS = 'Active'
         ),
         capacity AS (
