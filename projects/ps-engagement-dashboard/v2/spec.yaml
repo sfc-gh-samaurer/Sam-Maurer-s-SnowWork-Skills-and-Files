@@ -1,0 +1,27 @@
+---
+spec:
+  containers:
+  - name: "ps-engagement-dashboard"
+    image: "sfcogsops-snowhouse-aws-us-west-2.registry.snowflakecomputing.com/pst/ps_account_review/my_image_repo/ps-engagement-dashboard:latest"
+    env:
+      HOSTNAME: "0.0.0.0"
+      PORT: "8080"
+      NODE_ENV: "production"
+      SNOWFLAKE_WAREHOUSE: "PST_STEAMLIT_APPS"
+      SNOWFLAKE_DATABASE: "PST"
+      SNOWFLAKE_SCHEMA: "PS_APPS_DEV"
+    readinessProbe:
+      port: 8080
+      path: "/"
+    resources:
+      limits:
+        memory: "2Gi"
+        cpu: "1"
+      requests:
+        memory: "1Gi"
+        cpu: "500m"
+  endpoints:
+  - name: "ps-engagement-dashboard"
+    port: 8080
+    protocol: "HTTP"
+    public: true
