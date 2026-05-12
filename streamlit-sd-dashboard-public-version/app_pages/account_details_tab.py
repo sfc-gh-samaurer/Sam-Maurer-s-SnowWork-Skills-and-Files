@@ -13,6 +13,7 @@ from data import (
     load_capacity_pipeline,
     save_user_prefs,
     render_html_table,
+    _scope_key,
 )
 
 from constants import SFDC_BASE
@@ -346,8 +347,8 @@ _acct_district = _scoped_df.loc[_scoped_df["ACCOUNT_NAME"] == selected, "DISTRIC
 _acct_district = _acct_district.iloc[0] if not _acct_district.empty else ""
 accounts_df = load_accounts_for_scope(_acct_district) if _acct_district else pd.DataFrame()
 
-cap_df     = load_capacity_renewals()
-renewal_df = load_exec_software_renewals()
+cap_df     = load_capacity_renewals(_scope=_scope_key())
+renewal_df = load_exec_software_renewals(_scope=_scope_key())
 
 acct_row  = accounts_df[accounts_df["ACCOUNT_NAME"] == selected]
 acct_cap  = cap_df[cap_df["ACCOUNT_NAME"] == selected]
@@ -550,7 +551,7 @@ st.markdown('<div style="margin-top:16px"></div>', unsafe_allow_html=True)
 # ─────────────────────────────────────────────────────────────────────────────
 # ── SECTION: Use Cases ───────────────────────────────────────────────────────
 # ─────────────────────────────────────────────────────────────────────────────
-uc_all = load_use_cases()
+uc_all = load_use_cases(_scope=_scope_key())
 acct_ucs = uc_all[uc_all["ACCOUNT_NAME"] == selected].copy()
 
 st.markdown('<p class="sf-section-label">Use Cases</p>', unsafe_allow_html=True)
@@ -605,8 +606,8 @@ else:
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown('<p class="sf-section-label">Open Opportunities</p>', unsafe_allow_html=True)
 
-_sd_pipe = load_ps_pipeline()
-_cap_pipe = load_capacity_pipeline()
+_sd_pipe = load_ps_pipeline(_scope=_scope_key())
+_cap_pipe = load_capacity_pipeline(_scope=_scope_key())
 
 _sd_acct = _sd_pipe[_sd_pipe["ACCOUNT_NAME"] == selected].copy() if not _sd_pipe.empty else pd.DataFrame()
 _cap_acct = _cap_pipe[_cap_pipe["ACCOUNT_NAME"] == selected].copy() if not _cap_pipe.empty else pd.DataFrame()
@@ -655,7 +656,7 @@ else:
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown('<p class="sf-section-label">Active PS Engagements</p>', unsafe_allow_html=True)
 
-_ps_all = load_ps_projects_active()
+_ps_all = load_ps_projects_active(_scope=_scope_key())
 _ps_acct = _ps_all[_ps_all["ACCOUNT_NAME"] == selected].copy() if not _ps_all.empty else pd.DataFrame()
 
 if _ps_acct.empty:

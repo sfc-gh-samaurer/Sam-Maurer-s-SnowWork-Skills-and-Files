@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
-from data import load_ps_pipeline, load_ps_history, render_html_table
+from data import load_ps_pipeline, load_ps_history, render_html_table, _scope_key
 from constants import SFDC_BASE
 from components import section_banner, empty_state
 
-pipeline_df = load_ps_pipeline()
-history_df  = load_ps_history()
+_sk = _scope_key()
+pipeline_df = load_ps_pipeline(_scope=_sk)
+history_df  = load_ps_history(_scope=_sk)
 for _df in [pipeline_df, history_df]:
     if "AGREEMENT_TYPE" not in _df.columns:
         _df["AGREEMENT_TYPE"] = _df.get("OPPORTUNITY_TYPE", "")

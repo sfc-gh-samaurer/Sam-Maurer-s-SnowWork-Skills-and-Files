@@ -1,13 +1,14 @@
 import streamlit as st
 import pandas as pd
 import re
-from data import load_use_cases, load_action_planner_pipeline, render_html_table, load_wow_use_cases
+from data import load_use_cases, load_action_planner_pipeline, render_html_table, load_wow_use_cases, _scope_key
 from constants import SFDC_BASE
 from components import section_banner, empty_state
 
-df    = load_use_cases()
-ap_df = load_action_planner_pipeline()
-wow   = load_wow_use_cases()
+_sk = _scope_key()
+df    = load_use_cases(_scope=_sk)
+ap_df = load_action_planner_pipeline(_scope=_sk)
+wow   = load_wow_use_cases(_scope=_sk)
 
 section_banner("Use Cases", "Pipeline use cases across all accounts")
 
