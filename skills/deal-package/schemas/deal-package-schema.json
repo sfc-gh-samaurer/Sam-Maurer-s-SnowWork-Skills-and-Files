@@ -1,21 +1,22 @@
 {
-    "_comment": "Master JSON schema for deal-package skill. Superset of all artifact field requirements. v2.1 adds dps section for Deal Pricing Sheet generation and sku field to pricing roles.",
-    "_version": "2.1",
+    "_comment": "Master JSON schema for deal-package skill. Superset of all artifact field requirements. v2.2 adds pricing ranges, disclaimers, and services-pov intake.",
+    "_version": "2.2",
 
     "meta": {
-        "customer": "Sharp Healthcare",
-        "engagement_title": "Semantic Layer Consolidation & Ontology-on-Snowflake",
-        "date": "April 2026",
-        "ae_name": "JD Olsen",
-        "se_name": "Andrew Dunn",
+        "customer": "ACME Corp",
+        "engagement_title": "Example Engagement Title",
+        "date": "May 2026",
+        "ae_name": "AE Name",
+        "se_name": "SE Name",
         "engagement_type": "T&M",
         "funding_model": "capacity_conversion",
         "si_partner": null,
-        "output_dir": "~/Downloads/Sharp-Healthcare-Ontology-Engagement/"
+        "output_dir": "~/Downloads/ACME-Corp-Example-Engagement/",
+        "source_pov": null
     },
 
     "tdr": {
-        "_comment": "Fields for sd-technical-deal-review template {{placeholder}} replacement. See sd-technical-deal-review/SKILL.md for formatting rules.",
+        "_comment": "Fields for TDR template. See SKILL.md for formatting rules.",
 
         "exec_summary": "Text body (MAX 300 chars, 2-3 sentences)",
         "exec_challenges": ["**Challenge Title**: description (MAX 80 chars each, 4-5 items)"],
@@ -84,25 +85,25 @@
     },
 
     "cover": {
-        "_comment": "Fields for PPTX Cover slide — generate_tdr.py populates title, subtitle, author, date.",
-        "customer_name": "Sharp Healthcare"
+        "_comment": "Fields for PPTX Cover slide.",
+        "customer_name": "ACME Corp"
     },
 
     "gantt": {
-        "_comment": "Fields for PPTX slide 8 (Gantt) and HTML timeline — post-processing generates bars.",
+        "_comment": "Fields for PPTX Gantt slide and HTML timeline.",
         "total_weeks": 12,
         "phases": [
             {
                 "name": "Foundation",
                 "start_week": 1,
-                "end_week": 2,
+                "end_week": 3,
                 "owner": "sf",
                 "color": "#64748b",
                 "activities": [
                     {
-                        "label": "Schema & Patient Identity",
+                        "label": "Discovery & Architecture Review",
                         "start_week": 1,
-                        "end_week": 2,
+                        "end_week": 3,
                         "owner": "sf"
                     }
                 ]
@@ -111,7 +112,7 @@
     },
 
     "outcomes": {
-        "_comment": "Slide 6: Outcomes — strategic/business and technical outcomes. Two-column layout.",
+        "_comment": "Slide 6: Outcomes — strategic/business and technical outcomes.",
         "subtitle": "Expected strategic and technical outcomes from this engagement.",
         "strategic_outcomes": [
             "**Business Outcome Title**: measurable business result (MAX 100 chars each, 3-5 items)"
@@ -129,12 +130,12 @@
         "sdm_activities": [
             "**Activity Title**: description of SDM responsibility (MAX 100 chars each, 4-6 items)"
         ],
-        "sa_hours": 240,
-        "sdm_hours": 48
+        "sa_hours_range": "180-280",
+        "sdm_hours_range": "36-56"
     },
 
     "tech_review": {
-        "_comment": "Slide 9: Technical Review Outcome — placeholder for tech reviewer. SKIP audience. Auto-generated with section headers; no user input needed."
+        "_comment": "Slide 9: Technical Review Outcome — placeholder for tech reviewer. SKIP audience."
     },
 
     "milestones": {
@@ -142,16 +143,16 @@
         "items": [
             {
                 "milestone": "M1: Foundation Complete",
-                "deliverables": "Ontology schema, patient identity model",
-                "acceptance_criteria": "Schema deployed to DEV, validated by SME review",
-                "duration": "Weeks 1-2"
+                "deliverables": "Architecture document, environment setup",
+                "acceptance_criteria": "Design approved by customer technical lead",
+                "duration": "Weeks 1-3"
             }
         ]
     },
 
     "raci": {
-        "_comment": "Slide 12: Detailed RACI — 3-column format (Activity / Snowflake / Customer). Add partner column only if si_partner is set.",
-        "customer_name": "Sharp Healthcare",
+        "_comment": "Slide 12: Detailed RACI — 3-column format. Customer = A for ~99% of rows. See RACI Rules in SKILL.md.",
+        "customer_name": "ACME Corp",
         "has_partner": false,
         "partner_name": null,
         "activities": [
@@ -164,7 +165,7 @@
     },
 
     "team_structure": {
-        "_comment": "Slide 14: Team Structure & Accountability Plan — named roles and reporting lines.",
+        "_comment": "Slide 14: Team Structure & Accountability Plan.",
         "roles": [
             {
                 "title": "Solutions Architect",
@@ -180,42 +181,45 @@
     },
 
     "staffing_plan": {
-        "_comment": "Slide 16: Staffing Plan — role-by-week hour allocation grid. SKIP audience. Auto-derived from pricing + gantt if not explicitly provided.",
+        "_comment": "Slide 16: Staffing Plan — role-by-week hour allocation grid. SKIP audience.",
         "role_weeks": [
             {
                 "role": "Solutions Architect",
-                "weekly_hours": [20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20, 20]
+                "weekly_hours": [18, 18, 18, 18, 20, 20, 20, 20, 18, 18, 15, 15]
             }
         ]
     },
 
     "pricing": {
-        "_comment": "Fields for PPTX slide 12 (Pricing) and HTML proposal Delivery Team section.",
+        "_comment": "All pricing is INDICATIVE (±40%) and requires Pre-Sales Architecture validation. Show as ranges in customer-facing materials.",
         "roles": [
             {
                 "title": "T&M Solutions Architect",
                 "sku": "SVC-TMSA",
-                "hours": 240,
+                "hours_estimate": 220,
+                "hours_range": "180-280",
                 "rate": 335,
-                "total": 80400
+                "total_range": "$60K - $94K"
             },
             {
                 "title": "T&M Service Delivery Manager",
                 "sku": "SVC-TMSDM",
-                "hours": 48,
+                "hours_estimate": 44,
+                "hours_range": "36-56",
                 "rate": 260,
-                "total": 12480
+                "total_range": "$9K - $15K"
             }
         ],
-        "subtotal": 92880,
+        "subtotal_range": "$69K - $109K",
         "investment": 0,
-        "customer_total": 92880,
+        "customer_total_range": "$69K - $109K",
+        "pricing_disclaimer": "Estimates are indicative (±40%) and require Pre-Sales Architecture validation before customer-facing use.",
         "pricing_sheet_link": null,
         "pricing_sheet_id": null
     },
 
     "dps": {
-        "_comment": "Fields specific to Deal Pricing Sheet generation. Only populated when DPS is being generated (not pre-existing). If user already has a DPS, set pricing.pricing_sheet_link instead.",
+        "_comment": "Fields specific to Deal Pricing Sheet generation. Only populated when DPS is being generated (not pre-existing).",
         "generate": false,
         "sfdc_opportunity_url": "https://snowflakecomputing.lightning.force.com/lightning/r/Opportunity/.../view",
         "currency": "USD",
@@ -226,8 +230,8 @@
         "is_investment": false,
         "investment_discount_pct": "0%",
         "billing_frequency": "Upfront",
-        "expected_start_date": "6/15/2026",
-        "ps_sales_team": "Drew Dunn",
+        "expected_start_date": "MM/DD/YYYY",
+        "ps_sales_team": "PS Sales Contact",
         "economic_review_answers": {
             "_comment": "Yes/No answers for Economic Review Summary tab (I4:I9). Auto-derived from deal context.",
             "tech_review_completed": "Yes",
@@ -240,12 +244,12 @@
     },
 
     "html_proposal": {
-        "_comment": "Fields specific to the one-page HTML proposal that are not in the TDR schema.",
+        "_comment": "Fields specific to the one-page HTML proposal. Pricing shown as ranges.",
 
         "metrics": [
-            {"value": "12 wks", "label": "Duration", "color": "#10b981", "subtitle": null},
-            {"value": "$92,880", "label": "Time & Materials", "color": "#29B5E8", "subtitle": "Funded via capacity conversion"},
-            {"value": "31", "label": "Looker Projects", "color": "#f59e0b", "subtitle": null}
+            {"value": "10-14 wks", "label": "Duration", "color": "#10b981", "subtitle": null},
+            {"value": "$69K-$109K", "label": "Estimated Investment*", "color": "#29B5E8", "subtitle": "Subject to architecture review"},
+            {"value": "3", "label": "Workstreams", "color": "#f59e0b", "subtitle": null}
         ],
 
         "summary_paragraph": "2-3 sentence engagement overview for the HTML proposal header area.",
@@ -255,8 +259,8 @@
                 "icon": "fa-solid fa-cubes",
                 "icon_color_bg": "bg-amber-50",
                 "icon_color_text": "text-amber-500",
-                "title": "Semantic Fragmentation",
-                "description": "717 LookML definitions across 31 projects with no single source of truth."
+                "title": "Example Pain Point",
+                "description": "Brief description of the customer challenge."
             }
         ],
 
@@ -266,10 +270,10 @@
                 "icon_color_bg": "bg-sky-50",
                 "icon_color_text": "text-sky-500",
                 "border_color": "#29B5E8",
-                "title": "Healthcare Ontology",
+                "title": "Example Deliverable",
                 "bullets": [
-                    "**Formal ontology schema** — ONTOLOGY_CLASSES, PROPERTIES, RELATIONSHIPS as native Snowflake tables",
-                    "**8+ healthcare classes** — Patient, Provider, Encounter, Diagnosis, Procedure, Payor, Member, Facility"
+                    "**Deliverable item** — description of what is delivered",
+                    "**Second item** — another deliverable component"
                 ]
             }
         ],
@@ -292,14 +296,14 @@
         "team_cards": [
             {
                 "role": "Solutions Architect",
-                "hours": 240,
+                "hours_range": "180-280",
                 "rate": 335,
                 "border_color": "#29B5E8",
                 "icon": "fa-solid fa-brain",
                 "icon_color_bg": "bg-sky-50",
                 "icon_color_text": "text-sky-500",
                 "description": "Your hands-on technical lead.",
-                "bullets": ["Design ontology schema", "Author Semantic Views", "Enable Cortex AI"]
+                "bullets": ["Architecture design", "Implementation advisory", "Knowledge transfer"]
             }
         ],
 
@@ -309,14 +313,16 @@
         ],
 
         "out_of_scope": [
-            "Migration of all LookML definitions beyond Phase 1",
-            "Production data pipeline changes"
+            "Production deployment and operations",
+            "Data pipeline development"
         ],
 
         "next_steps": [
             {"action": "Confirm Scope", "details": "Validate priority domains", "owner": "Customer"},
             {"action": "Schedule Kickoff", "details": "2-hour kickoff session", "owner": "SDM"}
-        ]
+        ],
+
+        "pricing_footer_disclaimer": "The investment range above represents an initial estimate based on current scope understanding. Final pricing will be confirmed following detailed scoping and architecture review."
     },
 
     "timeline_embed": {

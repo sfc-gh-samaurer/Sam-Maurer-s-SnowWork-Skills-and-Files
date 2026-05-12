@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{engagement_title}} — {{customer_name}}</title>
-<script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
+*, *::before, *::after { box-sizing: border-box; }
 body {
   font-family: 'Lato', system-ui, -apple-system, sans-serif;
   background: #f1f5f9;
@@ -16,6 +16,67 @@ body {
   color: #262626; line-height: 1.6;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
 }
+
+/* Layout utilities */
+.flex { display: flex; }
+.grid { display: grid; }
+.items-start { align-items: flex-start; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.gap-2 { gap: 0.5rem; }
+.gap-3 { gap: 0.75rem; }
+.gap-4 { gap: 1rem; }
+.gap-6 { gap: 1.5rem; }
+.grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.relative { position: relative; }
+.overflow-hidden { overflow: hidden; }
+.z-10 { z-index: 10; }
+.mb-1 { margin-bottom: 0.25rem; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-3 { margin-bottom: 0.75rem; }
+.mt-3 { margin-top: 0.75rem; }
+.mt-4 { margin-top: 1rem; }
+.pl-4 { padding-left: 1rem; }
+.p-6 { padding: 1.5rem; }
+.px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+.py-4 { padding-top: 1rem; padding-bottom: 1rem; }
+.pb-4 { padding-bottom: 1rem; }
+.space-y-1 > * + * { margin-top: 0.25rem; }
+.space-y-1\.5 > * + * { margin-top: 0.375rem; }
+.leading-tight { line-height: 1.25; }
+.leading-relaxed { line-height: 1.625; }
+.font-medium { font-weight: 500; }
+.font-semibold { font-weight: 600; }
+.font-bold { font-weight: 700; }
+.font-extrabold { font-weight: 800; }
+.uppercase { text-transform: uppercase; }
+.tracking-widest { letter-spacing: 0.1em; }
+.whitespace-nowrap { white-space: nowrap; }
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-2xl { font-size: 1.5rem; line-height: 2rem; }
+.text-white { color: #fff; }
+.text-blue-100 { color: #dbeafe; }
+.text-slate-500 { color: #64748b; }
+.text-slate-600 { color: #475569; }
+.text-slate-700 { color: #334155; }
+
+/* Icon color utilities */
+.bg-amber-50 { background: #fffbeb; }
+.bg-sky-50 { background: #f0f9ff; }
+.bg-emerald-50 { background: #ecfdf5; }
+.bg-rose-50 { background: #fff1f2; }
+.bg-violet-50 { background: #f5f3ff; }
+.text-amber-500 { color: #f59e0b; }
+.text-sky-500 { color: #0ea5e9; }
+.text-emerald-500 { color: #10b981; }
+.text-rose-500 { color: #f43f5e; }
+.text-violet-500 { color: #8b5cf6; }
+
+/* Page structure */
 .page-container {
   max-width: 960px; margin: 24px auto;
   background: white; border-radius: 12px;
@@ -60,6 +121,13 @@ body {
 table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid #e2e8f0; }
 th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.04em; }
+ul { list-style-type: disc; }
+
+.pricing-disclaimer {
+  background: #fffbeb; border: 1px solid #fbbf24; border-radius: 6px;
+  padding: 8px 12px; margin-top: 12px; font-size: 10px; color: #92400e;
+  line-height: 1.5;
+}
 
 @media print {
   body { margin: 0; padding: 0; background: white; }
@@ -90,7 +158,7 @@ th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 0.7rem; t
   <div class="relative z-10">
     <div class="flex justify-between items-start mb-3">
       <div>
-        <div class="text-[11px] tracking-widest uppercase font-medium text-blue-100 mb-2">
+        <div style="font-size:11px; letter-spacing:0.1em; text-transform:uppercase; font-weight:500; color:#dbeafe; margin-bottom:0.5rem;">
           Snowflake Professional Services
         </div>
         <h1 class="text-2xl font-bold leading-tight mb-1">{{engagement_title}}</h1>
@@ -102,7 +170,7 @@ th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 0.7rem; t
       </div>
     </div>
   </div>
-  <div class="absolute top-0 right-0 w-64 h-64 opacity-10" style="background: radial-gradient(circle at 70% 30%, white 1px, transparent 1px); background-size: 20px 20px;"></div>
+  <div style="position:absolute; top:0; right:0; width:16rem; height:16rem; opacity:0.1; background: radial-gradient(circle at 70% 30%, white 1px, transparent 1px); background-size: 20px 20px;"></div>
 </header>
 
 <!-- ============================================================ -->
@@ -166,7 +234,7 @@ th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 0.7rem; t
         </div>
         <div class="text-sm font-bold text-slate-700">{{title}}</div>
       </div>
-      <ul class="text-xs text-slate-500 leading-relaxed space-y-1.5 pl-4" style="list-style-type: disc;">
+      <ul class="text-xs text-slate-500 leading-relaxed space-y-1.5 pl-4">
         {{#bullets}}
         <li>{{.}}</li>
         {{/bullets}}
@@ -242,16 +310,21 @@ th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 0.7rem; t
         <div class="pain-icon {{icon_color_bg}} {{icon_color_text}}">
           <i class="{{icon}}"></i>
         </div>
-        <div class="text-sm font-bold text-slate-700">{{role}} &mdash; {{hours}} hrs @ ${{rate}}/hr</div>
+        <div class="text-sm font-bold text-slate-700">{{role}} &mdash; {{hours_range}} hrs @ ${{rate}}/hr</div>
       </div>
       <p class="text-xs text-slate-500 leading-relaxed mb-2">{{description}}</p>
-      <ul class="text-xs text-slate-500 leading-relaxed space-y-1 pl-4" style="list-style-type: disc;">
+      <ul class="text-xs text-slate-500 leading-relaxed space-y-1 pl-4">
         {{#bullets}}
         <li>{{.}}</li>
         {{/bullets}}
       </ul>
     </div>
     {{/team_cards}}
+  </div>
+
+  <div class="pricing-disclaimer">
+    <i class="fa-solid fa-info-circle"></i>
+    {{pricing_footer_disclaimer}}
   </div>
 </div>
 
@@ -266,7 +339,7 @@ th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 0.7rem; t
         <i class="fa-solid fa-list-check" style="color:#29B5E8;"></i>
         Assumptions &amp; Dependencies
       </div>
-      <ul class="text-xs text-slate-500 leading-relaxed space-y-1.5 pl-4" style="list-style-type: disc;">
+      <ul class="text-xs text-slate-500 leading-relaxed space-y-1.5 pl-4">
         {{#assumptions}}
         <li>{{.}}</li>
         {{/assumptions}}
@@ -275,10 +348,10 @@ th { background: #f8fafc; color: #64748b; font-weight: 600; font-size: 0.7rem; t
 
     <div>
       <div class="section-header">
-        <i class="fa-solid fa-ban text-red-400"></i>
+        <i class="fa-solid fa-ban" style="color:#f87171;"></i>
         Out of Scope
       </div>
-      <ul class="text-xs text-slate-500 leading-relaxed space-y-1.5 pl-4" style="list-style-type: disc;">
+      <ul class="text-xs text-slate-500 leading-relaxed space-y-1.5 pl-4">
         {{#out_of_scope}}
         <li>{{.}}</li>
         {{/out_of_scope}}

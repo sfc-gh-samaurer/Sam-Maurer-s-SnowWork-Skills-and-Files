@@ -47,6 +47,11 @@ Use this structure when generating the Services POV document. Replace `<PLACEHOL
 | **Monthly Consumption** | $<RANGE>/month | <signal> |
 | **Renewal Pipeline** | $<VALUE> (<STAGE>) | <signal> |
 
+**Signal Key:**
+- ✅ = Healthy (>50% utilization, consumption growing, renewal active in late stage)
+- ⚠️ = Attention (30-50% utilization, flat consumption, renewal in early stage)
+- 🔴 = Risk (<30% utilization, declining consumption, no active renewal opp)
+
 ### Account Team
 
 | Role | Name |
@@ -188,14 +193,18 @@ Use this structure when generating the Services POV document. Replace `<PLACEHOL
 
 ## Investment & ROI
 
-### Services Investment
+> ⚠️ **Note:** All investment estimates below are indicative (±40% range) and require Pre-Sales Architecture validation before customer-facing use. Final pricing depends on scope refinement, resource availability, and engagement complexity.
 
-| Engagement | Duration | Estimated Investment |
-|------------|----------|---------------------|
-| Phase 1 | N weeks | $X - $Y |
-| Phase 2 | N weeks | $X - $Y |
-| Phase 3 | N weeks | $X - $Y |
-| **Total** | **N weeks** | **$X - $Y** |
+### Services Investment (Estimated Range)
+
+| Engagement | Duration | Estimated Range* |
+|------------|----------|-----------------|
+| Phase 1: Foundation | <N> weeks | $<LOW>K - $<HIGH>K |
+| Phase 2: Expand | <N> weeks | $<LOW>K - $<HIGH>K |
+| Phase 3: Enablement | <N> weeks | $<LOW>K - $<HIGH>K |
+| **Total** | **<N> weeks** | **$<LOW>K - $<HIGH>K** |
+
+*Estimates are indicative and subject to Pre-Sales Architecture review.
 
 ### Expected Outcomes
 
@@ -241,4 +250,5 @@ Use this structure when generating the Services POV document. Replace `<PLACEHOL
 ---
 
 *This document is confidential and intended for Snowflake internal use and customer-facing discussions.*
+*Investment estimates are indicative — Pre-Sales Architecture review required before external sharing.*
 ```
