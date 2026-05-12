@@ -1,6 +1,6 @@
 # SD Dashboard — Services Delivery
 
-Streamlit app for the Snowflake Services Delivery team. Surfaces capacity contracts, renewals pipeline, use cases, active SD projects, and an AI-powered action plan generator across all districts.
+Streamlit app for the Snowflake Services Delivery team. Surfaces capacity contracts, renewals pipeline, use cases, active SD projects, and an AI-powered action plan generator across all districts and running the biz.
 
 ---
 
