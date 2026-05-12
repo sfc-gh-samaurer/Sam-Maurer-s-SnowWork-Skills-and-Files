@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
 import re
-from data import load_ps_projects_active, render_html_table, load_wow_projects
+from data import load_ps_projects_active, render_html_table, load_wow_projects, _scope_key
 from constants import SFDC_BASE
 from components import section_banner, empty_state
 
-active_df = load_ps_projects_active()
+_sk = _scope_key()
+active_df = load_ps_projects_active(_scope=_sk)
 if not active_df.empty and "PRACTICE" in active_df.columns:
     active_df = active_df[active_df["PRACTICE"] != "Education Services"]
 
@@ -18,7 +19,7 @@ k3.metric("Billable Hours",  f"{active_df['BILLABLE_HOURS'].sum():,.0f}"   if no
 k4.metric("Stalled",         len(active_df[active_df["PROJECT_STAGE"].isin(["Stalled", "Stalled - Expiring"])]) if not active_df.empty else 0)
 
 # ── WoW Project Changes ───────────────────────────────────────────────────────
-wow_proj  = load_wow_projects()
+wow_proj  = load_wow_projects(_scope=_sk)
 _today    = pd.Timestamp.now().normalize()
 
 wow_stages = wow_proj[wow_proj["FIELD"] == "pse__Stage__c"]

@@ -1,5 +1,5 @@
 import streamlit as st
-from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list, get_current_user
+from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list, get_current_user, _scope_key
 from datetime import datetime
 import json
 import os
@@ -583,8 +583,8 @@ if _last_seen and not st.session_state.get("_whats_new_shown"):
         from data import load_exec_new_opps, load_exec_new_use_cases
         import pandas as _pd_wn
         _ls_dt  = _pd_wn.to_datetime(_last_seen)
-        _wn_opps = load_exec_new_opps()
-        _wn_ucs  = load_exec_new_use_cases()
+        _wn_opps = load_exec_new_opps(_scope=_scope_key())
+        _wn_ucs  = load_exec_new_use_cases(_scope=_scope_key())
         _wn_opps["CREATED_DATE"] = _pd_wn.to_datetime(_wn_opps["CREATED_DATE"], errors="coerce")
         _wn_ucs["CREATED_DATE"]  = _pd_wn.to_datetime(_wn_ucs["CREATED_DATE"],  errors="coerce")
         _new_opp_ct = len(_wn_opps[_wn_opps["CREATED_DATE"] > _ls_dt])

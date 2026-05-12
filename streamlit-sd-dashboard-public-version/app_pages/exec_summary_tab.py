@@ -11,21 +11,23 @@ from data import (
     load_wow_use_cases,
     load_wow_projects,
     render_html_table,
+    _scope_key,
 )
 from constants import SFDC_BASE
 from components import section_banner, empty_state
 
 today = pd.Timestamp.now().normalize()
 
-sw_renewals_raw = load_exec_software_renewals()
-svc_renewals    = load_exec_services_renewals()
-new_opps_all    = load_exec_new_opps()
-new_uc_all      = load_exec_new_use_cases()
-cap_df          = load_capacity_renewals()
+_sk = _scope_key()
+sw_renewals_raw = load_exec_software_renewals(_scope=_sk)
+svc_renewals    = load_exec_services_renewals(_scope=_sk)
+new_opps_all    = load_exec_new_opps(_scope=_sk)
+new_uc_all      = load_exec_new_use_cases(_scope=_sk)
+cap_df          = load_capacity_renewals(_scope=_sk)
 for _d in [sw_renewals_raw, svc_renewals, new_opps_all]:
     if "AGREEMENT_TYPE" not in _d.columns:
         _d["AGREEMENT_TYPE"] = _d.get("OPPORTUNITY_TYPE", "")
-cap_pipe_df     = load_capacity_pipeline()
+cap_pipe_df     = load_capacity_pipeline(_scope=_sk)
 
 sw_renewals = sw_renewals_raw[
     ~sw_renewals_raw["OPPORTUNITY_NAME"].str.contains("Segment", case=False, na=False)
@@ -209,8 +211,8 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ── WoW SUMMARY ───────────────────────────────────────────────────────────────
-_wow_uc   = load_wow_use_cases(days=days_window)
-_wow_proj = load_wow_projects(days=days_window)
+_wow_uc   = load_wow_use_cases(days=days_window, _scope=_sk)
+_wow_proj = load_wow_projects(days=days_window, _scope=_sk)
 
 
 def _stage_num_ex(s):

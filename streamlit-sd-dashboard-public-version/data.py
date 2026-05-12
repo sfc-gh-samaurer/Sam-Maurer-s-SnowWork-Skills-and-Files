@@ -35,6 +35,12 @@ _DM_FILTER_HARDCODED = "IN ('Erik Schneider', 'Raymond Navarro')"
 
 
 
+def _scope_key():
+    dms = tuple(sorted(st.session_state.get("selected_dms") or []))
+    districts = tuple(sorted(st.session_state.get("selected_districts") or []))
+    return (dms, districts)
+
+
 def _get_dm_in_clause():
     dms = st.session_state.get("selected_dms") or []
     if not dms:
@@ -359,7 +365,7 @@ def clear_all_caches():
 
 
 @st.cache_data(ttl=3600)
-def load_wow_use_cases(days: int = 7):
+def load_wow_use_cases(days: int = 7, _scope=None):
     session = _get_session()
     days_safe = max(1, int(days))
     df = session.sql(_sql(f"""
@@ -393,7 +399,7 @@ def load_wow_use_cases(days: int = 7):
 
 
 @st.cache_data(ttl=3600)
-def load_wow_projects(days: int = 7):
+def load_wow_projects(days: int = 7, _scope=None):
     session = _get_session()
     days_safe = max(1, int(days))
     df = session.sql(_sql(f"""
@@ -451,7 +457,7 @@ def load_data_freshness():
 
 
 @st.cache_data(ttl=86400)
-def load_accounts_base():
+def load_accounts_base(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         SELECT
@@ -498,7 +504,7 @@ def load_accounts_base():
 
 
 @st.cache_data(ttl=86400)
-def load_capacity_renewals():
+def load_capacity_renewals(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         WITH opp_dm AS (
@@ -593,7 +599,7 @@ def load_capacity_renewals():
 
 
 @st.cache_data(ttl=86400)
-def load_capacity_pipeline():
+def load_capacity_pipeline(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         SELECT
@@ -743,7 +749,7 @@ def load_accounts_for_scope(district_name: str):
 
 
 @st.cache_data(ttl=86400)
-def load_use_cases():
+def load_use_cases(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         SELECT
@@ -789,7 +795,7 @@ def load_use_cases():
 
 
 @st.cache_data(ttl=86400)
-def load_ps_projects_active():
+def load_ps_projects_active(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         WITH assignments AS (
@@ -867,7 +873,7 @@ def load_ps_projects_active():
 
 
 @st.cache_data(ttl=86400)
-def load_ps_pipeline():
+def load_ps_pipeline(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         WITH sda_opps AS (
@@ -1004,7 +1010,7 @@ def load_ps_pipeline():
 
 
 @st.cache_data(ttl=86400)
-def load_ps_history():
+def load_ps_history(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         WITH opp_ps_summary AS (
@@ -1056,7 +1062,7 @@ def load_ps_history():
 
 
 @st.cache_data(ttl=86400)
-def load_action_planner_pipeline():
+def load_action_planner_pipeline(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         SELECT
@@ -1098,7 +1104,7 @@ def load_action_planner_pipeline():
 
 
 @st.cache_data(ttl=86400)
-def load_exec_software_renewals():
+def load_exec_software_renewals(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         SELECT
@@ -1130,7 +1136,7 @@ def load_exec_software_renewals():
 
 
 @st.cache_data(ttl=86400)
-def load_exec_services_renewals():
+def load_exec_services_renewals(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         SELECT
@@ -1165,7 +1171,7 @@ def load_exec_services_renewals():
 
 
 @st.cache_data(ttl=86400)
-def load_exec_new_opps():
+def load_exec_new_opps(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         WITH sda_new AS (
@@ -1224,7 +1230,7 @@ def load_exec_new_opps():
 
 
 @st.cache_data(ttl=86400)
-def load_exec_new_use_cases():
+def load_exec_new_use_cases(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
         SELECT

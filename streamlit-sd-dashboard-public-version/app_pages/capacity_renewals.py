@@ -1,12 +1,13 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from data import load_capacity_renewals, load_capacity_pipeline, render_html_table
+from data import load_capacity_renewals, load_capacity_pipeline, render_html_table, _scope_key
 from constants import SFDC_BASE
 from components import section_banner, empty_state
 
-df          = load_capacity_renewals()
-cap_pipe_df = load_capacity_pipeline()
+_sk = _scope_key()
+df          = load_capacity_renewals(_scope=_sk)
+cap_pipe_df = load_capacity_pipeline(_scope=_sk)
 if "AGREEMENT_TYPE" not in cap_pipe_df.columns:
     cap_pipe_df["AGREEMENT_TYPE"] = cap_pipe_df.get("OPPORTUNITY_TYPE", "")
 today       = pd.Timestamp.now().normalize()
