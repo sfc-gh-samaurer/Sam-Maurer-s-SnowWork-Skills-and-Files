@@ -1,8 +1,58 @@
 import streamlit as st
 import pandas as pd
+from datetime import date, timedelta
 from data import load_ps_pipeline, load_ps_history, render_html_table, _scope_key
 from constants import SFDC_BASE
 from components import section_banner, empty_state
+
+
+def _fiscal_quarters(n_back=3, n_forward=5):
+    today = date.today()
+    fy_year = today.year + 1 if today.month >= 2 else today.year
+    fy_month = today.month - 1 if today.month >= 2 else today.month + 11
+    current_fq = (fy_month - 1) // 3 + 1
+    quarters = []
+    for offset in range(-n_back, n_forward + 1):
+        q = current_fq + offset
+        y = fy_year
+        while q > 4:
+            q -= 4
+            y += 1
+        while q < 1:
+            q += 4
+            y -= 1
+        cal_year = y - 1
+        q_starts = {1: (2, 1), 2: (5, 1), 3: (8, 1), 4: (11, 1)}
+        q_ends = {1: (4, 30), 2: (7, 31), 3: (10, 31), 4: (1, 31)}
+        sm, sd = q_starts[q]
+        em, ed = q_ends[q]
+        start_d = date(cal_year, sm, sd)
+        end_year = cal_year + 1 if q == 4 else cal_year
+        end_d = date(end_year, em, ed)
+        label = f"FQ{q} FY{y % 100:02d}"
+        quarters.append((label, start_d, end_d))
+    current_label = f"FQ{current_fq} FY{fy_year % 100:02d}"
+    return quarters, current_label
+
+
+def _apply_timeframe_filter(df, fq_selection, custom_start, custom_end, fq_map):
+    if "CLOSE_DATE" not in df.columns or df.empty:
+        return df
+    close_dates = pd.to_datetime(df["CLOSE_DATE"], errors="coerce").dt.date
+    if fq_selection == "Custom Range":
+        if custom_start and custom_end:
+            mask = (close_dates >= custom_start) & (close_dates <= custom_end)
+            return df[mask]
+    elif fq_selection != "All":
+        start_d, end_d = fq_map[fq_selection]
+        mask = (close_dates >= start_d) & (close_dates <= end_d)
+        return df[mask]
+    return df
+
+
+_FQ_LIST, _CURRENT_FQ = _fiscal_quarters()
+_FQ_MAP = {label: (s, e) for label, s, e in _FQ_LIST}
+_FQ_OPTIONS = ["All"] + [label for label, _, _ in _FQ_LIST] + ["Custom Range"]
 
 _sk = _scope_key()
 pipeline_df = load_ps_pipeline(_scope=_sk)
@@ -13,16 +63,21 @@ for _df in [pipeline_df, history_df]:
 
 section_banner("SD Opportunities", "Open pipeline and historical sold services & training")
 
-# ── KPI strip ─────────────────────────────────────────────────────────────────
-k1, k2 = st.columns(2)
-pipe_tcv = pipeline_df["TOTAL_PST_TCV"].fillna(0).sum() if not pipeline_df.empty else 0
-k1.metric("Pipeline Opps", len(pipeline_df))
-k2.metric("Pipeline TCV",  f"${pipe_tcv:,.0f}")
-
 st.markdown('<p class="sf-section-label">SD Pipeline (Open Opportunities)</p>', unsafe_allow_html=True)
 
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 if not pipeline_df.empty:
+    _pt1, _pt2, _pt3 = st.columns([1, 1, 1])
+    with _pt1:
+        _p_fq_default = _FQ_OPTIONS.index(_CURRENT_FQ) if _CURRENT_FQ in _FQ_OPTIONS else 0
+        _p_fq = st.selectbox("Timeframe", _FQ_OPTIONS, index=_p_fq_default, key="psp_fq")
+    _p_custom_start = _p_custom_end = None
+    if _p_fq == "Custom Range":
+        with _pt2:
+            _p_custom_start = st.date_input("Start date", value=date.today() - timedelta(days=90), key="psp_ds")
+        with _pt3:
+            _p_custom_end = st.date_input("End date", value=date.today(), key="psp_de")
+
     fc1, fc2, fc3, fc4, fc5 = st.columns(5)
     with fc1:
         acct_filter_p = st.multiselect("Account", options=sorted(pipeline_df["ACCOUNT_NAME"].dropna().unique()), default=[], key="psp_acct")
@@ -36,7 +91,7 @@ if not pipeline_df.empty:
         fc_filter_p = st.multiselect("Forecast", options=sorted(pipeline_df["FORECAST_STATUS"].dropna().unique()), default=[], key="psp_fc")
     search_p = st.text_input("Search opportunity name", "", key="psp_search", placeholder="Type to filter…")
 
-    filtered_p = pipeline_df.copy()
+    filtered_p = _apply_timeframe_filter(pipeline_df, _p_fq, _p_custom_start, _p_custom_end, _FQ_MAP)
     if acct_filter_p:
         filtered_p = filtered_p[filtered_p["ACCOUNT_NAME"].isin(acct_filter_p)]
     if ae_filter_p:
@@ -49,6 +104,11 @@ if not pipeline_df.empty:
         filtered_p = filtered_p[filtered_p["FORECAST_STATUS"].isin(fc_filter_p)]
     if search_p:
         filtered_p = filtered_p[filtered_p["OPPORTUNITY_NAME"].str.contains(search_p, case=False, na=False)]
+
+    k1, k2 = st.columns(2)
+    pipe_tcv = filtered_p["TOTAL_PST_TCV"].fillna(0).sum()
+    k1.metric("Pipeline Opps", len(filtered_p))
+    k2.metric("Pipeline TCV",  f"${pipe_tcv:,.0f}")
 
     display_p = filtered_p.copy()
     display_p["OPP_LINK"] = display_p.apply(
@@ -87,6 +147,16 @@ st.markdown('<p class="sf-section-label">Historical Sold Services & Training</p>
 
 # ── History ───────────────────────────────────────────────────────────────────
 if not history_df.empty:
+    _ht1, _ht2, _ht3 = st.columns([1, 1, 1])
+    with _ht1:
+        _h_fq = st.selectbox("Timeframe", _FQ_OPTIONS, index=0, key="psh_fq")
+    _h_custom_start = _h_custom_end = None
+    if _h_fq == "Custom Range":
+        with _ht2:
+            _h_custom_start = st.date_input("Start date", value=date.today() - timedelta(days=365), key="psh_ds")
+        with _ht3:
+            _h_custom_end = st.date_input("End date", value=date.today(), key="psh_de")
+
     hc1, hc2, hc3, hc4, hc5 = st.columns(5)
     with hc1:
         acct_filter_h = st.multiselect("Account", options=sorted(history_df["ACCOUNT_NAME"].dropna().unique()), default=[], key="psh_acct")
@@ -99,7 +169,7 @@ if not history_df.empty:
     with hc5:
         search_h = st.text_input("Search", "", key="psh_search", placeholder="Account or opportunity…")
 
-    filtered_h = history_df.copy()
+    filtered_h = _apply_timeframe_filter(history_df, _h_fq, _h_custom_start, _h_custom_end, _FQ_MAP)
     if acct_filter_h:
         filtered_h = filtered_h[filtered_h["ACCOUNT_NAME"].isin(acct_filter_h)]
     if ae_filter_h:
