@@ -1,0 +1,6 @@
+[project]
+name = "services-pov"
+version = "0.1.0"
+description = "Generate Snowflake Services Point of View documents with branded HTML output"
+requires-python = ">=3.11"
+dependencies = []

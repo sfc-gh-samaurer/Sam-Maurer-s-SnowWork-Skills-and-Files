@@ -1,0 +1,306 @@
+{
+    "_comment": "Master JSON schema for deal-package-standalone skill. No DPS fields. v3.0 standalone — ranges-only pricing, no cross-skill dependencies.",
+    "_version": "3.0",
+
+    "meta": {
+        "customer": "ACME Corp",
+        "engagement_title": "Example Engagement Title",
+        "date": "May 2026",
+        "ae_name": "AE Name",
+        "se_name": "SE Name",
+        "engagement_type": "T&M",
+        "funding_model": "capacity_conversion",
+        "si_partner": null,
+        "output_dir": "~/Downloads/ACME-Corp-Example-Engagement/",
+        "source_pov": null
+    },
+
+    "tdr": {
+        "_comment": "Fields for TDR template. See SKILL.md for formatting rules.",
+
+        "exec_summary": "Text body (MAX 300 chars, 2-3 sentences)",
+        "exec_challenges": ["**Challenge Title**: description (MAX 80 chars each, 4-5 items)"],
+        "exec_solution": ["**Solution Title**: description"],
+        "exec_outcomes": ["**Outcome Title**: description"],
+
+        "our_understanding": "Text body (MAX 350 chars, 2-4 sentences)",
+        "our_understanding_current_state": ["**Issue Title**: Brief description (MAX 100 chars each, 5-6 items)"],
+        "our_understanding_engagement_objectives": ["**Objective Title**: description"],
+
+        "meth_summary": "Text body (MAX 300 chars)",
+        "meth_phases": [
+            {
+                "phase": "**Phase 1: Foundation**",
+                "duration": "2 weeks",
+                "activities": ["Activity 1 (MAX 90 chars)", "Activity 2", "Activity 3"]
+            }
+        ],
+
+        "scope_assessment": ["Item (MAX 100 chars each, 4 items)"],
+        "scope_architecture": ["Item"],
+        "scope_implementation": ["Item"],
+        "scope_out": ["Item (4-5 items)"],
+
+        "dependencies": ["**Dependency Title**: description (MAX 100 chars each, 6-8 items)"],
+
+        "gov_forum": [
+            {
+                "forum": "Weekly Standup",
+                "cadence": "Weekly",
+                "roles": "SA, SDM, Customer PM",
+                "responsibility": "Sprint progress, blockers, priorities",
+                "material": "Status dashboard"
+            }
+        ],
+
+        "assum_commitments": "Text body",
+        "assum_access": ["**Access Item**: description (MAX 100 chars each, 4-5 items)"],
+        "assum_roles": "Text body",
+        "assum_clarification": ["**Clarification Item**: description (3-4 items)"],
+
+        "risks_org": "Description (MAX 100 chars)",
+        "risks_gov": "Description",
+        "risks_tech": "Description",
+        "risks_resource": "Description",
+        "risks_scope": "Description",
+        "risks_timeline": "Description",
+        "risks_adopt": "Description",
+        "impact_org": "High|Medium|Low",
+        "impact_gov": "High|Medium|Low",
+        "impact_tech": "High|Medium|Low",
+        "impact_resource": "High|Medium|Low",
+        "impact_scope": "High|Medium|Low",
+        "impact_timeline": "High|Medium|Low",
+        "impact_adopt": "High|Medium|Low",
+        "mitigation_org": "Strategy (MAX 100 chars)",
+        "mitigation_gov": "Strategy",
+        "mitigation_tech": "Strategy",
+        "mitigation_resource": "Strategy",
+        "mitigation_scope": "Strategy",
+        "mitigation_timeline": "Strategy",
+        "mitigation_adoption": "Strategy",
+        "additional_risk_considerations": "Text body",
+
+        "next_actions": ["**Action**: description (MAX 80 chars each, 5-6 items)"]
+    },
+
+    "cover": {
+        "_comment": "Fields for PPTX Cover slide.",
+        "customer_name": "ACME Corp"
+    },
+
+    "gantt": {
+        "_comment": "Fields for PPTX Gantt slide and HTML timeline.",
+        "total_weeks": 12,
+        "phases": [
+            {
+                "name": "Foundation",
+                "start_week": 1,
+                "end_week": 3,
+                "owner": "sf",
+                "color": "#64748b",
+                "activities": [
+                    {
+                        "label": "Discovery & Architecture Review",
+                        "start_week": 1,
+                        "end_week": 3,
+                        "owner": "sf"
+                    }
+                ]
+            }
+        ]
+    },
+
+    "outcomes": {
+        "_comment": "Slide 6: Outcomes — strategic/business and technical outcomes.",
+        "subtitle": "Expected strategic and technical outcomes from this engagement.",
+        "strategic_outcomes": [
+            "**Business Outcome Title**: measurable business result (MAX 100 chars each, 3-5 items)"
+        ],
+        "technical_outcomes": [
+            "**Technical Outcome Title**: specific technical deliverable or capability (MAX 100 chars each, 3-5 items)"
+        ]
+    },
+
+    "scope_by_role": {
+        "_comment": "Slide 8: Scope by Role — SA and SDM activity breakdown. SKIP audience.",
+        "sa_activities": [
+            "**Activity Title**: description of SA deliverable (MAX 100 chars each, 5-8 items)"
+        ],
+        "sdm_activities": [
+            "**Activity Title**: description of SDM responsibility (MAX 100 chars each, 4-6 items)"
+        ],
+        "sa_hours_range": "180-280",
+        "sdm_hours_range": "36-56"
+    },
+
+    "tech_review": {
+        "_comment": "Slide 9: Technical Review Outcome — placeholder for tech reviewer. SKIP audience."
+    },
+
+    "milestones": {
+        "_comment": "Slide 11: Milestones & Validation — SMART milestones with acceptance criteria.",
+        "items": [
+            {
+                "milestone": "M1: Foundation Complete",
+                "deliverables": "Architecture document, environment setup",
+                "acceptance_criteria": "Design approved by customer technical lead",
+                "duration": "Weeks 1-3"
+            }
+        ]
+    },
+
+    "raci": {
+        "_comment": "Slide 12: Detailed RACI — 3-column format. Customer = A for ~99% of rows. See RACI Rules in SKILL.md.",
+        "customer_name": "ACME Corp",
+        "has_partner": false,
+        "partner_name": null,
+        "activities": [
+            {
+                "activity": "PMO / Planning / Program Owner",
+                "snowflake_role": "R",
+                "customer_role": "A"
+            }
+        ]
+    },
+
+    "team_structure": {
+        "_comment": "Slide 14: Team Structure & Accountability Plan.",
+        "roles": [
+            {
+                "title": "Solutions Architect",
+                "name": "TBD",
+                "responsibilities": "Technical lead — architecture, design, implementation advisory"
+            },
+            {
+                "title": "Service Delivery Manager",
+                "name": "TBD",
+                "responsibilities": "Project governance, status reporting, risk management"
+            }
+        ]
+    },
+
+    "staffing_plan": {
+        "_comment": "Slide 16: Staffing Plan — role-by-week hour allocation grid. SKIP audience.",
+        "role_weeks": [
+            {
+                "role": "Solutions Architect",
+                "weekly_hours": [18, 18, 18, 18, 20, 20, 20, 20, 18, 18, 15, 15]
+            }
+        ]
+    },
+
+    "pricing": {
+        "_comment": "All pricing is INDICATIVE (±40%) and requires Pre-Sales Architecture validation. Show as ranges in customer-facing materials.",
+        "roles": [
+            {
+                "title": "T&M Solutions Architect",
+                "sku": "SVC-TMSA",
+                "hours_estimate": 220,
+                "hours_range": "180-280",
+                "rate": 335,
+                "total_range": "$60K - $94K"
+            },
+            {
+                "title": "T&M Service Delivery Manager",
+                "sku": "SVC-TMSDM",
+                "hours_estimate": 44,
+                "hours_range": "36-56",
+                "rate": 260,
+                "total_range": "$9K - $15K"
+            }
+        ],
+        "subtotal_range": "$69K - $109K",
+        "investment": 0,
+        "customer_total_range": "$69K - $109K",
+        "pricing_disclaimer": "Estimates are indicative (±40%) and require Pre-Sales Architecture validation before customer-facing use."
+    },
+
+    "html_proposal": {
+        "_comment": "Fields specific to the one-page HTML proposal. Pricing shown as ranges.",
+
+        "metrics": [
+            {"value": "10-14 wks", "label": "Duration", "color": "#10b981", "subtitle": null},
+            {"value": "$69K-$109K", "label": "Estimated Investment*", "color": "#29B5E8", "subtitle": "Subject to architecture review"},
+            {"value": "3", "label": "Workstreams", "color": "#f59e0b", "subtitle": null}
+        ],
+
+        "summary_paragraph": "2-3 sentence engagement overview for the HTML proposal header area.",
+
+        "pain_points": [
+            {
+                "icon": "fa-solid fa-cubes",
+                "icon_color_bg": "bg-amber-50",
+                "icon_color_text": "text-amber-500",
+                "title": "Example Pain Point",
+                "description": "Brief description of the customer challenge."
+            }
+        ],
+
+        "deliverables": [
+            {
+                "icon": "fa-solid fa-sitemap",
+                "icon_color_bg": "bg-sky-50",
+                "icon_color_text": "text-sky-500",
+                "border_color": "#29B5E8",
+                "title": "Example Deliverable",
+                "bullets": [
+                    "**Deliverable item** — description of what is delivered",
+                    "**Second item** — another deliverable component"
+                ]
+            }
+        ],
+
+        "engagement_type_qualifier": {
+            "type": "T&M",
+            "text": "The outcomes above represent target deliverables based on current understanding. Actual throughput may vary depending on data readiness, access to SMEs, and evolving priorities."
+        },
+
+        "why_ps": [
+            {
+                "icon": "fa-solid fa-sitemap",
+                "icon_color_bg": "bg-sky-50",
+                "icon_color_text": "text-sky-500",
+                "title": "Platform-Native Expertise",
+                "description": "Designed by the platform team with deep product knowledge."
+            }
+        ],
+
+        "team_cards": [
+            {
+                "role": "Solutions Architect",
+                "hours_range": "180-280",
+                "rate": 335,
+                "border_color": "#29B5E8",
+                "icon": "fa-solid fa-brain",
+                "icon_color_bg": "bg-sky-50",
+                "icon_color_text": "text-sky-500",
+                "description": "Your hands-on technical lead.",
+                "bullets": ["Architecture design", "Implementation advisory", "Knowledge transfer"]
+            }
+        ],
+
+        "assumptions": [
+            "Read access to source data systems",
+            "Domain SMEs available 2-4 hrs/wk"
+        ],
+
+        "out_of_scope": [
+            "Production deployment and operations",
+            "Data pipeline development"
+        ],
+
+        "next_steps": [
+            {"action": "Confirm Scope", "details": "Validate priority domains", "owner": "Customer"},
+            {"action": "Schedule Kickoff", "details": "2-hour kickoff session", "owner": "SDM"}
+        ],
+
+        "pricing_footer_disclaimer": "The investment range above represents an initial estimate based on current scope understanding. Final pricing will be confirmed following detailed scoping and architecture review."
+    },
+
+    "timeline_embed": {
+        "_comment": "Timeline display options for the embedded timeline in the HTML proposal and PPTX Gantt slide. NOT a standalone artifact.",
+        "time_unit": "Weeks",
+        "target_go_live": "Week 12"
+    }
+}
