@@ -624,20 +624,4 @@ else:
     with open(os.path.join(_APP_DIR, f"app_pages/{_PAGE_FILES[_selected]}")) as f:
         exec(f.read())
 
-# ── DATA FRESHNESS FOOTER ─────────────────────────────────────────────────────
-try:
-    _fresh = load_data_freshness()
-    _date  = _fresh.get("accounts_date", "Unknown")
-    _ok    = _fresh.get("today_loaded", False)
-    _dot   = "🟢" if _ok else "🟡"
-    st.markdown(
-        f'<div style="margin-top:24px;padding:6px 4px;border-top:1px solid #E4E7EB;'
-        f'font-size:0.70rem;color:#8A999E;display:flex;gap:16px;flex-wrap:wrap;">'
-        f'<span>{_dot} SNOWHOUSE.SALES.ACCOUNTS_DAILY — latest partition: <strong style="color:#334155">{_date}</strong></span>'
-        f'<span style="margin-left:auto">Data refreshes daily &nbsp;·&nbsp; '
-        f'<a href="https://app.snowflake.com" target="_blank" style="color:#29B5E8;text-decoration:none">Snowflake</a></span>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
-except Exception:
-    pass
+
