@@ -19,7 +19,7 @@ _coverage_pct = f"{_covered_accts / _total_accts * 100:.0f}%" if _total_accts > 
 
 k1, k2, k3, k4, k5 = st.columns(5)
 k1.metric("Active Projects", len(active_df))
-k2.metric("Coverage", f"{_covered_accts} / {_total_accts}", delta=_coverage_pct)
+k2.metric("Coverage", f"{_covered_accts} / {_total_accts}  ({_coverage_pct})")
 k3.metric("Active Revenue",  f"${active_df['REVENUE_AMOUNT'].sum():,.0f}"  if not active_df.empty else "$0")
 k4.metric("Billable Hours",  f"{active_df['BILLABLE_HOURS'].sum():,.0f}"   if not active_df.empty else "0")
 k5.metric("Stalled",         len(active_df[active_df["PROJECT_STAGE"].isin(["Stalled", "Stalled - Expiring"])]) if not active_df.empty else 0)
