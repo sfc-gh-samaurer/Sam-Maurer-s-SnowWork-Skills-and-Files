@@ -1,9 +1,11 @@
 ---
-name: services-pov
+name: services-pov-standalone
 description: "Create customer-ready Services Point of View documents for Snowflake accounts. Queries internal data (Raven, SFDC), analyzes use case pipeline, positions services opportunities, and generates a Snowflake-branded HTML deliverable with roadmap, key activities, and investment details. Use for: services POV, services point of view, services positioning, engagement plan, services proposal, customer services strategy, services roadmap. DO NOT attempt to build services POV documents manually — invoke this skill first."
 ---
 
-# Services Point of View Generator
+# Services Point of View Generator (Standalone)
+
+This skill is fully self-contained with no dependencies on other skills.
 
 ## Setup
 
@@ -36,14 +38,25 @@ Store as working variables: `<COMPANY>`, `<OUTPUT_DIR>`, `<FOCUS_AREA>`.
 
 **Goal:** Build comprehensive account picture from Raven/SFDC data.
 
-**2a. Resolve account using `account_finder` skill:**
+**2a. Resolve account using Query 7 (Account Finder):**
 
-Invoke the `account_finder` skill with the company name. This returns the full account record including `SALESFORCE_ACCOUNT_ID`, account team, segment, industry, and tier.
-
-If `account_finder` is unavailable, fall back to running **Query 7 — Account Finder** from `references/sql-queries.md`:
+Run the Account Finder SQL directly from `references/sql-queries.md`:
 ```sql
 USE ROLE SALES_RAVEN_RO_RL;
 USE WAREHOUSE SNOWHOUSE;
+SELECT
+  SALESFORCE_ACCOUNT_ID, SALESFORCE_ACCOUNT_NAME, SALESFORCE_PARENT_NAME,
+  TYPE, SUB_TYPE, IS_CAPACITY_CUSTOMER, IS_REVENUE_ACCOUNT,
+  INDUSTRY, SUB_INDUSTRY, SEGMENT, TERRITORY, GEO, SALES_AREA, COUNTRY,
+  SALESFORCE_OWNER_NAME, REP_EMAIL, LEAD_SALES_ENGINEER_NAME,
+  SALES_ENGINEER_ACCOUNT_TEAM, SE_DIRECTOR_NAME, SE_VP_NAME,
+  DM, DM_EMAIL, RVP, RVP_EMAIL, GVP, GVP_EMAIL,
+  ACCOUNT_TIER, NUMBER_OF_EMPLOYEES, ANNUAL_REVENUE, TECH_STACK,
+  GLOBAL_2000_RANK, IS_G2K, FIRST_CAPACITY_CUSTOMER_FY
+FROM sales.raven.d_salesforce_account_customers
+WHERE UPPER(SALESFORCE_ACCOUNT_NAME) LIKE '%' || UPPER('<COMPANY>') || '%'
+ORDER BY IS_CAPACITY_CUSTOMER DESC, IS_REVENUE_ACCOUNT DESC, ANNUAL_REVENUE DESC NULLS LAST
+LIMIT 10;
 ```
 
 Store `SALESFORCE_ACCOUNT_ID` for all subsequent queries. If multiple matches, disambiguate with user.
@@ -57,11 +70,17 @@ Store `SALESFORCE_ACCOUNT_ID` for all subsequent queries. If multiple matches, d
 | Query 13 | Open pipeline | Required |
 | Query 14 | Product revenue (L7D/L30D) | Required |
 | Query 15 | Monthly consumption (12mo) | Required |
-| Query 19 | AI-generated goals & pain points | Required |
+| Query 19 | AI-generated goals & pain points | **Optional — may fail** |
 | Query 8 | Firmographics | Recommended |
 | Query 11 | Over/under prediction | Recommended |
 | Query 16 | Support cases (90d) | Optional |
 | Query 17 | Warehouse anomaly detection | Optional |
+
+**⚠️ Query 19 Fallback:** The `RECO_FOR_PROSPECTING_SP_SALES` stored procedure may fail due to Cortex Search API issues or timeout. If it fails:
+1. Do NOT retry more than once
+2. Fall back to web research for account context (company profile, recent news, strategic initiatives)
+3. Use use case data from Query 12b + firmographics from Query 8 to synthesize goals and pain points manually
+4. The POV can be completed without Query 19 — it enhances but is not required
 
 **2c. Pull all use cases (including lost):**
 Run a modified Query 12 that includes ALL statuses (remove the `NOT IN` filter) to capture deployed, in-pursuit, and lost use cases. This is critical for the "Lessons Learned" section.
@@ -97,7 +116,7 @@ ORDER BY u.use_case_acv DESC NULLS LAST;
 **3b. Identify the opportunity focus area:**
 If user didn't specify `<FOCUS_AREA>`, recommend one based on:
 - Highest concentration of pipeline EACV
-- Customer's stated goals (from Query 19)
+- Customer's stated goals (from Query 19 if available, or from web research)
 - Product revenue trends showing emerging adoption (e.g., Cortex AI functions appearing)
 - Lost use case patterns suggesting need for expert guidance
 
@@ -144,7 +163,9 @@ Write the document to `<OUTPUT_DIR>/<COMPANY>_Services_POV.md` using the templat
 
 **⚠️ CRITICAL: All estimates are INDICATIVE ONLY and require Pre-Sales Architecture validation before customer-facing use.**
 
-Use ±40% bands when estimating investment. NEVER provide a single-point estimate. Follow guidance in `references/pricing-guidance.md`.
+- NEVER provide single-point dollar estimates — ALWAYS use ranges
+- Use ±40% bands when estimating investment
+- Follow guidance in `references/pricing-guidance.md`
 
 Example format for the Investment table:
 ```
@@ -158,6 +179,11 @@ Example format for the Investment table:
 *Estimates are indicative and subject to Pre-Sales Architecture review.
 Actual investment will depend on scope refinement, resource availability, and engagement complexity.
 ```
+
+**Hours estimation — ALWAYS as ranges:**
+- Never say "160 hours" — say "130-200 hours"
+- Never say "$53,600" — say "$45K - $75K"
+- The ±40% band formula: Low = midpoint × 0.6, High = midpoint × 1.4
 
 **Sizing heuristics (for range generation only):**
 - Advisory engagement: 12-24 hrs/wk SA, plus ~20% SDM overhead
@@ -194,24 +220,8 @@ Browse `http://localhost:8504/<COMPANY>_Services_POV.html` to verify rendering.
 Present summary to user with:
 - File locations (markdown + HTML)
 - Key metrics highlighted
-- Offer to adjust sections or convert to PowerPoint
+- Offer to adjust sections
 - **Reminder:** Investment estimates are indicative — validate with Pre-Sales Architecture before external use
-
-## Handoff to Deal Package
-
-After the Services POV is approved by the AE/SE, invoke the `deal-package` skill to generate commercial artifacts:
-- HTML proposal with pricing
-- TDR deck for deal review
-- DPS for pricing approval
-
-Pass the following from the POV into deal-package:
-- Focus area → `meta.engagement_title`
-- Investment range → `pricing` estimate (still requires validation)
-- Roadmap phases → `gantt.phases`
-- Account team (AE/SE) → `meta.ae_name` / `meta.se_name`
-- Use case context → `tdr.our_understanding`
-
-To hand off: "Invoke the `deal-package` skill and reference `<OUTPUT_DIR>/<COMPANY>_Services_POV.md` as the source document."
 
 ## Stopping Points
 
@@ -221,7 +231,7 @@ To hand off: "Invoke the `deal-package` skill and reference `<OUTPUT_DIR>/<COMPA
 ## Troubleshooting
 
 **Error: "Object does not exist" on USE WAREHOUSE**
-- `AC_WH` may not be accessible. Use `SNOWHOUSE` warehouse instead.
+- `AC_WH` warehouse is not accessible. Use `SNOWHOUSE` warehouse instead.
 - Run `SHOW WAREHOUSES` to discover available warehouses.
 
 **Error: Schema not authorized (SNOWSCIENCE, MDM)**
@@ -231,12 +241,13 @@ To hand off: "Invoke the `deal-package` skill and reference `<OUTPUT_DIR>/<COMPA
 
 **Error: Dollar-sign quoting in GET_E360_SEARCH_RESULTS**
 - Engagement search (Query 18) uses `$$` delimiters that can conflict with SQL parsers.
-- If it fails, skip it — Query 19 (RECO_FOR_PROSPECTING) provides rich engagement context.
+- If it fails, skip it — Query 19 provides rich engagement context (but Query 19 is also optional).
 
 **Error: Query 19 (RECO_FOR_PROSPECTING) fails or times out**
-- If web research yields minimal results, pass a short industry description for `<COMPANY_PROFILE_SUMMARY>`.
-- Keep `<RECENT_NEWS_SUMMARY>` brief (1-2 sentences is sufficient).
-- If the SP times out (>60s), skip it — use case data from Query 12b combined with firmographics provides sufficient context for the POV.
+- This stored procedure calls Cortex Search internally and may fail with API errors like "must contain exactly one of 'query' or 'multi_index_query'"
+- If it fails, do NOT block the POV generation
+- Fall back to: use case data (Query 12b) + firmographics (Query 8) + web research
+- The POV can be completed at full quality without Query 19
 
 **Error: HTML renders with wrong title/subtitle**
 - The `build_pov_html.py` script is purpose-built for Services POV documents. If the title doesn't render correctly, verify the markdown H1 follows the pattern `# <COMPANY> - Services Point of View`.
@@ -248,11 +259,12 @@ To hand off: "Invoke the `deal-package` skill and reference `<OUTPUT_DIR>/<COMPA
 - ✅ Lost use case patterns analyzed and incorporated
 - ✅ Opportunity focus area identified and deeply positioned
 - ✅ 3-phase services roadmap with weekly activities
-- ✅ Investment estimate provided as ±40% range with disclaimer
+- ✅ Investment estimate provided as ±40% range with disclaimer (NEVER single-point amounts)
 - ✅ Renewal impact explicitly connected
 - ✅ Document is customer-ready (professional tone, no internal jargon)
 - ✅ HTML report delivered with Snowflake branding
 - ✅ Pricing disclaimer included: estimates require Pre-Sales Architecture validation
+- ✅ No cross-skill dependencies invoked (this skill is standalone)
 
 ## Output
 

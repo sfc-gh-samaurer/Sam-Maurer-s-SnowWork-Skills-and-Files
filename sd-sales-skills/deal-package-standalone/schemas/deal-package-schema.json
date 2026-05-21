@@ -1,6 +1,6 @@
 {
-    "_comment": "Master JSON schema for deal-package skill. Superset of all artifact field requirements. v2.2 adds pricing ranges, disclaimers, and services-pov intake.",
-    "_version": "2.2",
+    "_comment": "Master JSON schema for deal-package-standalone skill. No DPS fields. v3.0 standalone — ranges-only pricing, no cross-skill dependencies.",
+    "_version": "3.0",
 
     "meta": {
         "customer": "ACME Corp",
@@ -213,34 +213,7 @@
         "subtotal_range": "$69K - $109K",
         "investment": 0,
         "customer_total_range": "$69K - $109K",
-        "pricing_disclaimer": "Estimates are indicative (±40%) and require Pre-Sales Architecture validation before customer-facing use.",
-        "pricing_sheet_link": null,
-        "pricing_sheet_id": null
-    },
-
-    "dps": {
-        "_comment": "Fields specific to Deal Pricing Sheet generation. Only populated when DPS is being generated (not pre-existing).",
-        "generate": false,
-        "sfdc_opportunity_url": "https://snowflakecomputing.lightning.force.com/lightning/r/Opportunity/.../view",
-        "currency": "USD",
-        "pricebook": "Snowflake Pricing",
-        "deal_structure": "Direct",
-        "partner_name": null,
-        "vpa_discount_pct": "0%",
-        "is_investment": false,
-        "investment_discount_pct": "0%",
-        "billing_frequency": "Upfront",
-        "expected_start_date": "MM/DD/YYYY",
-        "ps_sales_team": "PS Sales Contact",
-        "economic_review_answers": {
-            "_comment": "Yes/No answers for Economic Review Summary tab (I4:I9). Auto-derived from deal context.",
-            "tech_review_completed": "Yes",
-            "net_new_project": "Yes",
-            "partner_is_prime": "No",
-            "subcontractor_involved": "No",
-            "investment_planned": "No",
-            "seeking_additional_discount": "No"
-        }
+        "pricing_disclaimer": "Estimates are indicative (±40%) and require Pre-Sales Architecture validation before customer-facing use."
     },
 
     "html_proposal": {

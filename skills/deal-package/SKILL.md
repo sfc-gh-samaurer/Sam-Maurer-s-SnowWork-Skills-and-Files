@@ -38,6 +38,18 @@ Example: `~/Downloads/Sharp-Healthcare-Ontology-Engagement/`
 - For TDR deck image mode only: `playwright` + `playwright install chromium`
 - Snowflake PPTX template at `~/.snowflake/cortex/github-skills/skills/snowflake-pptx-collateral-v4/` (required for TDR deck generation)
 
+## Pricing & Estimation Guardrails
+
+**⚠️ CRITICAL: All estimates are INDICATIVE ONLY and require Pre-Sales Architecture validation before customer-facing use.**
+
+- Always present pricing as ±40% ranges, NEVER single-point estimates
+- Customer-facing HTML proposal shows ranges: "$X - $Y"
+- Internal TDR shows role-level detail but includes disclaimer
+- Load `references/pricing-guidance.md` for rate cards and sizing heuristics
+
+**Disclaimer (include in every pricing section):**
+> Investment estimates are indicative and subject to Pre-Sales Architecture review. Actual investment will depend on scope refinement, resource availability, and engagement complexity.
+
 ## TDR Deck Slide Structure (21 slides)
 
 The TDR deck follows the MASTER template structure. Each slide is tagged with its audience.
@@ -83,37 +95,54 @@ Slides marked **SKIP** get "(Skip for presentation)" as subtitle — they contai
 
 Before asking the user for information, attempt to pre-populate known facts from available sources. Try each source in order; skip unavailable ones:
 
-**Source 1 — Chief Memory KG** (if MCP available):
+**Source 1 — Memory files** (check `/memories/` for account context):
 ```
-memory_context({ entity: "<customer_name>" })
-memory_query({ query: "<customer> AE SE sales engineer" })
-memory_query({ query: "<customer> contacts stakeholders TPM" })
-memory_query({ query: "<customer> Deal Pricing Sheet" })
+memory view /memories/ → look for files matching customer name
+If found, read to extract AE, SE, contacts, deal context, prior decisions.
 ```
 
-Extract and pre-fill:
-- AE name, SE name (from entity relationships)
-- Customer contacts (TPM, technical leads)
-- Deal context (engagement type, pricing, SFDC opp ID)
-- Deal Pricing Sheet location (Google Sheet ID if exists)
-- Prior decisions (scope, strategy, risk items from prior sessions)
+**Source 2 — Services POV** (if exists):
+```
+Look for *_Services_POV.md in ~/Downloads/ or user-specified directory.
+If found, extract:
+  - Engagement framing → meta.engagement_title
+  - Phases/roadmap → gantt.phases
+  - Account team → meta.ae_name, meta.se_name
+  - Use case context → tdr.our_understanding
+  - Investment range → pricing estimate (still requires validation)
+```
 
-**Source 2 — Snowhouse Query** (if KG unavailable or incomplete):
+**Source 3 — Snowhouse Query** (if KG unavailable or incomplete):
 ```sql
+USE ROLE SALES_RAVEN_RO_RL;
+USE WAREHOUSE SNOWHOUSE;
 SELECT OPPORTUNITY_NAME, ACCOUNT_NAME, AE_NAME, SE_NAME, STAGE, AMOUNT
-FROM <relevant_SFDC_view>
+FROM sales.raven.sda_opportunity_view
 WHERE ACCOUNT_NAME ILIKE '%<customer>%'
+  AND is_open = 1
 ORDER BY CLOSE_DATE DESC LIMIT 5;
 ```
 
-**Source 3 — User Interview** (for any remaining gaps):
-Only ask the user for facts not found in Sources 1-2. Present what was auto-populated and ask for confirmation/corrections.
+**Source 4 — User Interview** (for any remaining gaps):
+Only ask the user for facts not found in Sources 1-3. Present what was auto-populated and ask for confirmation/corrections.
 
 **Output**: A fact sheet with known values and `[TBD — need from user]` markers for unknowns.
 
-### Phase 1: Context Collection (Interview)
+### Phase 1: Context Collection (Source-Document-First)
 
-Collect ALL information needed across ALL artifacts in a single structured interview. Use `ask_user_question` for each group. Accept file paths, pasted text, or Memory Palace entity references as input sources.
+**PRIMARY PATH: Accept a source document and extract from it.**
+
+Ask the user: "Do you have a source document I can work from? (meeting notes, SOW draft, pricing sheet, prior proposal, Services POV, or pasted text)"
+
+**If source document provided:**
+1. Read/parse the entire document
+2. Extract ALL possible fields into the master JSON structure
+3. Present extracted data as a fact sheet
+4. Ask ONLY for gaps (typically 5-10 questions, not 40)
+
+**If no source document (interview path):**
+
+Collect information using `ask_user_question` for each group. Keep questions focused on gaps only.
 
 **Group A — Identity & Framing**
 1. Customer name
@@ -142,15 +171,15 @@ Collect ALL information needed across ALL artifacts in a single structured inter
 
 **Group D — Team, Pricing & Staffing**
 1. Roles on the engagement (SA, SC, SDM, etc.)
-2. Hours per role (total or hours/week x weeks)
+2. Hours per role (total or hours/week × weeks) — *provide as estimated ranges*
 3. Rates per role (defaults from FY27 Standard Price Book below if not provided)
-4. Snowflake investment amount (if any discount/investment)
-5. Customer total after investment
+4. Snowflake investment amount (if any discount/investment) — *indicate as range*
+5. Customer total after investment — *indicate as range*
 6. **SA activities** — specific deliverables the SA owns (for Scope by Role slide)
 7. **SDM activities** — specific responsibilities the SDM owns (for Scope by Role slide)
 8. **Team structure** — named resources where known, reporting lines (for Team Structure slide)
 
-**FY27 Standard Price Book Defaults:**
+**FY27 Standard Price Book Defaults (Reference Only):**
 | SKU | Role | Rate |
 |-----|------|------|
 | SVC-TMSSA | Senior Solution Architect | $400/hr |
@@ -158,16 +187,12 @@ Collect ALL information needed across ALL artifacts in a single structured inter
 | SVC-TMSC | Solutions Consultant | $325/hr |
 | SVC-TMSDM | Service Delivery Manager | $260/hr |
 
-Validate rates against FY27 pricebook. If custom rates are used, note the variance.
+*Rates are list prices. Final pricing requires Pre-Sales Architecture validation.*
 
 **Group E — Governance & RACI**
 1. Governance forums (e.g., Weekly standup, Biweekly steering, Monthly exec review)
 2. Cadence, participants, responsibilities, materials for each forum
-3. RACI activities — 3-column format: Activity / Snowflake role / Customer role
-   - Default: Customer = A (Accountable) for ~99% of rows
-   - Snowflake = R (Responsible) or C (Consulted) for most rows
-   - Add Partner column only if SI partner is involved
-   - Snowflake is NEVER Accountable for customer-owned decisions
+3. RACI activities — see RACI Rules section below
 
 **Group F — Risk & Boundaries**
 1. Assumptions (commitments, access requirements, role expectations, clarifications)
@@ -184,7 +209,7 @@ Validate rates against FY27 pricebook. If custom rates are used, note the varian
 Check whether a Deal Pricing Sheet (DPS) already exists for this deal:
 
 1. **Ask the user**: "Has a Deal Pricing Sheet been completed for this deal? If so, provide the Google Sheet name or link."
-2. **Check memory**: `memory_query({ query: "<customer> Deal Pricing Sheet" })` — look for a stored Sheet ID.
+2. **Check memory**: Look in `/memories/` for a stored Sheet ID for this customer.
 3. **If DPS exists**: Read it to extract hours, rates, totals, and staffing plan. Pre-populate Commercials (slide 16) and Staffing (slide 17) from this data. Store the DPS link in `pricing.pricing_sheet_link`. Set `dps.generate = false`.
 4. **If DPS does not exist**: Set `dps.generate = true` and collect the following DPS-specific fields (use `ask_user_question`):
    - **SFDC Opportunity URL** (mandatory) — `dps.sfdc_opportunity_url`
@@ -196,16 +221,17 @@ Check whether a Deal Pricing Sheet (DPS) already exists for this deal:
    - **Currency** (default "USD") → `dps.currency`
    - **VPA discount %** (default "0%") → `dps.vpa_discount_pct`
    - Auto-derive: `dps.economic_review_answers` from deal context (investment_planned = "Yes" if `dps.is_investment`, partner_is_prime from `dps.deal_structure`, etc.)
-5. **If no hours/rates available yet**: Run a lightweight estimation — ask for duration (weeks) and intensity. Default: SA at 20 hrs/wk, SDM at 20% of SA hours. Validate rates against FY27 pricebook.
+5. **If no hours/rates available yet**: Run a lightweight estimation — ask for duration (weeks) and intensity. Default: SA at 15-20 hrs/wk, SDM at 20% of SA hours. Present as ranges. Validate rates against FY27 pricebook.
 6. **Ensure SKU assignment**: Each role in `pricing.roles[]` must have a `sku` field. Map from role title using the SKU Reference Table (see below).
 7. **DPS Template**: `1jXFPXMTQFc_qMV48E42iRs7mUiP9vqgaagQntGJ6KdU` (FY27 v0.10).
 
 **Input Sources:** The user may provide any of:
 - Pasted meeting notes or description text
 - File paths to documents (SOW, proposal drafts, meeting recordings)
-- Memory Palace entity references
+- Memory file references
 - Semantic extraction reports (for data-heavy engagements)
 - Previous proposal artifacts to reference
+- Services POV markdown (from `services-pov` skill)
 
 If the user provides a rich source document, extract as much as possible from it and only ask for gaps.
 
@@ -218,14 +244,14 @@ Before generating any artifacts, validate completeness against the TDR checklist
 - [ ] Methodology with named phases, durations, and activities
 - [ ] Outcomes — strategic/business AND technical (for Outcomes slide)
 - [ ] Scope boundaries defined (assessment, architecture, implementation, out-of-scope)
-- [ ] Scope by role — SA and SDM activities with hours
+- [ ] Scope by role — SA and SDM activities with hours (as ranges)
 - [ ] Program schedule / timeline with phases mapped to weeks
 - [ ] Milestones with SMART acceptance criteria
 - [ ] Dependencies listed (pre-kickoff requirements)
 - [ ] RACI populated (3-column: Activity / Snowflake / Customer, at least 8-10 rows)
 - [ ] Governance cadence defined (at least 2-3 forums)
 - [ ] Team structure with named roles
-- [ ] Pricing with roles, hours, rates, subtotal, investment, customer total
+- [ ] Pricing with roles, hours (ranges), rates, subtotal range, investment, customer total range
 - [ ] Assumptions documented (commitments, access, roles, clarifications)
 - [ ] ALL 7 risk categories covered (org, gov, tech, resource, scope, timeline, adoption)
 - [ ] Next steps / close plan with owners
@@ -249,7 +275,7 @@ The JSON structure is defined in `<SKILL_DIR>/schemas/deal-package-schema.json`.
 - `raci` — 3-column RACI activities for RACI slide
 - `team_structure` — named roles for Team Structure slide
 - `staffing_plan` — role-by-week hours for Staffing Plan slide
-- `pricing` — roles/hours/rates for Commercials slide and HTML proposal
+- `pricing` — roles/hours/rates for Commercials slide and HTML proposal (*all as estimated ranges*)
 - `html_proposal` — metrics, pain points, deliverables, team cards, why PS, etc.
 - `timeline_embed` — display options for embedded timeline (time unit, target go-live)
 
@@ -288,10 +314,12 @@ Present the master JSON as readable markdown, organized by slide/artifact:
 | Activity | Snowflake | Customer |
 |...|...|...|
 
-## Pricing (Slide 16)
-| Role | Hours | Rate | Total |
+## Pricing (Slide 16) — INTERNAL ONLY, REQUIRES PRE-SALES ARCHITECTURE REVIEW
+| Role | Hours (Est.) | Rate | Estimated Range |
 |...|...|...|...|
-**Subtotal:** $X | **Investment:** ($Y) | **Customer Total:** $Z
+**Estimated Subtotal:** $X - $Y | **Investment:** ($Z) | **Estimated Customer Total:** $A - $B
+
+> ⚠️ All pricing is indicative (±40%) and requires Pre-Sales Architecture validation.
 ```
 
 **MANDATORY STOPPING POINT.** Wait for user approval or change requests. Iterate until approved.
@@ -303,18 +331,21 @@ Generate the HTML proposal immediately after JSON approval — no artifact selec
 Generate using the brand system HTML/CSS. Load the HTML template from `<SKILL_DIR>/templates/html-one-page.html` and populate with data from the master JSON. The template sections:
 
 1. **Header** — Blue gradient, engagement title, customer name, date, DRAFT tag
-2. **Metrics** — 3 metric cards (duration, total cost, key stat)
+2. **Metrics** — 3 metric cards (duration, total cost *as range*, key stat)
 3. **Summary paragraph** — engagement overview
 4. **The Problem** — 2x2 grid of pain cards with icons
 5. **What You Get** — 3-column deliverable cards with bullet lists
 6. **Timeline** — CSS grid Gantt chart (embedded inline, NOT standalone)
 7. **T&M/FF Qualifier** — engagement type terms callout
 8. **Why Snowflake PS** — 3-column value cards
-9. **Delivery Team** — role cards with hours@rate
+9. **Delivery Team** — role cards with hours@rate *shown as ranges*
 10. **Assumptions & Dependencies** — bullet lists
 11. **Out of Scope** — bullet list
 12. **Next Steps** — action table
-13. **Footer** — Copyright + Confidential
+13. **Footer** — Copyright + Confidential + Pricing disclaimer
+
+**Pricing in HTML proposal:** Always show as ranges. Include footer text:
+> "The investment range above represents an initial estimate based on current scope understanding. Final pricing will be confirmed following detailed scoping and architecture review."
 
 Write to: `~/Downloads/{CUSTOMER}-{DEAL_NAME}/{CUSTOMER}-Proposal.html`
 
@@ -364,6 +395,7 @@ Design rules (enforced — same as `snowflake-pptx-collateral-v4`):
 - At least 50% of content slides use a visual pattern (card grid, table, timeline, two-column) — not just bullets
 - Cover, Thank You use dark/blue gradient backgrounds with white text
 - SKIP slides: add `"(SKIP FOR PRESENTATION)"` as a red badge in the top-right corner
+- Pricing slides: include disclaimer text "Estimates are indicative — Pre-Sales Architecture review required"
 
 **TDR Slide → Visual Pattern mapping:**
 
@@ -384,7 +416,7 @@ Design rules (enforced — same as `snowflake-pptx-collateral-v4`):
 | 13 | Detailed RACI | RACI table with R/A/C/I badges (3-col: Activity / Snowflake / Customer) |
 | 14 | Governance Cadence | Table: Forum / Cadence / Participants / Responsibilities |
 | 15 | Team Structure | Team cards (Snowflake roles with names, hours) |
-| 16 | Commercials / Pricing *(SKIP)* | Pricing table + total callout box + DPS link |
+| 16 | Commercials / Pricing *(SKIP)* | Pricing table + total callout box + DPS link + disclaimer |
 | 17 | Staffing Plan *(SKIP)* | Role-by-week allocation grid |
 | 18 | Risks & Mitigations | Table: Category / Risk / Impact / Mitigation (7 categories) |
 | 19 | Assumptions & Commitments | Two-section bullet list (Assumptions / Dependencies) |
@@ -422,6 +454,13 @@ If selected (i.e., `dps.generate = true` — user has no pre-existing DPS), gene
 - **Tab completion order**: Deal Summary first → Resource/Staffing Plan → Economic Review Summary last (it auto-populates financial sections from Deal Summary).
 - Items 1-6 in the fee table (rows 14-19) auto-populate from child tabs 2-7. For pure T&M deals, leave them alone (they show blank/zero, which is fine). T&M SKU lines go in items 7+ (rows 20+).
 - Child tabs 2-7 (Code Conversion, Snowpark, Data Migration, Partner FF x2, Other FF) only need population if the engagement includes those workstream types. For standard T&M advisory deals, skip them entirely.
+
+**Step 0: Version Guard**
+```
+Read cell A1 of '1. Deal Summary' tab.
+Expected: contains "FY27" and "v0.10" (or newer).
+If different version: STOP and warn user that template may have changed. Ask to proceed or provide updated template ID.
+```
 
 **Step 1: Copy Template**
 
@@ -529,7 +568,7 @@ MANDATORY COMPLETENESS CHECKS (9/9 required):
 [✓/✗] HAS_OUT_OF_SCOPE — Explicit exclusions and assumptions
 [✓/✗] HAS_CUSTOMER_OUTCOME — Business outcomes tied to objectives
 [✓/✗] HAS_TIMELINE — Time-phased timeline with milestones
-[✓/✗] HAS_RESOURCE_HOURS — Hours by role mapped to activities
+[✓/✗] HAS_RESOURCE_HOURS — Hours by role mapped to activities (as ranges)
 [✓/✗] HAS_RACI — RACI with single Accountable per task
 [✓/✗] HAS_RISKS_MITIGATIONS — Risk table with mitigations and owners
 [✓/✗] HAS_VOLUMETRICS — Technical inventory (if applicable)
@@ -550,6 +589,11 @@ RACI INTEGRITY CHECKS:
 [✓/✗] Customer is A for ~99% of rows
 [✓/✗] Snowflake is not A for customer-owned decisions
 [✓/✗] Table has 3 columns (or 4 if partner involved)
+
+PRICING CHECKS:
+[✓/✗] All pricing shown as ranges (±40%)
+[✓/✗] Pricing disclaimer included on Commercials slide
+[✓/✗] Pre-Sales Architecture review callout present
 
 DPS CONSISTENCY CHECKS (if Deal Pricing Sheet generated or provided):
 [✓/✗] Hours match DPS fee table
@@ -580,8 +624,21 @@ If any mandatory check fails, auto-fix or flag to the user.
    - HTML proposal: open in browser → Cmd+P to save as PDF
    - TDR deck: open in PowerPoint — all shapes are editable
    - HTML slide source files kept in `slides/` as the design source of truth
+   - **⚠️ All pricing is indicative and requires Pre-Sales Architecture review before external sharing**
 
 ## Key Rules
+
+### RACI Rules (STRICT)
+
+These rules are non-negotiable:
+
+1. **One A per row**: Every RACI row must have exactly ONE "A" (Accountable)
+2. **Customer owns outcomes**: Customer = A (Accountable) by default for ~99% of rows
+3. **Snowflake delivers**: Snowflake = R (Responsible) or C (Consulted) for most rows
+4. **Snowflake NEVER accountable for**: customer signoff, approval, UAT, go-live decisions, data quality, business requirements validation
+5. **Only exception**: Snowflake may be "A" for deliverable creation (e.g., "Deliver architecture document")
+6. **Partner column**: Add only if `meta.si_partner` is set. Partner follows same rules as Snowflake.
+7. **Minimum rows**: At least 8-10 RACI activities
 
 ### TDR Deck Generation
 The TDR deck is built HTML-first: design each of the 21 slides as a 960×540px HTML file using the `snowflake-pptx-collateral-v4` brand system, then convert to a fully editable PPTX using python-pptx native shapes. The HTML files are kept as the design source of truth. Do not use `generate_tdr.py` — it is superseded by this approach.
@@ -593,15 +650,8 @@ The TDR deck is built HTML-first: design each of the 21 slides as a 960×540px H
 - Phase activities: MAX 3 items per phase, each MAX 90 chars
 - Bold format: `"**Title**: description"` for all titled items
 
-### RACI Rules (3-Column)
-- Format: Activity / Snowflake / Customer (+ Partner if applicable)
-- Customer = A (Accountable) by default for ~99% of rows
-- Snowflake = R or C for most rows
-- Every row must have exactly one A
-- Snowflake is NEVER A for customer-owned decisions (signoff, approval, UAT, go-live)
-
 ### Pricing Defaults
-If no pricing is provided, use FY27 Standard Price Book rates (SVC-TMSA $335/hr, SVC-TMSDM $260/hr). If a Deal Pricing Sheet is provided, extract pricing from it and include the link in the Commercials slide notes.
+If no pricing is provided, use FY27 Standard Price Book rates (SVC-TMSA $335/hr, SVC-TMSDM $260/hr) as the basis for ±40% range calculation. If a Deal Pricing Sheet is provided, extract pricing from it and include the link in the Commercials slide notes. All pricing shown as ranges until Pre-Sales Architecture validation.
 
 ### SKU Reference Table
 
@@ -641,7 +691,7 @@ Slides marked SKIP in the audience map get `"(Skip for presentation)"` as subtit
 ## Stopping Points
 
 - Phase 0: After auto-population, present fact sheet for confirmation
-- Phase 1: After each interview group if information is incomplete
+- Phase 1: After source document extraction OR each interview group if information is incomplete
 - Phase 1.5: After DPS check, confirm pricing approach
 - Phase 2: If validation fails, present missing items before looping back
 - Phase 4: **MANDATORY** — Wait for user approval of the master JSON
@@ -653,6 +703,7 @@ Slides marked SKIP in the audience map get `"(Skip for presentation)"` as subtit
 
 | Skill | Relationship |
 |-------|-------------|
+| `services-pov` | **Upstream skill.** Generates the strategic positioning that feeds into deal-package. Look for `*_Services_POV.md` as a source document in Phase 0. |
 | `tech-review-generator` | TDR generation authority. Provides the MASTER template, approved examples, and 39-item checklist. `generate_tdr.py` follows its patterns. |
 | `proposal-generator` | Legacy PPTX orchestrator. Superseded by deal-package for TDR generation. Still provides uv project environment. |
 | `sd-technical-deal-review` | Legacy template sub-skill. Superseded by MASTER template. Retained for reference. |
