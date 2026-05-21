@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import re
-from data import load_ps_projects_active, render_html_table, load_wow_projects, _scope_key
+from data import load_ps_projects_active, load_accounts_base, render_html_table, load_wow_projects, _scope_key
 from constants import SFDC_BASE
 from components import section_banner, empty_state
 
@@ -12,11 +12,17 @@ if not active_df.empty and "PRACTICE" in active_df.columns:
 
 section_banner("Active SD Projects", "Active services delivery projects across all accounts")
 
-k1, k2, k3, k4 = st.columns(4)
+_all_accounts = load_accounts_base(_scope=_sk)
+_total_accts = len(_all_accounts)
+_covered_accts = active_df["SALESFORCE_ACCOUNT_ID"].nunique() if not active_df.empty else 0
+_coverage_pct = f"{_covered_accts / _total_accts * 100:.0f}%" if _total_accts > 0 else "—"
+
+k1, k2, k3, k4, k5 = st.columns(5)
 k1.metric("Active Projects", len(active_df))
-k2.metric("Active Revenue",  f"${active_df['REVENUE_AMOUNT'].sum():,.0f}"  if not active_df.empty else "$0")
-k3.metric("Billable Hours",  f"{active_df['BILLABLE_HOURS'].sum():,.0f}"   if not active_df.empty else "0")
-k4.metric("Stalled",         len(active_df[active_df["PROJECT_STAGE"].isin(["Stalled", "Stalled - Expiring"])]) if not active_df.empty else 0)
+k2.metric("Coverage", f"{_covered_accts} / {_total_accts}", delta=_coverage_pct)
+k3.metric("Active Revenue",  f"${active_df['REVENUE_AMOUNT'].sum():,.0f}"  if not active_df.empty else "$0")
+k4.metric("Billable Hours",  f"{active_df['BILLABLE_HOURS'].sum():,.0f}"   if not active_df.empty else "0")
+k5.metric("Stalled",         len(active_df[active_df["PROJECT_STAGE"].isin(["Stalled", "Stalled - Expiring"])]) if not active_df.empty else 0)
 
 # ── WoW Project Changes ───────────────────────────────────────────────────────
 wow_proj  = load_wow_projects(_scope=_sk)
