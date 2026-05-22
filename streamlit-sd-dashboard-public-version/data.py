@@ -1278,7 +1278,8 @@ def load_org_hierarchy():
                 'EntAcqCentral','EntAcqEast','EntAcqWest',
                 'NortheastExp','SoutheastExp','CentralExp','Commercial',
                 'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp',
-                'FSI','HCLS','MFG','RCG','TMT'
+                'FSI','HCLS','MFG','RCG','TMT',
+                'Federal','SLED'
             )
         ),
         district_top_dm AS (
