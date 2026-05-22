@@ -436,7 +436,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Section 1: Software Renewals ──────────────────────────────────────────────
-with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expanded=False):
+with st.expander(f"Upcoming Software Renewals — Next 8 Months ({sw_n})", expanded=False):
     st.caption("Open software renewal opportunities closing in the next 8 months. Excludes segment payments (Amount > $0 only).")
     if sw_renewals.empty:
         empty_state("No software renewal opportunities closing in the next 8 months.")
