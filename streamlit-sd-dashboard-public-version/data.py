@@ -123,6 +123,44 @@ def _fix_decimals(df):
     return df
 
 
+@st.cache_data(ttl=86400)
+def load_milestone_acv(_scope=None):
+    session = _get_session()
+    districts = st.session_state.get("selected_districts") or []
+    if not districts:
+        return pd.DataFrame()
+    district_list = ", ".join(f"'{d.replace(chr(39), chr(39)*2)}'" for d in sorted(districts))
+    df = session.sql(f"""
+        SELECT
+            m.SALESFORCE_PROFESSIONAL_SERVICES_MILESTONE_NAME AS MILESTONE_NAME,
+            m.SALESFORCE_PROFESSIONAL_SERVICES_MILESTONE_STATUS AS MILESTONE_STATUS,
+            m.SALESFORCE_PROFESSIONAL_SERVICES_MILESTONE_ID AS MILESTONE_ID,
+            m.SALESFORCE_PROFESSIONAL_SERVICES_PROJECT_NAME AS PROJECT_NAME,
+            m.SALESFORCE_PROFESSIONAL_SERVICES_PROJECT_STAGE AS PROJECT_STAGE,
+            m.SALESFORCE_PROFESSIONAL_SERVICES_PROJECT_STATUS AS PROJECT_STATUS,
+            m.SALESFORCE_PROFESSIONAL_SERVICES_PROJECT_START_DATE AS PROJECT_START,
+            m.SALESFORCE_PROFESSIONAL_SERVICES_PROJECT_END_DATE AS PROJECT_END,
+            m.SALESFORCE_ACCOUNT_NAME AS ACCOUNT_NAME,
+            m.SALESFORCE_ACCOUNT_ID,
+            m.SALESFORCE_TERRITORY_DISTRICT AS DISTRICT,
+            m.SALESFORCE_ACCOUNT_EXECUTIVE AS AE,
+            uc.SALESFORCE_USE_CASE_STAGE AS USE_CASE_STAGE,
+            uc.SALESFORCE_USE_CASE_GO_LIVE_DATE AS GO_LIVE_DATE,
+            CAST(uc.SALESFORCE_USE_CASE_ESTIMATED_ANNUAL_CREDIT_CONSUMPTION AS FLOAT) AS ESTIMATED_ACV,
+            fc.FISCAL_QUARTER_FYYYYY_QQ AS FISCAL_QUARTER_LABEL
+        FROM SNOW_CERTIFIED.PROFESSIONAL_SERVICES.DD_PROFESSIONAL_SERVICES_MILESTONE m
+        LEFT JOIN SNOW_CERTIFIED.SALESFORCE_USE_CASE.DD_SALESFORCE_USE_CASE uc
+            ON m.SALESFORCE_USE_CASE_ID = uc.SALESFORCE_USE_CASE_ID
+        LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc
+            ON fc._DATE = uc.SALESFORCE_USE_CASE_GO_LIVE_DATE
+        WHERE m.SALESFORCE_TERRITORY_DISTRICT IN ({district_list})
+            AND m.SALESFORCE_PROFESSIONAL_SERVICES_MILESTONE_TYPE = 'Use Case'
+            AND uc.SALESFORCE_USE_CASE_GO_LIVE_DATE IS NOT NULL
+        ORDER BY uc.SALESFORCE_USE_CASE_GO_LIVE_DATE
+    """).to_pandas()
+    return _fix_decimals(df)
+
+
 def render_html_table(df, columns, height=500, row_style_fn=None):
     """Render a DataFrame as a scrollable HTML table with text wrapping.
 
@@ -359,6 +397,7 @@ def clear_all_caches():
     load_exec_new_use_cases.clear()
     load_wow_use_cases.clear()
     load_wow_projects.clear()
+    load_milestone_acv.clear()
     load_hierarchy.clear()
     load_org_hierarchy.clear()
     load_account_search_list.clear()

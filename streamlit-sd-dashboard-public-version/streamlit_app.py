@@ -369,6 +369,7 @@ _NAV_PAGES = [
     ":material/trending_up: Capacity & Renewals",
     ":material/rocket_launch: Use Cases",
     ":material/support_agent: SD Projects",
+    ":material/analytics: DM/RVP Metrics",
     ":material/manage_accounts: Account Details",
 ]
 if "current_page" not in st.session_state:
@@ -565,6 +566,7 @@ _PAGE_FILES = {
     ":material/trending_up: Capacity & Renewals": "capacity_renewals.py",
     ":material/rocket_launch: Use Cases": "use_cases_tab.py",
     ":material/support_agent: SD Projects": "pst_tab.py",
+    ":material/analytics: DM/RVP Metrics": "dm_rvp_metrics_tab.py",
     ":material/manage_accounts: Account Details": "account_details_tab.py",
 }
 

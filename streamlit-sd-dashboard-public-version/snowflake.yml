@@ -18,5 +18,6 @@ entities:
       - app_pages/capacity_renewals.py
       - app_pages/use_cases_tab.py
       - app_pages/pst_tab.py
+      - app_pages/dm_rvp_metrics_tab.py
       - app_pages/sd_opportunities_tab.py
       - app_pages/account_details_tab.py
