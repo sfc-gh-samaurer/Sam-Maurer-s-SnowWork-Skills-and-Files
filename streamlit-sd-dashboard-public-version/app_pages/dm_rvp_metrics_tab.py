@@ -26,6 +26,8 @@ uc_df = load_use_cases(_scope=_sk)
 section_banner("Services ACV Impact", "ACV of use cases delivered through Professional Services milestones")
 
 if not milestone_df.empty:
+    milestone_df["GO_LIVE_DATE"] = pd.to_datetime(milestone_df["GO_LIVE_DATE"], errors="coerce")
+    milestone_df = milestone_df[milestone_df["GO_LIVE_DATE"] >= "2024-01-01"]
     _total_acv = milestone_df["ESTIMATED_ACV"].fillna(0).sum()
     _milestone_count = len(milestone_df)
     _unique_uc = milestone_df["MILESTONE_ID"].nunique()
@@ -102,19 +104,6 @@ if not milestone_df.empty:
             {"col": "FISCAL_QUARTER_LABEL", "label": "FQ"},
         ], height=420)
 
-    with st.expander("Summary by Quarter", expanded=False):
-        st.dataframe(
-            _summary.rename(columns={
-                "FISCAL_QUARTER_LABEL": "Fiscal Quarter",
-                "USE_CASE_COUNT": "Milestones",
-                "TOTAL_ESTIMATED_ACV": "Total Estimated ACV",
-            }),
-            column_config={
-                "Total Estimated ACV": st.column_config.NumberColumn(format="$%.0f"),
-            },
-            hide_index=True,
-            use_container_width=True,
-        )
 else:
     empty_state("No milestone ACV data found for the current scope.")
 
@@ -140,11 +129,14 @@ if not accounts_df.empty:
     _whitespace_ct = accounts_df["IS_WHITESPACE"].sum()
     _coverage_pct = _covered / _total_accts * 100 if _total_accts > 0 else 0
 
+    _whitespace_pct = f"{_whitespace_ct / _total_accts * 100:.0f}%" if _total_accts > 0 else "—"
+    _ps_no_proj = len(accounts_df[accounts_df['HAS_PS_UC'] & ~accounts_df['HAS_PROJECT']])
+
     ck1, ck2, ck3, ck4 = st.columns(4)
     ck1.metric("Total Accounts", f"{_total_accts}")
-    ck2.metric("With Active Project", f"{_covered}", delta=f"{_coverage_pct:.0f}% coverage")
-    ck3.metric("PS-Engaged UC (no proj)", f"{_ps_uc_ct - _covered}" if _ps_uc_ct > _covered else f"{len(accounts_df[accounts_df['HAS_PS_UC'] & ~accounts_df['HAS_PROJECT']])}")
-    ck4.metric("Whitespace", f"{_whitespace_ct}", delta=f"{_whitespace_ct / _total_accts * 100:.0f}% untouched" if _total_accts > 0 else "—")
+    ck2.metric("With Active Project", f"{_covered} / {_total_accts}  ({_coverage_pct:.0f}%)")
+    ck3.metric("PS-Engaged UC (no proj)", f"{_ps_no_proj}")
+    ck4.metric("Whitespace", f"{_whitespace_ct}  ({_whitespace_pct})")
 
     if "DM" in accounts_df.columns:
         _dm_coverage = accounts_df.groupby("DM", as_index=False).agg(
@@ -170,23 +162,7 @@ if not accounts_df.empty:
             {"col": "TOTAL_ARR", "label": "Total ARR", "fmt": "dollar"},
         ], height=min(300, len(_dm_coverage) * 40 + 60))
 
-    _ws_df = accounts_df[accounts_df["IS_WHITESPACE"]].sort_values("ARR", ascending=False).head(30)
-    if not _ws_df.empty:
-        with st.expander(f"Top Whitespace Accounts — No Project, No PS-Engaged UC ({len(_ws_df)})", expanded=False):
-            st.caption("Accounts with zero services footprint, sorted by ARR descending. These represent the biggest growth opportunities.")
-            _ws_df["SFDC_LINK"] = _ws_df["SALESFORCE_ACCOUNT_ID"].apply(
-                lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) else None
-            )
-            render_html_table(_ws_df, columns=[
-                {"col": "ACCOUNT_NAME", "label": "Account"},
-                {"col": "SFDC_LINK", "label": "SFDC", "fmt": "link"},
-                {"col": "ACCOUNT_OWNER", "label": "AE"},
-                {"col": "DM", "label": "DM"},
-                {"col": "ARR", "label": "ARR", "fmt": "dollar"},
-                {"col": "TIER", "label": "Tier"},
-                {"col": "INDUSTRY", "label": "Industry"},
-                {"col": "SEGMENT", "label": "Segment"},
-            ], height=min(500, len(_ws_df) * 40 + 60))
+
 else:
     empty_state("No accounts found for the current scope.")
 
@@ -313,50 +289,5 @@ if not accounts_df.empty and not projects_df.empty:
     ]
     render_html_table(_intensity, columns=_cols_list, height=min(300, len(_intensity) * 40 + 60))
 
-    _billing_col1, _billing_col2 = st.columns(2)
-
-    with _billing_col1:
-        st.markdown('<p class="sf-section-label">Billing Type Mix</p>', unsafe_allow_html=True)
-        if "BILLING_TYPE" in projects_df.columns:
-            _billing = projects_df.groupby("BILLING_TYPE", as_index=False).agg(
-                COUNT=("PROJECT_NAME", "count"),
-                REVENUE=("REVENUE_AMOUNT", "sum"),
-            )
-            _billing = _billing[_billing["BILLING_TYPE"].notna() & (_billing["BILLING_TYPE"] != "")]
-            if not _billing.empty:
-                _pie = alt.Chart(_billing).mark_arc(innerRadius=50, cornerRadius=4).encode(
-                    theta=alt.Theta("REVENUE:Q"),
-                    color=alt.Color("BILLING_TYPE:N", legend=alt.Legend(title="Type"), scale=alt.Scale(
-                        range=["#0284C7", "#29B5E8", "#7DD3FC", "#BAE6FD", "#E0F2FE"]
-                    )),
-                    tooltip=[
-                        alt.Tooltip("BILLING_TYPE:N", title="Type"),
-                        alt.Tooltip("COUNT:Q", title="Projects"),
-                        alt.Tooltip("REVENUE:Q", title="Revenue", format="$,.0f"),
-                    ],
-                ).properties(height=250)
-                st.altair_chart(_pie, use_container_width=True)
-
-    with _billing_col2:
-        st.markdown('<p class="sf-section-label">Investment vs Stated</p>', unsafe_allow_html=True)
-        if "INVESTMENT_TYPE" in projects_df.columns:
-            _invest = projects_df.groupby("INVESTMENT_TYPE", as_index=False).agg(
-                COUNT=("PROJECT_NAME", "count"),
-                REVENUE=("REVENUE_AMOUNT", "sum"),
-            )
-            _invest = _invest[_invest["INVESTMENT_TYPE"].notna() & (_invest["INVESTMENT_TYPE"] != "")]
-            if not _invest.empty:
-                _pie2 = alt.Chart(_invest).mark_arc(innerRadius=50, cornerRadius=4).encode(
-                    theta=alt.Theta("REVENUE:Q"),
-                    color=alt.Color("INVESTMENT_TYPE:N", legend=alt.Legend(title="Type"), scale=alt.Scale(
-                        range=["#0C4A6E", "#0284C7", "#7DD3FC", "#BAE6FD"]
-                    )),
-                    tooltip=[
-                        alt.Tooltip("INVESTMENT_TYPE:N", title="Type"),
-                        alt.Tooltip("COUNT:Q", title="Projects"),
-                        alt.Tooltip("REVENUE:Q", title="Revenue", format="$,.0f"),
-                    ],
-                ).properties(height=250)
-                st.altair_chart(_pie2, use_container_width=True)
 else:
     empty_state("No data available for revenue intensity analysis.")

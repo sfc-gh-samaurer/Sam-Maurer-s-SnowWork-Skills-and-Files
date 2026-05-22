@@ -30,7 +30,7 @@ _ACCOUNT_SQL = """(
 
 import re as _re
 
-_DM_FILTER_HARDCODED = "IN ('Erik Schneider', 'Raymond Navarro')"
+_DM_PLACEHOLDER = "IN ('__DM_SCOPE_PLACEHOLDER__')"
 
 
 
@@ -59,7 +59,7 @@ def _get_district_in_clause():
 
 def _sql(query):
     q = query.replace("SALES.RAVEN.ACCOUNT", _ACCOUNT_SQL)
-    q = q.replace(_DM_FILTER_HARDCODED, f"IN {_get_dm_in_clause()}")
+    q = q.replace(_DM_PLACEHOLDER, f"IN {_get_dm_in_clause()}")
     district_clause = _get_district_in_clause()
     if district_clause:
         q = _re.sub(
@@ -428,7 +428,7 @@ def load_wow_use_cases(days: int = 7, _scope=None):
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON uc.ACCOUNT_C = a.ACCOUNT_ID AND a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
         LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
         LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
         AND h.FIELD IN ('Stage__c', 'Technical_Win__c', 'Actual_Go_Live_Date__c')
         AND h.CREATED_DATE >= DATEADD('day', -{days_safe}, CURRENT_DATE())
         AND h._FIVETRAN_DELETED = FALSE
@@ -464,7 +464,7 @@ def load_wow_projects(days: int = 7, _scope=None):
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON p.PSE_ACCOUNT_C = a.ACCOUNT_ID AND a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
         LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
         LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
         AND h.FIELD IN ('pse__Stage__c', 'pse__Project_Status__c')
         AND h.CREATED_DATE >= DATEADD('day', -{days_safe}, CURRENT_DATE())
         AND h._FIVETRAN_DELETED = FALSE
@@ -534,7 +534,7 @@ def load_accounts_base(_scope=None):
         LEFT JOIN FIVETRAN.SALESFORCE.USER lead_se ON fa.LEAD_SALES_ENGINEER_C = lead_se.ID
         LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
         LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
         AND a.ACCOUNT_STATUS = 'Active'
         AND a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
         ORDER BY a.ARR DESC
@@ -546,29 +546,22 @@ def load_accounts_base(_scope=None):
 def load_capacity_renewals(_scope=None):
     session = _get_session()
     df = session.sql(_sql("""
-        WITH opp_dm AS (
-            SELECT DISTINCT o.ACCOUNT_ID, o.DM
-            FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
-            WHERE o.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY) AND o.IS_CLOSED = FALSE
-            QUALIFY ROW_NUMBER() OVER (PARTITION BY o.ACCOUNT_ID ORDER BY o.CLOSE_DATE DESC) = 1
-        ),
-        base AS (
+        WITH base AS (
             SELECT
                 a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
                 a.ACCOUNT_NAME,
                 a.REP_NAME AS ACCOUNT_OWNER,
-                COALESCE(od.DM, dm_user.NAME, a.DM) AS DM,
+                COALESCE(dm_user.NAME, a.DM) AS DM,
                 a.ACCOUNT_TIER AS TIER
             FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
             LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) ae_user ON a.REP_NAME = ae_user.NAME
             LEFT JOIN FIVETRAN.SALESFORCE.USER dm_user ON ae_user.MANAGER_ID = dm_user.ID
-            LEFT JOIN opp_dm od ON a.ACCOUNT_ID = od.ACCOUNT_ID
             WHERE a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
             AND (
-                COALESCE(od.DM, dm_user.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+                COALESCE(dm_user.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
                 OR a.ACCOUNT_ID IN (
                     SELECT DISTINCT o.ACCOUNT_ID FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
-                    WHERE o.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY) AND o.DM IN ('Erik Schneider', 'Raymond Navarro')
+                    WHERE o.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY) AND o.DM IN ('__DM_SCOPE_PLACEHOLDER__')
                 )
             )
             AND a.ACCOUNT_STATUS = 'Active'
@@ -593,6 +586,26 @@ def load_capacity_renewals(_scope=None):
             )
             GROUP BY dc.SALESFORCE_ACCOUNT_ID
         ),
+        capacity_fallback AS (
+            SELECT
+                f.SALESFORCE_ACCOUNT_ID,
+                f.SEGMENT_CONTRACT_START_DATE AS CONTRACT_START_DATE,
+                f.SEGMENT_CONTRACT_END_DATE AS CONTRACT_END_DATE,
+                CAST(NULL AS FLOAT) AS CAP_PURCHASED,
+                CAST(NULL AS FLOAT) AS TOTAL_CAP,
+                CAST(NULL AS FLOAT) AS CAP_USED,
+                CAST(f.SEGMENT_CONTRACT_CAPACITY_REMAINING_ AS FLOAT) AS CAP_REMAINING
+            FROM SNOWHOUSE.SALES.FUTURE_CONTRACT_SEGMENT_OVERAGE f
+            WHERE f._DATE = f.DS
+            AND f.SALESFORCE_ACCOUNT_ID IN (SELECT SALESFORCE_ACCOUNT_ID FROM base)
+            AND f.SALESFORCE_ACCOUNT_ID NOT IN (SELECT SALESFORCE_ACCOUNT_ID FROM capacity)
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY f.SALESFORCE_ACCOUNT_ID ORDER BY f.SEGMENT_CONTRACT_END_DATE DESC) = 1
+        ),
+        capacity_combined AS (
+            SELECT * FROM capacity
+            UNION ALL
+            SELECT * FROM capacity_fallback
+        ),
         overage AS (
             SELECT
                 ov.SALESFORCE_ACCOUNT_ID,
@@ -605,6 +618,22 @@ def load_capacity_renewals(_scope=None):
                 WHERE ov2.SALESFORCE_ACCOUNT_ID = ov.SALESFORCE_ACCOUNT_ID
             )
             GROUP BY ov.SALESFORCE_ACCOUNT_ID
+        ),
+        overage_fallback AS (
+            SELECT
+                f.SALESFORCE_ACCOUNT_ID,
+                CAST(f.SEGMENT_CONTRACT_CAPACITY_REMAINING_ AS FLOAT) AS OVERAGE_UNDERAGE_PREDICTION,
+                f.OVERAGE_DATE
+            FROM SNOWHOUSE.SALES.FUTURE_CONTRACT_SEGMENT_OVERAGE f
+            WHERE f._DATE = f.DS
+            AND f.SALESFORCE_ACCOUNT_ID IN (SELECT SALESFORCE_ACCOUNT_ID FROM base)
+            AND f.SALESFORCE_ACCOUNT_ID NOT IN (SELECT SALESFORCE_ACCOUNT_ID FROM overage)
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY f.SALESFORCE_ACCOUNT_ID ORDER BY f.SEGMENT_CONTRACT_END_DATE DESC) = 1
+        ),
+        overage_combined AS (
+            SELECT * FROM overage
+            UNION ALL
+            SELECT * FROM overage_fallback
         ),
         lead_se AS (
             SELECT fa.ID AS SALESFORCE_ACCOUNT_ID, u.NAME AS LEAD_SE
@@ -628,10 +657,10 @@ def load_capacity_renewals(_scope=None):
             ov.OVERAGE_UNDERAGE_PREDICTION,
             ov.OVERAGE_DATE
         FROM base b
-        LEFT JOIN capacity c ON b.SALESFORCE_ACCOUNT_ID = c.SALESFORCE_ACCOUNT_ID
-        LEFT JOIN overage ov ON b.SALESFORCE_ACCOUNT_ID = ov.SALESFORCE_ACCOUNT_ID
+        LEFT JOIN capacity_combined c ON b.SALESFORCE_ACCOUNT_ID = c.SALESFORCE_ACCOUNT_ID
+        LEFT JOIN overage_combined ov ON b.SALESFORCE_ACCOUNT_ID = ov.SALESFORCE_ACCOUNT_ID
         LEFT JOIN lead_se ls ON b.SALESFORCE_ACCOUNT_ID = ls.SALESFORCE_ACCOUNT_ID
-        WHERE c.TOTAL_CAP > 0
+        WHERE c.CONTRACT_END_DATE IS NOT NULL
         ORDER BY c.CAP_PURCHASED DESC NULLS LAST
     """)).to_pandas()
     return _fix_decimals(df)
@@ -669,7 +698,7 @@ def load_capacity_pipeline(_scope=None):
         LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY sf ON sf.ID = o.OPP_ID
         LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON o.REP_NAME = _ae.NAME
         LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, o.DM) IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE COALESCE(_dm.NAME, o.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
         AND o.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY)
         AND o.IS_CLOSED = FALSE
         AND o.CLOSE_DATE >= CURRENT_DATE()
@@ -824,7 +853,7 @@ def load_use_cases(_scope=None):
         LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
         LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
         LEFT JOIN FIVETRAN.SALESFORCE.USER u ON uc.OWNER_ID = u.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
         AND uc.STAGE_C IS NOT NULL
         AND uc.STAGE_C != '8 - Use Case Lost'
         AND uc._FIVETRAN_DELETED = FALSE
@@ -900,7 +929,7 @@ def load_ps_projects_active(_scope=None):
         LEFT JOIN FIVETRAN.SALESFORCE.USER ps_seller ON fo.PS_T_SELLER_C = ps_seller.ID
         LEFT JOIN SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o ON p.PSE_OPPORTUNITY_C = o.OPP_ID AND o.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY)
         LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc2 ON fc2._DATE = o.CLOSE_DATE
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
         AND a.ACCOUNT_STATUS = 'Active'
         AND p.IS_DELETED = FALSE
         AND p.PSE_IS_ACTIVE_C = TRUE
@@ -941,7 +970,7 @@ def load_ps_pipeline(_scope=None):
             LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY fv ON fv.ID = o.OPP_ID
             LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON o.REP_NAME = _ae.NAME
             LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-            WHERE COALESCE(_dm.NAME, o.DM) IN ('Erik Schneider', 'Raymond Navarro')
+            WHERE COALESCE(_dm.NAME, o.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
             AND o.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY)
             AND o.IS_CLOSED = FALSE
         ),
@@ -973,7 +1002,7 @@ def load_ps_pipeline(_scope=None):
             LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
             LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc2 ON fc2._DATE = opp.CLOSE_DATE
             LEFT JOIN (SELECT OPPORTUNITY_ID FROM sda_opps) sda_excl ON opp.ID = sda_excl.OPPORTUNITY_ID
-            WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+            WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
             AND a.ACCOUNT_STATUS = 'Active'
             AND opp.IS_CLOSED = FALSE
             AND opp.IS_DELETED = FALSE
@@ -1091,7 +1120,7 @@ def load_ps_history(_scope=None):
         JOIN opp_ps_summary ops ON opp.ID = ops.OPPORTUNITY_ID
         LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
         LEFT JOIN FIVETRAN.SALESFORCE.USER ps_seller ON opp.PS_T_SELLER_C = ps_seller.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
         AND a.ACCOUNT_STATUS = 'Active'
         AND opp.IS_WON = TRUE
         AND opp.IS_DELETED = FALSE
@@ -1131,7 +1160,7 @@ def load_action_planner_pipeline(_scope=None):
         LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON sa.REP_NAME = _ae.NAME
         LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
         WHERE sa.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
-        AND COALESCE(_dm.NAME, sa.DM) IN ('Erik Schneider', 'Raymond Navarro')
+        AND COALESCE(_dm.NAME, sa.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
         AND sa.ACCOUNT_STATUS = 'Active'
         AND uc.STAGE_C IS NOT NULL
         AND uc.STAGE_C != '8 - Use Case Lost'
@@ -1164,11 +1193,11 @@ def load_exec_software_renewals(_scope=None):
         JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON o.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
         LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
         LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
         AND o.IS_CLOSED = FALSE
         AND o.IS_DELETED = FALSE
         AND o.TYPE = 'Renewal'
-        AND o.CLOSE_DATE BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 6, CURRENT_DATE())
+        AND o.CLOSE_DATE BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 8, CURRENT_DATE())
         ORDER BY o.CLOSE_DATE ASC
     """)).to_pandas()
     return _fix_decimals(df)
@@ -1198,7 +1227,7 @@ def load_exec_services_renewals(_scope=None):
         FROM FIVETRAN.SALESFORCE.PSE_PROJ_C p
         JOIN SALES.RAVEN.ACCOUNT a ON p.PSE_ACCOUNT_C = a.SALESFORCE_ACCOUNT_ID
         LEFT JOIN FIVETRAN.SALESFORCE.CONTACT c ON p.PSE_PROJECT_MANAGER_C = c.ID
-        WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('__DM_SCOPE_PLACEHOLDER__')
         AND a.ACCOUNT_STATUS_C = 'Active'
         AND p.IS_DELETED = FALSE
         AND p.PSE_IS_ACTIVE_C = TRUE
@@ -1232,7 +1261,7 @@ def load_exec_new_opps(_scope=None):
             LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY fv ON fv.ID = o.OPP_ID
             LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON o.REP_NAME = _ae.NAME
             LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-            WHERE COALESCE(_dm.NAME, o.DM) IN ('Erik Schneider', 'Raymond Navarro')
+            WHERE COALESCE(_dm.NAME, o.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
             AND o.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY)
             AND o.CREATED_DATE >= DATEADD('day', -90, CURRENT_DATE())
         ),
@@ -1254,7 +1283,7 @@ def load_exec_new_opps(_scope=None):
             FROM FIVETRAN.SALESFORCE.OPPORTUNITY opp
             JOIN SALES.RAVEN.ACCOUNT a ON opp.ACCOUNT_ID = a.SALESFORCE_ACCOUNT_ID
             LEFT JOIN FIVETRAN.SALESFORCE.USER u ON opp.OWNER_ID = u.ID
-            WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('Erik Schneider', 'Raymond Navarro')
+            WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('__DM_SCOPE_PLACEHOLDER__')
             AND a.ACCOUNT_STATUS_C = 'Active'
             AND opp.IS_DELETED = FALSE
             AND opp.CREATED_DATE >= DATEADD('day', -90, CURRENT_DATE())
@@ -1290,7 +1319,7 @@ def load_exec_new_use_cases(_scope=None):
         LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
         LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
         LEFT JOIN FIVETRAN.SALESFORCE.USER u ON uc.OWNER_ID = u.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('Erik Schneider', 'Raymond Navarro')
+        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
         AND uc.STAGE_C IS NOT NULL
         AND uc.STAGE_C != '8 - Use Case Lost'
         AND uc._FIVETRAN_DELETED = FALSE

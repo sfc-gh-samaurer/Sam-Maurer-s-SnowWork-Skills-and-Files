@@ -116,7 +116,7 @@ st.markdown(f"""
     <span class="kpi-icon">🔄</span>
     <div class="kpi-value" style="color:#1D4ED8;">{sw_n}</div>
     <div class="kpi-label" style="color:#1E40AF;">Cap Renewals</div>
-    <div class="kpi-sub">Closing in 6 months</div>
+    <div class="kpi-sub">Closing in 8 months</div>
   </div>
   <div class="kpi-card" style="background:linear-gradient(160deg,#F0F9FF,#E0F2FE);border-top-color:#0284C7;">
     <span class="kpi-icon">🤝</span>
@@ -437,9 +437,9 @@ st.markdown("""
 
 # ── Section 1: Software Renewals ──────────────────────────────────────────────
 with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expanded=False):
-    st.caption("Open software renewal opportunities closing in the next 6 months. Excludes segment payments (Amount > $0 only).")
+    st.caption("Open software renewal opportunities closing in the next 8 months. Excludes segment payments (Amount > $0 only).")
     if sw_renewals.empty:
-        empty_state("No software renewal opportunities closing in the next 6 months.")
+        empty_state("No software renewal opportunities closing in the next 8 months.")
     else:
         sw_display = sw_renewals.copy()
         sw_display["OPP_LINK"] = sw_display["OPPORTUNITY_ID"].apply(
@@ -460,9 +460,9 @@ with st.expander(f"Upcoming Software Renewals — Next 6 Months ({sw_n})", expan
 
 # ── Section 2: Services Renewals ──────────────────────────────────────────────
 with st.expander(f"Upcoming Services Renewals ({svc_n})", expanded=False):
-    st.caption("Active PS&T projects ending in the next 6 months — candidates for renewal or extension discussions.")
+    st.caption("Active PS&T projects ending in the next 8 months — candidates for renewal or extension discussions.")
     if svc_renewals.empty:
-        empty_state("No active PS projects ending in the next 6 months.")
+        empty_state("No active PS projects ending in the next 8 months.")
     else:
         svc_display = svc_renewals.copy()
         svc_display["OPP_LINK"] = svc_display["OPPORTUNITY_ID"].apply(
