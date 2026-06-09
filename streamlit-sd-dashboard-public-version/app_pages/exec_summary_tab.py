@@ -14,7 +14,7 @@ from data import (
     _scope_key,
 )
 from constants import SFDC_BASE
-from components import section_banner, empty_state
+from components import section_banner, empty_state, tab_tip
 
 today = pd.Timestamp.now().normalize()
 
@@ -79,6 +79,13 @@ if not cap_pipe_df.empty:
     invest_df = _ip[_ip["CALCULATED_TCV"].fillna(0) >= 500_000]
 
 # ── PAGE-LEVEL TIMEFRAME ────────────────────────────────────────────────────────
+tab_tip(
+    "**Start your week here.** This tab gives you a snapshot of what's happening across your territory right now.\n\n"
+    "- **New opps or use cases?** Connect with your AE or SE to action these.\n"
+    "- **Cap renewals or SD renewals in the list?** If they're <60 days out with no pipeline, take action.\n"
+    "- **Conversion candidates?** These accounts are underburning — work with the AE to open a Capacity+ opp before their contract renews.\n"
+    "- **WoW changes** at the bottom show what moved since last week — look for anything that went in the wrong direction."
+)
 _tw = st.radio("**Timeframe:**", ["7 days", "14 days"], horizontal=True, key="exec_days", label_visibility="visible")
 days_window = int(_tw.split()[0])
 
@@ -490,7 +497,8 @@ with st.expander(f"Capacity Conversion Candidates ({cv_n})", expanded=False):
             "ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
             "CONTRACT_END_DATE", "DAYS_LEFT", "TOTAL_CAP", "CAP_REMAINING", "OVERAGE_UNDERAGE_PREDICTION"
         ]].copy()
-        conv_display["PCT_REMAINING"] = (conv_display["CAP_REMAINING"] / conv_display["TOTAL_CAP"] * 100).round(0).astype(int).astype(str) + "%"
+        _pct = (conv_display["CAP_REMAINING"] / conv_display["TOTAL_CAP"] * 100).round(0)
+        conv_display["PCT_REMAINING"] = _pct.apply(lambda x: f"{int(x)}%" if pd.notna(x) and pd.isfinite(x) else "")
         conv_display["ACCT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
             lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
         )
