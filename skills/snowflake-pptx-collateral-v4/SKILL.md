@@ -182,6 +182,28 @@ In editable mode, the HTML slides serve as the visual specification. Write a Pyt
 5. Run the script and confirm the `.pptx` was created
 6. **Offer** to adjust any slide and regenerate
 
+**⚠ Re-read the current HTML before an editable rebuild.** If the HTML slides changed since the
+last build (edits, new/removed slides, reordering), **read every current `slides/*.html` file first**
+and build the editable script from that — never from memory or a stale script. An editable deck is
+only correct if it reflects the HTML as it exists *now*. Mismatched content is the #1 editable-mode defect.
+
+**After building, run a bounds check** to catch layout bugs before delivering:
+```python
+from pptx import Presentation
+prs = Presentation(output_path)
+W, H = prs.slide_width, prs.slide_height
+tol = 9144  # ~0.01"
+for i, s in enumerate(prs.slides, 1):
+    for sh in s.shapes:
+        if sh.left is None or sh.top is None:
+            continue
+        r, b = sh.left + (sh.width or 0), sh.top + (sh.height or 0)
+        if sh.left < -tol or sh.top < -tol or r > W + tol or b > H + tol:
+            print(f"Slide {i}: '{sh.name}' overflows canvas")
+# Intentional decorative bleed (e.g. oversized ghost chapter numbers) is expected — ignore those.
+```
+
+
 **Editable Mode Output — Default Save Location:**
 ```python
 import os
