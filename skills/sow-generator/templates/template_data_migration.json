@@ -1,0 +1,100 @@
+{
+  "_template": "data_migration",
+  "_description": "Two work streams: Platform Implementation + Historical Data Migration (DMVA). 3 milestones. Use for lift-and-shift data warehouse migrations.",
+  "_instructions": "Replace all [CUSTOMER], [TBD], [PLACEHOLDER] values. Fill in source/target platforms and actual object counts.",
+
+  "customer_name": "[CUSTOMER NAME]",
+  "sow_title": "Statement of Work — [CUSTOMER NAME] Data Migration to Snowflake",
+  "engagement_type": "fixed_fee",
+  "total_fee": "$[TBD]",
+
+  "engagement_duration": "[X] weeks",
+  "source_environments": ["[Legacy Platform, e.g. Amazon Redshift]", "[Secondary Source if applicable]"],
+  "target_environments": ["Snowflake Business Critical (non-production environments)"],
+  "production_access": {"needed": false},
+  "assumption_validation_checkpoint": {
+    "enabled": true,
+    "trigger_milestone": "Milestone 2",
+    "duration": "one (1) week"
+  },
+  "subcontractor": {"enabled": false},
+  "training_funds": {"amount": "$[TBD]", "expiry": "twelve (12) months"},
+
+  "roles": {
+    "snowflake": [
+      {"role": "Services Delivery Manager (SDM)", "responsibilities": "Overall program governance, milestone coordination, and stakeholder communication."},
+      {"role": "Solutions Architect (SA)", "responsibilities": "Technical design across platform and migration work streams."},
+      {"role": "Data Engineer (DE)", "responsibilities": "Hands-on migration execution, DMVA configuration, and validation."}
+    ],
+    "customer": [
+      {"role": "Project Sponsor", "responsibilities": "Executive oversight and approval authority."},
+      {"role": "Technical Lead / DBA", "responsibilities": "Source system access, schema documentation, and data validation sign-off."},
+      {"role": "Data Owner", "responsibilities": "Validation of migrated data and milestone acceptance."}
+    ]
+  },
+
+  "attachments": [
+    {
+      "type": "platform_implementation",
+      "title": "Attachment 2: Platform Implementation",
+      "brief_description": "Design and provisioning of Customer's Snowflake Business Critical platform, including RBAC, security policies, network connectivity, and CI/CD pipeline to support migration workloads.",
+      "scope_table": [
+        ["Source Platform", "[LEGACY PLATFORM]"],
+        ["Target Platform", "Snowflake Business Critical"],
+        ["Fixed Fee", "$[TBD]"]
+      ],
+      "snowflake_responsibilities": [
+        "[ADD: Environment provisioning and RBAC design]",
+        "[ADD: Network connectivity and security configuration]",
+        "[ADD: Migration infrastructure setup (staging, warehouses)]"
+      ]
+    },
+    {
+      "type": "historical_data_migration",
+      "title": "Attachment 3: Historical Data Migration",
+      "brief_description": "One-time historical data migration from the legacy platform to Snowflake non-production environments using the Snowflake DMVA accelerator, including DDL generation, data transfer, and row-count validation.",
+      "scope_table": [
+        ["Legacy Platform", "[SOURCE PLATFORM]"],
+        ["Target Platform", "Snowflake Business Critical (Dev / UAT)"],
+        ["Tables in Scope", "[X,XXX] tables"],
+        ["Total Data Volume", "[X] TB"],
+        ["Fixed Fee", "$[TBD]"]
+      ],
+      "snowflake_responsibilities": [
+        "[ADD: DMVA setup and configuration]",
+        "[ADD: DDL type mapping and generation]",
+        "[ADD: Data migration execution and validation]",
+        "[ADD: Delta catch-up loads and runbook delivery]"
+      ]
+    }
+  ],
+
+  "milestones": {
+    "items": [
+      {
+        "num": "1",
+        "name": "Milestone 1: Platform Ready & DMVA Configured",
+        "deliverables": "Snowflake environment provisioned; RBAC implemented; DMVA configured; pilot table migration validated",
+        "pct": "25%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      },
+      {
+        "num": "2",
+        "name": "Milestone 2: Full Data Migration Complete",
+        "deliverables": "All in-scope tables migrated to non-production Snowflake; DMVA validation report delivered; Assumption Validation Checkpoint complete",
+        "pct": "50%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      },
+      {
+        "num": "3",
+        "name": "Milestone 3: Validation Sign-Off & Knowledge Transfer",
+        "deliverables": "Customer data validation complete; delta catch-up runbook delivered; knowledge transfer sessions completed; production migration runbook handed off",
+        "pct": "25%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      }
+    ]
+  }
+}

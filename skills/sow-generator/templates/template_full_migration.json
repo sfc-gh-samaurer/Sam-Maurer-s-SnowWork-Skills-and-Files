@@ -1,0 +1,158 @@
+{
+  "_template": "full_migration",
+  "_description": "Four work streams: Platform + Data Ingestion + Historical Data Migration + Code Conversion. 5-6 milestones. Use for full AIC-style or warehouse migration programs. Similar to JD Power engagement pattern.",
+  "_instructions": "Replace all [CUSTOMER], [TBD], [PLACEHOLDER] values. This is a large engagement — confirm object counts with SMA/assessment output before finalizing.",
+
+  "customer_name": "[CUSTOMER NAME]",
+  "sow_title": "Statement of Work — [CUSTOMER NAME] Full Migration to Snowflake",
+  "engagement_type": "fixed_fee",
+  "total_fee": "$[TBD]",
+
+  "engagement_duration": "twelve (12) months",
+  "source_environments": ["[Legacy Platform 1, e.g. Google BigQuery]", "[Legacy Platform 2, e.g. Amazon Redshift]"],
+  "target_environments": ["Snowflake Business Critical account(s)"],
+  "production_access": {"needed": false},
+  "assumption_validation_checkpoint": {
+    "enabled": true,
+    "trigger_milestone": "Milestone 2",
+    "duration": "one (1) week"
+  },
+  "subcontractor": {"enabled": false},
+  "training_funds": {"amount": "$[TBD]", "expiry": "twelve (12) months"},
+
+  "roles": {
+    "snowflake": [
+      {"role": "Services Delivery Manager (SDM)", "responsibilities": "Overall program governance, wave sequencing, stakeholder communication, and cross-workstream coordination."},
+      {"role": "Senior Solutions Architect (Sr. SA)", "responsibilities": "Architecture authority across all work streams, quality gate enforcement, and technical oversight."},
+      {"role": "Solutions Architect (SA)", "responsibilities": "Hands-on design and implementation across platform, ingestion, and migration work streams."},
+      {"role": "Migration Data Consultant (MDC)", "responsibilities": "DMVA execution, data migration validation, and delta catch-up runbooks."}
+    ],
+    "customer": [
+      {"role": "Project Sponsor", "responsibilities": "Executive oversight, budget authority, and program-level escalation."},
+      {"role": "Project Manager", "responsibilities": "Day-to-day coordination, RAID log management, and internal stakeholder communication."},
+      {"role": "Technical Lead", "responsibilities": "Source system access, architecture decisions, and technical sign-off."}
+    ]
+  },
+
+  "attachments": [
+    {
+      "type": "platform_implementation",
+      "title": "Attachment 2: Platform Implementation",
+      "brief_description": "Design and implementation of the Snowflake Business Critical platform foundation, including RBAC, security policies, CI/CD pipeline, network connectivity, and FinOps cost attribution.",
+      "scope_table": [
+        ["Source Platform", "[LEGACY PLATFORMS]"],
+        ["Target Platform", "Snowflake Business Critical (primary + failover regions)"],
+        ["Total Technical Hours", "[X] hours"],
+        ["Fixed Fee", "$[TBD]"]
+      ],
+      "snowflake_responsibilities": [
+        "[ADD: Account provisioning and encryption setup (Tri-Secret Secure if applicable)]",
+        "[ADD: RBAC framework, Row Access Policies, Dynamic Data Masking]",
+        "[ADD: CI/CD pipeline and environment promotion framework]",
+        "[ADD: Network connectivity (PrivateLink, VPN)]",
+        "[ADD: BC/DR architecture]",
+        "[ADD: FinOps QUERY_TAG taxonomy]"
+      ]
+    },
+    {
+      "type": "data_ingestion",
+      "title": "Attachment 3: Data Ingestion",
+      "brief_description": "Design and deployment of Snowflake-native ingestion pipelines replacing all legacy connector sources, including RDBMS CDC, cloud object storage, FTP/SFTP, and external API integrations.",
+      "scope_table": [
+        ["RDBMS Sources", "[X] sources — Openflow CDC pattern"],
+        ["Cloud Object Storage", "[X] sources — External Stage + Snowpipe"],
+        ["FTP/SFTP", "[X] sources — External Stage auto-ingest"],
+        ["External APIs", "[X] endpoints — External Access Integration"],
+        ["Total Technical Hours", "[X] hours"],
+        ["Fixed Fee", "$[TBD]"]
+      ],
+      "snowflake_responsibilities": [
+        "[ADD: Ingestion architecture and pattern library design]",
+        "[ADD: Openflow CDC configuration for RDBMS sources]",
+        "[ADD: Snowpipe/EAI configuration for file and API sources]",
+        "[ADD: 7-day post-go-live validation per source]"
+      ]
+    },
+    {
+      "type": "historical_data_migration",
+      "title": "Attachment 4: Historical Data Migration",
+      "brief_description": "One-time bulk migration of historical data from legacy platforms using the DMVA accelerator, including DDL generation, automated transfer, and row-count validation.",
+      "scope_table": [
+        ["Legacy Platform", "[SOURCE PLATFORMS]"],
+        ["Target Platform", "Snowflake Business Critical (Dev / UAT)"],
+        ["Objects in Scope", "[X] tables — [X] TB total data volume"],
+        ["Total Technical Hours", "[X] hours"],
+        ["Fixed Fee", "$[TBD]"]
+      ],
+      "snowflake_responsibilities": [
+        "[ADD: DMVA setup, DDL generation, and type mapping]",
+        "[ADD: Bulk data migration and DMVA validation]",
+        "[ADD: Delta catch-up loads and progress reporting]"
+      ]
+    },
+    {
+      "type": "code_conversion",
+      "title": "Attachment 5: Code Conversion",
+      "brief_description": "Automated and semi-automated conversion of legacy SQL, PySpark, and orchestration code using SnowConvert and Snowpark Connect, with quality gate enforcement and parallel-run validation.",
+      "scope_table": [
+        ["Legacy Platform", "[SOURCE PLATFORMS]"],
+        ["SQL Objects in Scope", "[X] SQL tasks/views/procedures"],
+        ["PySpark Objects", "[X] PySpark tasks"],
+        ["Total Workspaces", "[X] workspaces"],
+        ["Total Technical Hours", "[X] hours"],
+        ["Fixed Fee", "$[TBD]"]
+      ],
+      "snowflake_responsibilities": [
+        "[ADD: SnowConvert / Snowpark Connect configuration and conversion]",
+        "[ADD: Quality gate framework and wave sign-off process]",
+        "[ADD: 30/60-day parallel run governance]",
+        "[ADD: Legacy decommission sign-off]"
+      ]
+    }
+  ],
+
+  "milestones": {
+    "items": [
+      {
+        "num": "1",
+        "name": "Milestone 1: Kickoff & Platform Foundation",
+        "deliverables": "Kickoff complete; Snowflake platform provisioned; RBAC, security, CI/CD, and network connectivity live",
+        "pct": "15%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      },
+      {
+        "num": "2",
+        "name": "Milestone 2: Pilot Complete — AVC Checkpoint",
+        "deliverables": "Pilot workspace converted end-to-end; DMVA pipeline configured; ingestion pattern library validated; Assumption Validation Checkpoint findings delivered",
+        "pct": "20%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      },
+      {
+        "num": "3",
+        "name": "Milestone 3: Scale 50% — Migration & Ingestion",
+        "deliverables": "50% of workspaces converted; 50% of ingestion pipelines live; historical data migration 50% complete",
+        "pct": "25%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      },
+      {
+        "num": "4",
+        "name": "Milestone 4: Scale 100% — All Conversions Complete",
+        "deliverables": "All workspaces converted and quality gate signed off; all ingestion pipelines live; full historical data migration validated",
+        "pct": "25%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      },
+      {
+        "num": "5",
+        "name": "Milestone 5: Parallel Run, Legacy Decommission & KT",
+        "deliverables": "30/60-day parallel run with zero sev-1 divergence; legacy decommission sign-off issued; knowledge transfer complete",
+        "pct": "15%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      }
+    ]
+  }
+}

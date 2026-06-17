@@ -1,0 +1,85 @@
+{
+  "_template": "analytics_enablement",
+  "_description": "Two work streams: Platform Implementation + Analytics Enablement. 2-3 milestones. Use for Cortex AI, dashboards, semantic layers, and Streamlit app engagements.",
+  "_instructions": "Replace all [CUSTOMER], [TBD], [PLACEHOLDER] values. Specify which analytics use cases are in scope in the Snowflake Responsibilities.",
+
+  "customer_name": "[CUSTOMER NAME]",
+  "sow_title": "Statement of Work — [CUSTOMER NAME] Snowflake Analytics Enablement",
+  "engagement_type": "fixed_fee",
+  "total_fee": "$[TBD]",
+
+  "engagement_duration": "[X] weeks",
+  "source_environments": ["[Data sources already in Snowflake or to be ingested]"],
+  "target_environments": ["Snowflake Business Critical account(s)"],
+  "production_access": {"needed": false},
+  "assumption_validation_checkpoint": {"enabled": false},
+  "subcontractor": {"enabled": false},
+  "training_funds": {"amount": "$[TBD]", "expiry": "twelve (12) months"},
+
+  "roles": {
+    "snowflake": [
+      {"role": "Services Delivery Manager (SDM)", "responsibilities": "Program governance, milestone coordination, and stakeholder communication."},
+      {"role": "Solutions Architect / Analytics Engineer", "responsibilities": "Semantic layer design, Streamlit/Cortex development, and knowledge transfer."}
+    ],
+    "customer": [
+      {"role": "Project Sponsor", "responsibilities": "Business priority setting and final approval authority."},
+      {"role": "Data Domain Owner / Business SME", "responsibilities": "KPI and metric definitions, business logic validation, and dashboard approval."},
+      {"role": "Platform Admin", "responsibilities": "Environment access, user management, and production promotion."}
+    ]
+  },
+
+  "attachments": [
+    {
+      "type": "platform_implementation",
+      "title": "Attachment 2: Platform Foundation",
+      "brief_description": "Provisioning of the Snowflake environment and foundational data layer to support analytics use cases, including schema organization, RBAC for analytics consumers, and semantic layer infrastructure.",
+      "scope_table": [
+        ["Target Platform", "Snowflake Business Critical"],
+        ["Data Scope", "[Describe data domains, tables, marts in scope]"],
+        ["Fixed Fee", "$[TBD]"]
+      ],
+      "snowflake_responsibilities": [
+        "[ADD: Schema and data layer organization (bronze/silver/gold or equivalent)]",
+        "[ADD: RBAC for analytics consumers]",
+        "[ADD: Semantic view or data model setup]"
+      ]
+    },
+    {
+      "type": "analytics_enablement",
+      "title": "Attachment 3: Analytics Enablement",
+      "brief_description": "Development of analytics dashboards, semantic layers, and/or Cortex AI-powered insights for the agreed use cases, with knowledge transfer to Customer's analytics team.",
+      "scope_table": [
+        ["Analytics Use Cases", "[List 2-5 specific use cases, e.g. Executive KPI Dashboard, Churn Prediction with Cortex ML]"],
+        ["Deliverables", "[Streamlit apps / Semantic views / Cortex Analyst / Dashboards]"],
+        ["Fixed Fee", "$[TBD]"]
+      ],
+      "snowflake_responsibilities": [
+        "[ADD: Semantic layer / Cortex Analyst setup for agreed KPIs]",
+        "[ADD: Streamlit dashboard or app development]",
+        "[ADD: Cortex ML Functions integration (if AI use case)]",
+        "[ADD: Knowledge transfer and self-service enablement sessions]"
+      ]
+    }
+  ],
+
+  "milestones": {
+    "items": [
+      {
+        "num": "1",
+        "name": "Milestone 1: Platform Ready & Use Case Designs Approved",
+        "deliverables": "Snowflake environment provisioned; semantic layer schema defined; use case designs and mockups approved by Customer",
+        "pct": "40%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      },
+      {
+        "num": "2",
+        "name": "Milestone 2: Analytics Delivered & Knowledge Transfer Complete",
+        "deliverables": "All agreed analytics use cases delivered; Customer business SMEs validated business logic; knowledge transfer sessions completed",
+        "pct": "60%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      }
+    ]
+  }
+}

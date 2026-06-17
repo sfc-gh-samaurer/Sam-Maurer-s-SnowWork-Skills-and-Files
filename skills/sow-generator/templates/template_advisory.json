@@ -1,0 +1,79 @@
+{
+  "_template": "advisory_assessment",
+  "_description": "Single work stream: Advisory & Assessment only (no implementation). 2 milestones. Use for WAF reviews, FinOps assessments, architecture assessments, and migration scoping.",
+  "_instructions": "Replace all [CUSTOMER], [TBD], [PLACEHOLDER] values. Specify the assessment type and deliverables in Snowflake Responsibilities.",
+
+  "customer_name": "[CUSTOMER NAME]",
+  "sow_title": "Statement of Work — [CUSTOMER NAME] Snowflake [Assessment Type] Advisory",
+  "engagement_type": "fixed_fee",
+  "total_fee": "$[TBD]",
+
+  "engagement_duration": "[X] weeks",
+  "source_environments": ["[Current environment being assessed, e.g. existing Snowflake account, AWS infrastructure]"],
+  "target_environments": ["[Future state or N/A for assessment-only]"],
+  "production_access": {"needed": true},
+  "assumption_validation_checkpoint": {"enabled": false},
+  "subcontractor": {"enabled": false},
+  "training_funds": {"amount": "$[TBD]", "expiry": "twelve (12) months"},
+
+  "roles": {
+    "snowflake": [
+      {"role": "Services Delivery Manager (SDM)", "responsibilities": "Engagement coordination, stakeholder scheduling, and findings delivery."},
+      {"role": "Solutions Architect (SA)", "responsibilities": "Current state analysis, discovery interviews, and recommendations authoring."}
+    ],
+    "customer": [
+      {"role": "Project Sponsor", "responsibilities": "Strategic direction and final sign-off on assessment findings."},
+      {"role": "Technical Lead", "responsibilities": "Source system access, interview participation, and documentation provision."}
+    ]
+  },
+
+  "attachments": [
+    {
+      "type": "advisory_assessment",
+      "title": "Attachment 2: [Assessment Type] Advisory",
+      "brief_description": "A structured [X-week] assessment of [scope area], culminating in a written recommendations report with prioritized action items and an executive summary.",
+      "scope_table": [
+        ["Assessment Type", "[e.g. Well-Architected Framework Review / FinOps Assessment / Migration Scoping]"],
+        ["Scope", "[Describe what will be assessed — accounts, workloads, data domains]"],
+        ["Deliverable", "Written recommendations report + executive summary presentation"],
+        ["Estimated Duration", "[X] weeks"],
+        ["Fixed Fee", "$[TBD]"]
+      ],
+      "snowflake_responsibilities": [
+        "[ADD: Current state discovery — document review and stakeholder interviews]",
+        "[ADD: Analysis of [specific dimensions, e.g. cost, performance, security, architecture]]",
+        "[ADD: Findings and recommendations report (written deliverable)]",
+        "[ADD: Executive summary presentation to Customer leadership]",
+        "[ADD: Prioritized roadmap with effort/impact matrix (if applicable)]"
+      ],
+      "exclusions_extra": [
+        "This Attachment covers assessment and recommendations only. Implementation of any recommendation requires a separate Statement of Work."
+      ],
+      "assumptions_extra": [
+        "Customer will make relevant documentation, dashboards, and stakeholders available within the timelines specified in the engagement plan.",
+        "The recommendations report is based on information available at the time of the assessment."
+      ]
+    }
+  ],
+
+  "milestones": {
+    "items": [
+      {
+        "num": "1",
+        "name": "Milestone 1: Discovery Complete & Interim Findings Delivered",
+        "deliverables": "All discovery interviews completed; current state documented; interim findings draft delivered to Customer for review",
+        "pct": "50%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      },
+      {
+        "num": "2",
+        "name": "Milestone 2: Final Recommendations Report & Presentation",
+        "deliverables": "Final recommendations report incorporating Customer feedback; executive summary presentation delivered; prioritized action plan provided",
+        "pct": "50%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      }
+    ]
+  }
+}
