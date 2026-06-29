@@ -61,6 +61,75 @@ do not need it.
 
 ---
 
+## Core Rule: Tables Use Native Table Objects (NEVER a Grid of Rectangles)
+
+**Any tabular, matrix, or grid content MUST be a native python-pptx table created with
+`slide.shapes.add_table(...)`.** This covers data tables, RACI matrices, deliverables lists,
+pricing tables, scope summaries, dashboard catalogs — anything with rows and columns.
+
+```
+❌ WRONG — a grid of individual rectangles faking a table:
+    for r, row in enumerate(rows):
+        for c, val in enumerate(row):
+            cell = add_rect(slide, x, y, w, h, fill)   ← NOT a table
+            set_shape_text(cell, val)
+
+✅ CORRECT — one native table object, per-cell fills set on the cell:
+    tbl = slide.shapes.add_table(n_rows, n_cols, left, top, width, height).table
+    cell = tbl.cell(r, c)
+    cell.fill.solid(); cell.fill.fore_color.rgb = fill   ← editable table cell
+    cell.text = val
+```
+
+**Why this matters:**
+- A grid of rectangles cannot be edited as a table in PowerPoint — no row/column insert, no
+  tab-to-next-cell, no table styling. It only *looks* like a table until someone tries to edit it.
+- Native tables keep content aligned automatically and are far smaller in the file.
+- Per-cell color coding (e.g. RACI R/A/C/I, status cells, alternating row stripes) is fully
+  supported on native cells via `cell.fill.solid()` — you lose nothing by using a real table.
+
+**Rules:**
+- Use the `build_table_slide`, `build_kpi_table`, and `build_raci` builders below — they already
+  use `add_table`. Do not reimplement tables with `add_rect`.
+- Set per-cell fills with `cell.fill.solid(); cell.fill.fore_color.rgb = COLOR`. For RACI, map each
+  code to a `(fill, text_color)` pair and apply it to the cell.
+- Disable built-in banded styling when you set fills explicitly: `tbl.first_row = False;
+  tbl.horz_banding = False` (otherwise the theme banding fights your colors).
+- **Column widths must be integer EMU.** `Inches(...)` is already an int, but division produces a
+  float and raises `TypeError: value must be an integral type`. Wrap any computed width in `int(...)`:
+  `role_w = int((CONTENT_W - act_w) / 4)`.
+- The ONLY things that may remain `add_rect()` shapes near a table are non-tabular accents:
+  legend badges, callout bars, section labels. The table grid itself is never rectangles.
+
+---
+
+## Core Rule: Bullets Are Native, Never Typed Glyphs
+
+**Every bulleted list MUST use real PowerPoint bullets, never a glyph typed into the run text.**
+
+```
+❌ WRONG — a typed glyph faking a bullet:
+    run.text = "•  One source of truth per domain"   ← not a list item
+    run.text = "✓  Every cost traceable to a BU"     ← wraps under the dot
+
+✅ CORRECT — clean text + native bullet on the paragraph:
+    run.text = "One source of truth per domain"
+    set_bullet(para, char="•", color=SF_BLUE)        ← real, indented bullet
+```
+
+**Why this matters:**
+- A typed glyph has no hanging indent — when the line wraps, the second line sits under the dot instead of under the text. A native bullet indents correctly.
+- A typed glyph can't be toggled with PowerPoint's bullet button, re-indented, or restyled — it's just characters.
+- Native bullets still support ANY glyph (`•`, `✓`, `–`, `▸`) and any brand color, so you keep the designed look and gain real list behavior.
+
+**Rules:**
+- **Placeholder body text** (content-slide bullets) gets native template bullets automatically via `set_ph_lines()` / `set_ph_sections()` — use those; don't type glyphs.
+- **Bullets inside custom shapes** (card bodies, navy panels, callouts) have no placeholder bullet, so apply `set_bullet(para, ...)` from `core-helpers.md` Section 12.7b to each list paragraph. The run text holds the words only.
+- An intro/heading line inside a bulleted shape gets `clear_bullet(para)` so it stays unbulleted.
+- A leftover `"•  "`, `"✓  "`, or `"-  "` prefix in any run is the #1 sign this rule was missed — strip it and call `set_bullet()`.
+
+---
+
 ## Dependencies
 
 ```python
@@ -550,6 +619,7 @@ def build_kpi_table(prs, title, subtitle, kpis, table_headers, table_rows):
     tbl = slide.shapes.add_table(
         len(table_rows) + 1, len(table_headers), PAD_LEFT, tbl_top, CONTENT_W, tbl_h
     ).table
+    tbl.first_row = False; tbl.horz_banding = False   # explicit fills win over theme banding
     for c, hdr in enumerate(table_headers):
         cell = tbl.cell(0, c)
         cell.text = hdr
@@ -666,9 +736,10 @@ def build_table_slide(prs, title, subtitle, headers, rows,
         len(rows) + 1, len(headers), PAD_LEFT, tbl_top, CONTENT_W, tbl_h
     )
     tbl = shape.table
+    tbl.first_row = False; tbl.horz_banding = False   # explicit fills win over theme banding
     if col_widths:
         for c, w in enumerate(col_widths):
-            tbl.columns[c].width = w
+            tbl.columns[c].width = int(w)   # column widths must be integer EMU
     for c, hdr in enumerate(headers):
         cell = tbl.cell(0, c)
         cell.text = hdr
@@ -766,6 +837,7 @@ def build_raci(prs, title, subtitle, headers, rows, legend=True):
     tbl = slide.shapes.add_table(
         len(rows) + 1, len(headers), PAD_LEFT, CONTENT_TOP, CONTENT_W, tbl_h
     ).table
+    tbl.first_row = False; tbl.horz_banding = False   # explicit RACI cell fills win over banding
     for c, hdr in enumerate(headers):
         cell = tbl.cell(0, c)
         cell.text = hdr

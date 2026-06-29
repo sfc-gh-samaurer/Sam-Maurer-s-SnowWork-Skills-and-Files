@@ -50,6 +50,8 @@ Both modes use the same HTML/CSS design system as the visual source of truth. Im
 9. **Editable mode: Cover slide PH mapping** — Layout 13 → PH[3]=44pt title, PH[0]=subtitle, PH[2]=author. See `core-helpers.md` Section 10.1.
 10. **Multi-line text uses `\n` in a single string** in python-pptx — NEVER separate runs.
 11. **Google Drive default save** — save to `~/Google Drive/My Drive/` so files sync automatically. See `core-helpers.md` Section 18.
+12. **Tables are ALWAYS native table objects (Editable mode)** — any tabular, matrix, or grid content (data tables, RACI, deliverables, pricing, scope summaries) MUST be built with `slide.shapes.add_table(...)`, NEVER as a grid of individual `add_rect()` cell rectangles. A grid of rectangles is not editable as a table, breaks row/column insertion, and is the #1 cause of "it doesn't behave like a table in PowerPoint." Per-cell fills and RACI color coding are set via `cell.fill.solid(); cell.fill.fore_color.rgb = ...` on the native table cell. Only non-tabular accents (legend badges, callout bars) may use `add_rect()`. See `html-to-editable-pptx.md` → "Core Rule: Tables Use Native Table Objects."
+13. **Bullets are ALWAYS native PowerPoint bullets (Editable mode)** — bulleted lists inside custom shapes/text frames MUST be real list bullets set via OOXML (`a:buChar` on each paragraph's `pPr`), NEVER a typed glyph prefix like `"•  "` or `"✓  "` inside the run text. Typed glyphs don't behave as a list: no hanging indent (wrapped lines align under the dot, not the text), the bullet button can't toggle them, and indent/restyle is broken. Use `set_bullet(para, char="•", color=...)` / `clear_bullet(para)` from `core-helpers.md` Section 12.7b — the bullet glyph (•, ✓, –, etc.) and brand color are preserved, it's just a true bullet. Placeholder text already gets native bullets via `set_ph_sections()` / `set_ph_lines()`; this rule closes the gap for custom shapes. See `html-to-editable-pptx.md` → "Core Rule: Bullets Are Native, Never Typed Glyphs."
 
 ### Dark-Background Constant (Editable Mode — Copy Into Every Script)
 
@@ -271,6 +273,7 @@ print(f"Saved: {output_path}")
 
 ### Table Slide
 - Content slide base
+- **Editable mode: built as a native PowerPoint table (`slide.shapes.add_table`), never a grid of individual rectangles**
 - Table header row: `var(--sf-mid-blue)` background, white bold text, 9px
 - Alternating rows: `var(--sf-light-row)` and white
 - Cell text: 8.5–9px, `#717171` for data, bold `var(--sf-dark-text)` for first column
@@ -290,6 +293,7 @@ print(f"Saved: {output_path}")
 
 ### RACI Table Slide
 - Content slide base
+- **Editable mode: built as a native PowerPoint table (`slide.shapes.add_table`), never a grid of individual rectangles — set each R/A/C/I cell color via `cell.fill.solid()`**
 - Standard table layout with role columns
 - R/A/C/I badges as small colored circles inline
 - Legend row at the bottom of the slide (inside safe zone)

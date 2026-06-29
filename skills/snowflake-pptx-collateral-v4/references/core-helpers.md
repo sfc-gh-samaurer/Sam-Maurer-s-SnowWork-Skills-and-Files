@@ -1,6 +1,6 @@
 ---
 name: pptx-core-helpers
-description: Placeholder helpers (set_ph, set_ph_lines, set_ph_sections, set_ph_bold_keywords, set_ph_rich), custom shape text rules, add_shape_text(), footnotes, images, and saving.
+description: Placeholder helpers (set_ph, set_ph_lines, set_ph_sections, set_ph_bold_keywords, set_ph_rich), custom shape text rules, add_shape_text(), native shape bullets (set_bullet/clear_bullet), footnotes, images, and saving.
 ---
 
 ## 9. Dark-Background Layout Detection
@@ -1004,6 +1004,90 @@ add_shape_text(..., "TIP: Use X()\nto analyze Y\nand find Z", ...)
 - NEVER create separate runs within one paragraph. One string, one `p.text` assignment.
 - For description text below shapes, still use `add_shape_text()` with `LIGHT_BG` or `WHITE` fill and smaller font.
 - The function enforces: Arial font, auto_size, vertical centering, tight margins, and no-outline — all in one call.
+
+### 12.7b MANDATORY for Bulleted Lists in Shapes — `set_bullet()` (NEVER Type a Glyph)
+
+**Bulleted lists inside a custom shape or text box MUST use native PowerPoint bullets, NEVER a typed glyph prefix.** A native bullet is real list formatting injected into the paragraph's `<a:pPr>` (same lxml technique used for gradients/shadows). A typed `"•  "` or `"✓  "` at the front of the run is NOT a bullet — it has no hanging indent (wrapped lines wrap under the dot, not the text), the PowerPoint bullet button can't toggle it, and you can't re-indent or restyle it.
+
+> Placeholder body text (`set_ph_lines()`, `set_ph_sections()`) already produces native template bullets — use those for standard content slides. `set_bullet()` is for bullets you build **inside custom shapes** (card bodies, navy panels, callouts) where there is no placeholder.
+
+```python
+from lxml import etree
+from pptx.oxml.ns import qn
+from pptx.util import Pt
+
+# pPr child order per CT_TextParagraphProperties — insert bullet elements schema-valid
+_PPR_ORDER = ['a:lnSpc','a:spcBef','a:spcAft','a:buClrTx','a:buClr',
+              'a:buSzTx','a:buSzPct','a:buSzPts','a:buFontTx','a:buFont',
+              'a:buNone','a:buAutoNum','a:buChar','a:tabLst','a:defRPr','a:extLst']
+
+def _ppr_insert(pPr, el):
+    idx = _PPR_ORDER.index('a:' + etree.QName(el).localname)
+    anchor = None
+    for child in pPr:
+        ctag = 'a:' + etree.QName(child).localname
+        if ctag in _PPR_ORDER and _PPR_ORDER.index(ctag) > idx:
+            anchor = child; break
+    pPr.append(el) if anchor is None else anchor.addprevious(el)
+
+def set_bullet(para, char="•", color=None, size_pct=100, font="Arial",
+               marL=Pt(14), indent=Pt(-14)):
+    """Make `para` a NATIVE PowerPoint bullet (toggle-able, hanging indent).
+       char : glyph — '•' filled dot, '✓' check, '–' dash, '▸' triangle, etc.
+       color: RGBColor for the glyph (defaults to the run's text color).
+       Do NOT also type the glyph into the run text — pass it here only."""
+    pPr = para._p.get_or_add_pPr()
+    for t in ('a:buClrTx','a:buClr','a:buSzTx','a:buSzPct','a:buSzPts',
+              'a:buFontTx','a:buFont','a:buNone','a:buAutoNum','a:buChar'):
+        for e in pPr.findall(qn(t)):
+            pPr.remove(e)
+    pPr.set('marL', str(int(marL))); pPr.set('indent', str(int(indent)))
+    if color is not None:
+        bc = etree.Element(qn('a:buClr'))
+        etree.SubElement(bc, qn('a:srgbClr')).set('val', str(color))
+        _ppr_insert(pPr, bc)
+    if size_pct != 100:
+        bs = etree.Element(qn('a:buSzPct')); bs.set('val', str(int(size_pct*1000)))
+        _ppr_insert(pPr, bs)
+    bf = etree.Element(qn('a:buFont')); bf.set('typeface', font); _ppr_insert(pPr, bf)
+    bch = etree.Element(qn('a:buChar')); bch.set('char', char); _ppr_insert(pPr, bch)
+
+def clear_bullet(para):
+    """Force NO bullet on a paragraph (e.g. an intro/heading line in a bulleted shape)."""
+    pPr = para._p.get_or_add_pPr()
+    for t in ('a:buClr','a:buSzPct','a:buFont','a:buNone','a:buAutoNum','a:buChar'):
+        for e in pPr.findall(qn(t)):
+            pPr.remove(e)
+    _ppr_insert(pPr, etree.Element(qn('a:buNone')))
+```
+
+**Usage — bullets inside a card body shape:**
+```python
+items = ["One source of truth per domain",
+         "Every cost traceable to a business unit",
+         "Govern AI where the data lives"]
+tf = body_shape.text_frame
+for i, it in enumerate(items):
+    para = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+    run = para.add_run(); run.text = it            # ← text only, NO "•  " prefix
+    run.font.name = "Arial"; run.font.size = Pt(9.5); run.font.color.rgb = BODY
+    set_bullet(para, char="•", color=SF_BLUE, size_pct=78)   # ✓ native bullet
+```
+
+```python
+# ❌ WRONG — typed glyph, not a real bullet
+run.text = "•  One source of truth per domain"
+
+# ✅ CORRECT — clean text + native bullet via set_bullet()
+run.text = "One source of truth per domain"
+set_bullet(para, char="•", color=SF_BLUE)
+```
+
+**Rules:**
+- Bullet glyph and color go through `set_bullet()` — the run text holds the words only. A leftover `"•  "` / `"✓  "` / `"-  "` prefix in run text is the #1 sign you forgot this rule.
+- A native bullet can use ANY glyph (`✓`, `–`, `▸`, custom) via `char=...`, so you never lose the designed look — it just becomes a real, indented list bullet.
+- Tune the hanging indent with `marL` / `indent` (keep them equal-and-opposite, e.g. `Pt(16)`/`Pt(-16)` for a ✓). Use `size_pct` (e.g. 78) to shrink an oversized dot relative to the text.
+- For an intro/heading line that sits above the bullets in the same shape, call `clear_bullet(para)` so it stays unbulleted.
 
 ### 12.8 MANDATORY Helper Function — `add_code_block()` (For SQL / Code / Multi-Line Text Blocks)
 
