@@ -45,7 +45,8 @@ arrays) — tables usually hold scope, deliverables, milestones, RACI, effort, a
 
 ### Step 2: Map proposal content → SOW spec
 
-Build a JSON spec for `build_sow.py`. **Load `references/spec_schema.md`** for the full
+Build a JSON spec (the single source used by both the Google Doc and `.docx` paths).
+**Load `references/spec_schema.md`** for the full
 schema and block types. Map the proposal into these standard SOW sections (include only
 those the proposal supports; keep order):
 
@@ -79,23 +80,45 @@ migration) — use it as a structural template.
 **⚠️ STOP**: Present the proposed section list + any pricing/parity issues you found
 (e.g., payments not summing to the fee) and confirm before generating.
 
-### Step 3: Render markdown and create the Google Doc
+### Step 3: Build the Google Doc (native tables)
 
-Convert the spec to Google-Docs-friendly markdown (flattens in-cell bullets so markdown
-tables render correctly):
+**Do NOT put tables in the markdown you pass to `create_document`.** Its markdown table
+parser is unreliable for multi-table docs — it merges later sections into the first
+table's cells. Instead, narrative is created via markdown and every table is built
+natively via the Docs API. Generate the ordered build plan:
 
 ```bash
-uv run --project <SKILL_DIR> python <SKILL_DIR>/scripts/spec_to_markdown.py \
-  --spec "/abs/path/spec.json" --output "/abs/path/<Client>_sow.md"
+uv run --project <SKILL_DIR> python <SKILL_DIR>/scripts/gdoc_plan.py \
+  --spec "/abs/path/spec.json" --output "/abs/path/plan.json"
 ```
 
-Read the `.md`, then create the Google Doc by passing its full contents to the Google
-Workspace MCP `create_document` tool:
-- `title`: e.g. `"<Client> — <Engagement> | SOW Attachment A"`
-- `content`: the markdown produced above (headings, bold, bullets, and tables convert
-  automatically)
+`plan.json` is an ordered list of items, each `{"kind":"md",...}` (narrative) or
+`{"kind":"table","headers":[...],"rows":[[...]]}`. Build the document in order:
 
-Optionally `share_with` an email. Capture the returned document `url`.
+1. **Create the doc** with the first item (always `md`) via `create_document`
+   (`title`: e.g. `"<Client> — <Engagement> | SOW Attachment A"`, `content`: item[0] text).
+2. **Walk the remaining items in order**, always appending at the end of the body:
+   - `md`  → `append_to_document` with the item text (headings/bold/bullets render fine).
+   - `table` → `batch_update_document` with a single
+     `{"insertTable":{"rows":R,"columns":C,"endOfSegmentLocation":{}}}` (an EMPTY table;
+     do not fill yet). R = len(rows)+1 (header), C = len(headers).
+3. **Fill all tables once, after all are placed.** Call `get_document_structure` — it
+   returns every table with each cell's `startIndex`. Structure `tables[k]` maps to the
+   k-th `table` item in `plan.json` (document order). For each table, generate its fill
+   requests:
+   ```bash
+   uv run --project <SKILL_DIR> python <SKILL_DIR>/scripts/gdoc_fill_requests.py \
+     --table-json /abs/path/tableK_struct.json --content-json /abs/path/tableK_content.json
+   ```
+   (`tableK_struct.json` = the single `tables[k]` object; `tableK_content.json` =
+   `{"headers":[...],"rows":[[...]]}` from the plan item.) Apply each table's requests with
+   `batch_update_document`.
+   - **Process tables in DESCENDING document order (last table first).** Filling a table
+     inserts text that shifts indices *after* it; going high→low keeps every table's
+     snapshot `startIndex` valid. The helper already orders each table's own cell inserts
+     back-to-front and bolds the header row.
+
+Optionally `share_with` an email on `create_document`. Capture the returned document `url`.
 
 **Fallback (.docx instead of Google Doc):**
 ```bash
@@ -105,9 +128,10 @@ uv run --project <SKILL_DIR> python <SKILL_DIR>/scripts/build_sow.py \
 
 ### Step 4: Verify
 
-Open the Google Doc `url` (use the browser) and confirm: all 15 sections present, every
-proposal table rendered, milestone payments total the fixed fee, effort totals row
-matches, and no marketing language remains.
+Call `get_document_structure` once more and confirm: the expected number of tables exist,
+each header row is populated and bold, no cell contains text bleed from another section
+(the classic markdown-table failure), milestone payments total the fixed fee, and the
+effort totals row matches. Then open the `url` in the browser.
 
 **⚠️ STOP**: Present the document URL for review.
 
@@ -117,11 +141,20 @@ matches, and no marketing language remains.
 `.pptx` / `.pdf` → structured JSON (per-slide/page text + tables).
 `--input <file>` (required), `--output <json>` (optional; stdout if omitted).
 
-### scripts/spec_to_markdown.py
-JSON spec → Google-Docs-friendly markdown (auto-numbered `##` sections, bold, bullets,
-tables; flattens in-cell bullets to inline `• a • b`). Feed the output to the Google
-Workspace MCP `create_document` tool.
-`--spec <json>` (required), `--output <md>` (optional; stdout if omitted).
+### scripts/gdoc_plan.py
+JSON spec → ordered Google Docs build plan: `md` items (narrative markdown, no tables) and
+`table` items (`headers` + `rows`). In-cell bullets are inlined to `• a • b`.
+`--spec <json>` (required), `--output <json>` (optional; stdout if omitted).
+
+### scripts/gdoc_fill_requests.py
+One empty-table structure (a `tables[k]` object from `get_document_structure`) + its
+content (`{headers, rows}`) → a JSON array of Docs API requests (cell inserts back-to-front,
+header row bolded) to pass to `batch_update_document`.
+`--table-json <json>` (required), `--content-json <json>` (required); prints requests to stdout.
+
+### scripts/spec_to_markdown.py (helper / docx-md)
+JSON spec → full markdown (used internally by `gdoc_plan.py`; also handy for a quick
+markdown export). Not used to render Google Doc tables.
 
 ### scripts/build_sow.py (fallback)
 JSON spec → styled SOW `.docx` with auto-numbered sections, bullets, and branded tables.
