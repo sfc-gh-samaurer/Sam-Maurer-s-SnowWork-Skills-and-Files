@@ -1,25 +1,30 @@
 ---
 name: proposal-to-sow-attachment
-description: "Convert an existing Snowflake Professional Services proposal (a .pptx deck or .pdf) into a legal Statement of Work (SOW) attachment as a formatted .docx — numbered sections, bulleted lists, and tables that mirror the proposal. Use whenever the user wants to turn a proposal, deck, or engagement pitch into an SOW, SOW attachment, scope-of-work document, or 'contract-ready' version. Triggers: proposal to SOW, convert proposal to SOW, SOW attachment, make an SOW from this deck, turn this proposal into a statement of work, scope of work docx, contractify this proposal. This produces the project-specific scope attachment (not the MSA legal wrapper). If the user wants to author an SOW from scratch without a source proposal, use sow-generator instead."
+description: "Convert an existing Snowflake Professional Services proposal (a .pptx deck or .pdf) into a legal Statement of Work (SOW) attachment as a formatted Google Doc — numbered sections, bulleted lists, and tables that mirror the proposal. Use whenever the user wants to turn a proposal, deck, or engagement pitch into an SOW, SOW attachment, scope-of-work document, or 'contract-ready' version. Triggers: proposal to SOW, convert proposal to SOW, SOW attachment, make an SOW from this deck, turn this proposal into a statement of work, scope of work google doc, contractify this proposal. This produces the project-specific scope attachment (not the MSA legal wrapper). Default output is a Google Doc; a .docx builder is available as a fallback. If the user wants to author an SOW from scratch without a source proposal, use sow-generator instead."
 ---
 
 # Proposal → SOW Attachment Conversion
 
-Turn an existing proposal deck/doc into a legal SOW attachment `.docx`. The proposal
+Turn an existing proposal deck/doc into a legal SOW attachment. The proposal
 is the source of truth for scope, deliverables, timeline, milestones, pricing, RACI,
 assumptions, and risks; this skill restructures that content into contract-style
 prose with numbered sections and tables.
 
 ## What it produces
 
-A single `.docx` — the **project-specific SOW attachment** (scope sections + signature
+A **Google Doc** — the **project-specific SOW attachment** (scope sections + signature
 block). It intentionally does **not** generate the MSA/Order-Form legal wrapper, which
 is attached during signing. An incorporation clause on the cover references that wrapper.
+A `.docx` builder (`build_sow.py`) remains available as a fallback when the user wants a
+Word file instead of a Google Doc.
 
 ## Prerequisites
 
-Scripts depend on `python-docx`, `python-pptx`, and `pypdf` (see `pyproject.toml`).
-Run scripts with `uv` so dependencies resolve automatically. Verify uv:
+- **Google Workspace MCP** must be connected (the `create_document` tool) — this is how
+  the Google Doc is created. If it is not available, install/enable it (see the
+  `google_workspace_install` skill) or fall back to the `.docx` builder.
+- Scripts depend on `python-docx`, `python-pptx`, and `pypdf` (see `pyproject.toml`).
+  Run scripts with `uv` so dependencies resolve automatically. Verify uv:
 ```bash
 uv --version
 ```
@@ -74,8 +79,25 @@ migration) — use it as a structural template.
 **⚠️ STOP**: Present the proposed section list + any pricing/parity issues you found
 (e.g., payments not summing to the fee) and confirm before generating.
 
-### Step 3: Generate the .docx
+### Step 3: Render markdown and create the Google Doc
 
+Convert the spec to Google-Docs-friendly markdown (flattens in-cell bullets so markdown
+tables render correctly):
+
+```bash
+uv run --project <SKILL_DIR> python <SKILL_DIR>/scripts/spec_to_markdown.py \
+  --spec "/abs/path/spec.json" --output "/abs/path/<Client>_sow.md"
+```
+
+Read the `.md`, then create the Google Doc by passing its full contents to the Google
+Workspace MCP `create_document` tool:
+- `title`: e.g. `"<Client> — <Engagement> | SOW Attachment A"`
+- `content`: the markdown produced above (headings, bold, bullets, and tables convert
+  automatically)
+
+Optionally `share_with` an email. Capture the returned document `url`.
+
+**Fallback (.docx instead of Google Doc):**
 ```bash
 uv run --project <SKILL_DIR> python <SKILL_DIR>/scripts/build_sow.py \
   --spec "/abs/path/spec.json" --output "/abs/path/<Client>_SOW_Attachment.docx"
@@ -83,18 +105,11 @@ uv run --project <SKILL_DIR> python <SKILL_DIR>/scripts/build_sow.py \
 
 ### Step 4: Verify
 
-Re-open the output and confirm section count, table dimensions, and totals:
-```bash
-python3 - <<'PY'
-from docx import Document
-d = Document("/abs/path/<Client>_SOW_Attachment.docx")
-print("tables:", len(d.tables))
-PY
-```
-Check: every proposal table is represented; milestone payments total the fixed fee;
-effort totals row matches; no marketing language remains.
+Open the Google Doc `url` (use the browser) and confirm: all 15 sections present, every
+proposal table rendered, milestone payments total the fixed fee, effort totals row
+matches, and no marketing language remains.
 
-**⚠️ STOP**: Present the file path for review. Offer to `open` it.
+**⚠️ STOP**: Present the document URL for review.
 
 ## Tools
 
@@ -102,8 +117,15 @@ effort totals row matches; no marketing language remains.
 `.pptx` / `.pdf` → structured JSON (per-slide/page text + tables).
 `--input <file>` (required), `--output <json>` (optional; stdout if omitted).
 
-### scripts/build_sow.py
+### scripts/spec_to_markdown.py
+JSON spec → Google-Docs-friendly markdown (auto-numbered `##` sections, bold, bullets,
+tables; flattens in-cell bullets to inline `• a • b`). Feed the output to the Google
+Workspace MCP `create_document` tool.
+`--spec <json>` (required), `--output <md>` (optional; stdout if omitted).
+
+### scripts/build_sow.py (fallback)
 JSON spec → styled SOW `.docx` with auto-numbered sections, bullets, and branded tables.
+Use only when a Word file is explicitly wanted instead of a Google Doc.
 `--spec <json>` (required), `--output <docx>` (optional; uses `spec["output"]`).
 
 ## Stopping Points
@@ -113,5 +135,6 @@ JSON spec → styled SOW `.docx` with auto-numbered sections, bullets, and brand
 
 ## Output
 
-A contract-ready SOW attachment `.docx` at the requested path, plus the intermediate
-`spec.json` (reusable/editable for regeneration).
+A contract-ready SOW attachment as a **Google Doc** (URL returned by `create_document`),
+plus the intermediate `spec.json` and `.md` (reusable/editable for regeneration). A
+`.docx` is available via the fallback builder when requested.
