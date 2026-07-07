@@ -1,0 +1,10 @@
+[project]
+name = "proposal-to-sow-attachment"
+version = "0.1.0"
+description = "Convert a Snowflake PS proposal deck/doc into a legal SOW attachment .docx"
+requires-python = ">=3.11"
+dependencies = [
+    "python-docx>=1.1.0",
+    "python-pptx>=0.6.23",
+    "pypdf>=4.0.0",
+]
