@@ -13,7 +13,10 @@ from constants import SFDC_BASE, SF_STAR_BLUE, SF_MID_BLUE
 from components import section_banner, empty_state
 
 _sk = _scope_key()
-milestone_df = load_milestone_acv(_scope=_sk)
+try:
+    milestone_df = load_milestone_acv(_scope=_sk)
+except Exception:
+    milestone_df = pd.DataFrame()
 accounts_df = load_accounts_base(_scope=_sk)
 projects_df = load_ps_projects_active(_scope=_sk)
 if not projects_df.empty and "PRACTICE" in projects_df.columns:
@@ -147,9 +150,9 @@ if not accounts_df.empty:
             TOTAL_ARR=("ARR", "sum"),
         )
         _dm_coverage["COVERAGE_PCT"] = (_dm_coverage["WITH_PROJECT"] / _dm_coverage["ACCOUNTS"] * 100).round(0)
-        _dm_coverage["WITH_PROJECT"] = _dm_coverage["WITH_PROJECT"].astype(int)
-        _dm_coverage["WITH_PS_UC"] = _dm_coverage["WITH_PS_UC"].astype(int)
-        _dm_coverage["WHITESPACE"] = _dm_coverage["WHITESPACE"].astype(int)
+        _dm_coverage["WITH_PROJECT"] = _dm_coverage["WITH_PROJECT"].fillna(0).astype(int)
+        _dm_coverage["WITH_PS_UC"] = _dm_coverage["WITH_PS_UC"].fillna(0).astype(int)
+        _dm_coverage["WHITESPACE"] = _dm_coverage["WHITESPACE"].fillna(0).astype(int)
         _dm_coverage = _dm_coverage.sort_values("COVERAGE_PCT", ascending=False)
 
         render_html_table(_dm_coverage, columns=[
@@ -243,17 +246,13 @@ else:
 # ═══════════════════════════════════════════════════════════════════════════════
 # SECTION 4: REVENUE & ENGAGEMENT INTENSITY
 # ═══════════════════════════════════════════════════════════════════════════════
-section_banner("Revenue & Engagement Intensity", "Services revenue relative to book ARR, billing mix, and PS engagement rates")
+section_banner("Revenue & Engagement Intensity", "Services TCV by DM and PS engagement rates")
 
-if not accounts_df.empty and not projects_df.empty:
+if not projects_df.empty:
     _rev_by_dm = projects_df.groupby("DM", as_index=False).agg(
         ACTIVE_REVENUE=("REVENUE_AMOUNT", "sum"),
         PROJECT_COUNT=("PROJECT_NAME", "count"),
         BILLABLE_HOURS=("BILLABLE_HOURS", "sum"),
-    )
-    _arr_by_dm = accounts_df.groupby("DM", as_index=False).agg(
-        TOTAL_ARR=("ARR", "sum"),
-        ACCOUNT_COUNT=("SALESFORCE_ACCOUNT_ID", "count"),
     )
 
     _ps_rate_by_dm = pd.DataFrame()
@@ -265,9 +264,7 @@ if not accounts_df.empty and not projects_df.empty:
         _uc_grouped["PS_ENGAGEMENT_PCT"] = (_uc_grouped["PS_ENGAGED_UCS"] / _uc_grouped["TOTAL_UCS"] * 100).round(0)
         _ps_rate_by_dm = _uc_grouped[["DM", "TOTAL_UCS", "PS_ENGAGED_UCS", "PS_ENGAGEMENT_PCT"]]
 
-    _intensity = _rev_by_dm.merge(_arr_by_dm, on="DM", how="outer").fillna(0)
-    _intensity["REV_ARR_RATIO"] = (_intensity["ACTIVE_REVENUE"] / _intensity["TOTAL_ARR"] * 100).round(2)
-    _intensity.loc[_intensity["TOTAL_ARR"] == 0, "REV_ARR_RATIO"] = 0
+    _intensity = _rev_by_dm.copy()
 
     if not _ps_rate_by_dm.empty:
         _intensity = _intensity.merge(_ps_rate_by_dm, on="DM", how="left").fillna(0)
@@ -276,13 +273,11 @@ if not accounts_df.empty and not projects_df.empty:
         _intensity["PS_ENGAGED_UCS"] = 0
         _intensity["PS_ENGAGEMENT_PCT"] = 0
 
-    _intensity = _intensity.sort_values("REV_ARR_RATIO", ascending=False)
+    _intensity = _intensity.sort_values("ACTIVE_REVENUE", ascending=False)
 
     _cols_list = [
         {"col": "DM", "label": "DM"},
-        {"col": "ACTIVE_REVENUE", "label": "Active Revenue", "fmt": "dollar"},
-        {"col": "TOTAL_ARR", "label": "Book ARR", "fmt": "dollar"},
-        {"col": "REV_ARR_RATIO", "label": "Rev/ARR %", "fmt": "pct"},
+        {"col": "ACTIVE_REVENUE", "label": "TCV", "fmt": "dollar"},
         {"col": "PROJECT_COUNT", "label": "Projects", "fmt": "number"},
         {"col": "BILLABLE_HOURS", "label": "Bill Hrs", "fmt": "number"},
         {"col": "PS_ENGAGEMENT_PCT", "label": "PS Engage %", "fmt": "pct"},

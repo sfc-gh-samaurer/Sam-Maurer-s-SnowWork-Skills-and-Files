@@ -3,7 +3,7 @@ import pandas as pd
 from datetime import datetime
 from data import load_capacity_renewals, load_capacity_pipeline, render_html_table, _scope_key
 from constants import SFDC_BASE
-from components import section_banner, empty_state
+from components import section_banner, empty_state, tab_tip
 
 _sk = _scope_key()
 df          = load_capacity_renewals(_scope=_sk)
@@ -13,6 +13,14 @@ if "AGREEMENT_TYPE" not in cap_pipe_df.columns:
 today       = pd.Timestamp.now().normalize()
 
 section_banner("Capacity & Renewals", "Active contracts, conversion candidates, pipeline, and investment opportunities")
+tab_tip(
+    "**This tab is your renewal and conversion playbook.** Use it to identify where accounts need action before a contracting event."
+    "\n\n"
+    "- **Active Contracts** — review accounts with end dates < 90 days. If there's no pipeline open against them, flag to the AE now.\n"
+    "- **Conversion Candidates** — accounts underburning their capacity. The goal is to open a Capacity+ opp before renewal so the uplift is captured.\n"
+    "- **Capacity & Renewal Pipeline** — opps already in flight. Check forecast status and close dates to make sure nothing is slipping.\n"
+    "- **Investment Opportunities** — large capacity deals in the next two quarters. Prioritize SE coverage on these."
+)
 
 
 tab_active, tab_candidates, tab_pipeline, tab_invest = st.tabs([
@@ -92,7 +100,8 @@ with tab_candidates:
             conv_display = candidates[["ACCOUNT_NAME", "SALESFORCE_ACCOUNT_ID", "ACCOUNT_OWNER", "DM",
                                        "CONTRACT_END_DATE", "DAYS_LEFT",
                                        "TOTAL_CAP", "CAP_REMAINING", "OVERAGE_UNDERAGE_PREDICTION"]].copy()
-            conv_display["PCT_REMAINING"] = (conv_display["CAP_REMAINING"] / conv_display["TOTAL_CAP"] * 100).round(0).astype(int).astype(str) + "%"
+            _pct = (conv_display["CAP_REMAINING"] / conv_display["TOTAL_CAP"] * 100).round(0)
+            conv_display["PCT_REMAINING"] = _pct.apply(lambda x: f"{int(x)}%" if pd.notna(x) and pd.isfinite(x) else "")
             conv_display["ACCOUNT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
                 lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
             )
