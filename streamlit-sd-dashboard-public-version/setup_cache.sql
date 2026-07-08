@@ -440,7 +440,7 @@ BEGIN
       SELECT ao.*
       FROM all_opps ao
       WHERE ao.OPPORTUNITY_ID IN (SELECT OPPORTUNITY_ID FROM ts_opps)
-         OR ao.OPPORTUNITY_NAME ILIKE '%PS&T%'
+         OR ao.OPPORTUNITY_NAME ILIKE '%PS' || '&' || 'T%'
          OR ao.OPPORTUNITY_NAME ILIKE '%PS_T%'
   ),
   products AS (
