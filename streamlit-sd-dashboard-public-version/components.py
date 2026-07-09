@@ -62,6 +62,11 @@ def error_state(message: str):
     )
 
 
+def tab_tip(body: str, title: str = "How to use this tab", icon: str = "💡"):
+    with st.expander(f"{icon} {title}", expanded=False):
+        st.markdown(body)
+
+
 def sfdc_link(sfdc_id: str, object_type: str = "Account") -> str | None:
     if sfdc_id and str(sfdc_id).strip():
         return f"{SFDC_BASE}/{object_type}/{sfdc_id}/view"

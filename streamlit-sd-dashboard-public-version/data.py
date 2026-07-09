@@ -5,6 +5,7 @@ from decimal import Decimal
 import html as html_mod
 import json
 import os
+import datetime
 
 _ROLE = "TECHNICAL_ACCOUNT_MANAGER"
 _WAREHOUSE = "PST_STEAMLIT_APPS"
@@ -125,40 +126,11 @@ def _fix_decimals(df):
 
 @st.cache_data(ttl=86400)
 def load_milestone_acv(_scope=None):
-    session = _get_session()
     districts = st.session_state.get("selected_districts") or []
     if not districts:
         return pd.DataFrame()
-    district_list = ", ".join(f"'{d.replace(chr(39), chr(39)*2)}'" for d in sorted(districts))
-    df = session.sql(f"""
-        SELECT
-            m.SALESFORCE_PROFESSIONAL_SERVICES_MILESTONE_NAME AS MILESTONE_NAME,
-            m.SALESFORCE_PROFESSIONAL_SERVICES_MILESTONE_STATUS AS MILESTONE_STATUS,
-            m.SALESFORCE_PROFESSIONAL_SERVICES_MILESTONE_ID AS MILESTONE_ID,
-            m.SALESFORCE_PROFESSIONAL_SERVICES_PROJECT_NAME AS PROJECT_NAME,
-            m.SALESFORCE_PROFESSIONAL_SERVICES_PROJECT_STAGE AS PROJECT_STAGE,
-            m.SALESFORCE_PROFESSIONAL_SERVICES_PROJECT_STATUS AS PROJECT_STATUS,
-            m.SALESFORCE_PROFESSIONAL_SERVICES_PROJECT_START_DATE AS PROJECT_START,
-            m.SALESFORCE_PROFESSIONAL_SERVICES_PROJECT_END_DATE AS PROJECT_END,
-            m.SALESFORCE_ACCOUNT_NAME AS ACCOUNT_NAME,
-            m.SALESFORCE_ACCOUNT_ID,
-            m.SALESFORCE_TERRITORY_DISTRICT AS DISTRICT,
-            m.SALESFORCE_ACCOUNT_EXECUTIVE AS AE,
-            uc.SALESFORCE_USE_CASE_STAGE AS USE_CASE_STAGE,
-            uc.SALESFORCE_USE_CASE_GO_LIVE_DATE AS GO_LIVE_DATE,
-            CAST(uc.SALESFORCE_USE_CASE_ESTIMATED_ANNUAL_CREDIT_CONSUMPTION AS FLOAT) AS ESTIMATED_ACV,
-            fc.FISCAL_QUARTER_FYYYYY_QQ AS FISCAL_QUARTER_LABEL
-        FROM SNOW_CERTIFIED.PROFESSIONAL_SERVICES.DD_PROFESSIONAL_SERVICES_MILESTONE m
-        LEFT JOIN SNOW_CERTIFIED.SALESFORCE_USE_CASE.DD_SALESFORCE_USE_CASE uc
-            ON m.SALESFORCE_USE_CASE_ID = uc.SALESFORCE_USE_CASE_ID
-        LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc
-            ON fc._DATE = uc.SALESFORCE_USE_CASE_GO_LIVE_DATE
-        WHERE m.SALESFORCE_TERRITORY_DISTRICT IN ({district_list})
-            AND m.SALESFORCE_PROFESSIONAL_SERVICES_MILESTONE_TYPE = 'Use Case'
-            AND uc.SALESFORCE_USE_CASE_GO_LIVE_DATE IS NOT NULL
-        ORDER BY uc.SALESFORCE_USE_CASE_GO_LIVE_DATE
-    """).to_pandas()
-    return _fix_decimals(df)
+    df = _read_cache("SD_CACHE_MILESTONE_ACV")
+    return df[df["DISTRICT"].isin(districts)].reset_index(drop=True)
 
 
 def render_html_table(df, columns, height=500, row_style_fn=None):
@@ -403,74 +375,161 @@ def clear_all_caches():
     load_account_search_list.clear()
 
 
+# ── Cache helpers ─────────────────────────────────────────────────────────────
+
+def get_cache_last_updated() -> dict:
+    """Return {table_name: 'YYYY-MM-DD HH:MM'} from SD_CACHE_METADATA."""
+    try:
+        from snowflake.snowpark.context import get_active_session
+        try:
+            session = get_active_session()
+        except Exception:
+            session = _local_session()
+        rows = session.sql("""
+            SELECT TABLE_NAME, LAST_REFRESHED_AT
+            FROM SD_APPS_DB.SD_CENTER.SD_CACHE_METADATA
+        """).collect()
+        return {r["TABLE_NAME"]: str(r["LAST_REFRESHED_AT"])[:16] for r in rows}
+    except Exception:
+        return {}
+
+
+def trigger_cache_refresh():
+    """Call REFRESH_CACHE_ALL() SP in Snowflake. Blocks until done (~1-2 min)."""
+    _get_session().sql("CALL SD_APPS_DB.SD_CENTER.REFRESH_CACHE_ALL()").collect()
+
+
+def trigger_cache_refresh_async():
+    """Start REFRESH_CACHE_ALL() asynchronously. Returns AsyncJob."""
+    return _get_session().sql("CALL SD_APPS_DB.SD_CENTER.REFRESH_CACHE_ALL()").collect_nowait()
+
+
+def get_cache_max_staleness_hours():
+    """Age (in hours) of the OLDEST cache table, computed entirely in Snowflake
+    time so it is timezone-safe. Returns float, or None if unavailable."""
+    try:
+        from snowflake.snowpark.context import get_active_session
+        try:
+            session = get_active_session()
+        except Exception:
+            session = _local_session()
+        rows = session.sql("""
+            SELECT DATEDIFF('minute', MIN(LAST_REFRESHED_AT), CURRENT_TIMESTAMP()) / 60.0 AS HRS
+            FROM SD_APPS_DB.SD_CENTER.SD_CACHE_METADATA
+            WHERE LAST_REFRESHED_AT IS NOT NULL
+        """).collect()
+        return float(rows[0]["HRS"]) if rows and rows[0]["HRS"] is not None else None
+    except Exception:
+        return None
+
+
+def get_cache_failed_tables() -> list:
+    """Cache tables whose most recent refresh failed (STATUS='FAILED').
+    Returns [] if the STATUS column is absent (older deployments) or on error."""
+    try:
+        from snowflake.snowpark.context import get_active_session
+        try:
+            session = get_active_session()
+        except Exception:
+            session = _local_session()
+        rows = session.sql("""
+            SELECT TABLE_NAME
+            FROM SD_APPS_DB.SD_CENTER.SD_CACHE_METADATA
+            WHERE STATUS = 'FAILED'
+            ORDER BY TABLE_NAME
+        """).collect()
+        return [r["TABLE_NAME"] for r in rows]
+    except Exception:
+        return []
+
+
+def get_refreshed_table_count_since(since_ts: str) -> int:
+    """Count cache tables that have been refreshed at or after since_ts (UTC ISO string)."""
+    try:
+        rows = _get_session().sql(f"""
+            SELECT COUNT(*) AS CNT
+            FROM SD_APPS_DB.SD_CENTER.SD_CACHE_METADATA
+            WHERE LAST_REFRESHED_AT >= '{since_ts}'
+        """).collect()
+        return rows[0]["CNT"]
+    except Exception:
+        return 0
+
+
+def _read_cache(table: str) -> pd.DataFrame:
+    """Read a pre-materialized cache table (fast: no complex joins)."""
+    session = _get_session()
+    qualified = f"SD_APPS_DB.SD_CENTER.{table}"
+    try:
+        return _fix_decimals(session.sql(f"SELECT * FROM {qualified}").to_pandas())
+    except Exception as e:
+        if "out of range" not in str(e):
+            raise
+        # Some rows contain out-of-range dates (e.g. year < 1677) that pandas
+        # cannot represent as Timestamps. Re-fetch with date/timestamp columns
+        # cast to VARCHAR strings, then re-parse with errors='coerce' so bad
+        # values become NaT instead of crashing.
+        try:
+            schema_rows = session.sql(f"DESCRIBE TABLE {qualified}").collect()
+            date_cols = [
+                r["name"] for r in schema_rows
+                if any(t in r["type"].upper() for t in ("DATE", "TIMESTAMP"))
+            ]
+            col_exprs = ", ".join(
+                f'TRY_TO_CHAR("{c}") AS "{c}"' if c in date_cols else f'"{c}"'
+                for c in [r["name"] for r in schema_rows]
+            )
+            df = _fix_decimals(session.sql(
+                f"SELECT {col_exprs} FROM {qualified}"
+            ).to_pandas())
+            for col in date_cols:
+                if col in df.columns:
+                    df[col] = pd.to_datetime(df[col], errors="coerce")
+            return df
+        except Exception:
+            raise e
+
+
+def _apply_scope(df: pd.DataFrame, dm_col: str = "DM", district_col: str = "DISTRICT_NAME") -> pd.DataFrame:
+    """Filter a full-dataset DataFrame to the user's selected DMs/districts.
+
+    District-primary: when districts are in scope and the frame carries a district column,
+    filter by district so accounts whose derived DM is null/mismatched are not dropped.
+    Falls back to DM filtering only when no district column is available.
+    """
+    selected_dms = st.session_state.get("selected_dms") or []
+    selected_districts = st.session_state.get("selected_districts") or []
+    if not selected_dms and not selected_districts:
+        return pd.DataFrame(columns=df.columns)
+    if selected_districts and district_col in df.columns:
+        return df[df[district_col].isin(selected_districts)].reset_index(drop=True)
+    if dm_col in df.columns:
+        return df[df[dm_col].isin(selected_dms)].reset_index(drop=True)
+    return df.reset_index(drop=True)
+
+
 @st.cache_data(ttl=3600)
 def load_wow_use_cases(days: int = 7, _scope=None):
-    session = _get_session()
-    days_safe = max(1, int(days))
-    df = session.sql(_sql(f"""
-        SELECT
-            a.ACCOUNT_NAME,
-            a.REP_NAME                       AS AE,
-            uc.NAME_C                        AS USE_CASE_NAME,
-            uc.ID                            AS USE_CASE_ID,
-            uc.NAME                          AS USE_CASE_NUMBER,
-            uc.STAGE_C                       AS CURRENT_STAGE,
-            CAST(uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C AS FLOAT) AS ACV,
-            uc.DECISION_DATE_C               AS DECISION_DATE,
-            uc.TECHNICAL_WIN_DATE_FORECAST_C AS TARGET_GO_LIVE,
-            uc.USE_CASE_STATUS_C             AS UC_STATUS,
-            h.FIELD,
-            h.OLD_VALUE,
-            h.NEW_VALUE,
-            h.CREATED_DATE AS CHANGED_AT
-        FROM FIVETRAN.SALESFORCE.USE_CASE_HISTORY h
-        JOIN FIVETRAN.SALESFORCE.USE_CASE_C uc ON h.PARENT_ID = uc.ID
-        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON uc.ACCOUNT_C = a.ACCOUNT_ID AND a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
-        LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
-        LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
-        AND h.FIELD IN ('Stage__c', 'Technical_Win__c', 'Actual_Go_Live_Date__c')
-        AND h.CREATED_DATE >= DATEADD('day', -{days_safe}, CURRENT_DATE())
-        AND h._FIVETRAN_DELETED = FALSE
-        ORDER BY h.CREATED_DATE DESC
-    """)).to_pandas()
-    return _fix_decimals(df)
+    df = _read_cache("SD_CACHE_WOW_USE_CASES")
+    df = _apply_scope(df)
+    if not df.empty:
+        days_safe = max(1, int(days))
+        df["CHANGED_AT"] = pd.to_datetime(df["CHANGED_AT"], errors="coerce")
+        cutoff = datetime.date.today() - datetime.timedelta(days=days_safe)
+        df = df[df["CHANGED_AT"].dt.date >= cutoff]
+    return df.reset_index(drop=True)
 
 
 @st.cache_data(ttl=3600)
 def load_wow_projects(days: int = 7, _scope=None):
-    session = _get_session()
-    days_safe = max(1, int(days))
-    df = session.sql(_sql(f"""
-        SELECT
-            a.ACCOUNT_NAME,
-            a.REP_NAME                           AS AE,
-            p.NAME                               AS PROJECT_NAME,
-            p.ID                                 AS PROJECT_ID,
-            p.PSE_STAGE_C                        AS CURRENT_STAGE,
-            p.PSE_PROJECT_STATUS_C               AS PROJECT_STATUS,
-            p.PSE_BILLING_TYPE_C                 AS BILLING_TYPE,
-            p.SERVICE_TYPE_C                     AS SERVICE_TYPE,
-            p.PSE_START_DATE_C                   AS START_DATE,
-            p.PSE_END_DATE_C                     AS END_DATE,
-            CAST(p.PROJECT_REVENUE_AMOUNT_C AS FLOAT) AS REVENUE_AMOUNT,
-            CAST(p.PSE_PERCENT_HOURS_COMPLETE_C AS FLOAT) AS PCT_COMPLETE,
-            h.FIELD,
-            h.OLD_VALUE,
-            h.NEW_VALUE,
-            h.CREATED_DATE AS CHANGED_AT
-        FROM FIVETRAN.SALESFORCE.PSE_PROJ_HISTORY h
-        JOIN FIVETRAN.SALESFORCE.PSE_PROJ_C p ON h.PARENT_ID = p.ID
-        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON p.PSE_ACCOUNT_C = a.ACCOUNT_ID AND a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
-        LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
-        LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
-        AND h.FIELD IN ('pse__Stage__c', 'pse__Project_Status__c')
-        AND h.CREATED_DATE >= DATEADD('day', -{days_safe}, CURRENT_DATE())
-        AND h._FIVETRAN_DELETED = FALSE
-        ORDER BY h.CREATED_DATE DESC
-    """)).to_pandas()
-    return _fix_decimals(df)
+    df = _read_cache("SD_CACHE_WOW_PROJECTS")
+    df = _apply_scope(df)
+    if not df.empty:
+        days_safe = max(1, int(days))
+        df["CHANGED_AT"] = pd.to_datetime(df["CHANGED_AT"], errors="coerce")
+        cutoff = datetime.date.today() - datetime.timedelta(days=days_safe)
+        df = df[df["CHANGED_AT"].dt.date >= cutoff]
+    return df.reset_index(drop=True)
 
 
 
@@ -497,53 +556,15 @@ def load_data_freshness():
 
 @st.cache_data(ttl=86400)
 def load_accounts_base(_scope=None):
-    session = _get_session()
-    df = session.sql(_sql("""
-        SELECT
-            a.ACCOUNT_NAME,
-            a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
-            a.REP_NAME AS ACCOUNT_OWNER,
-            a.DM,
-            a.RVP,
-            CAST(a.ARR AS FLOAT) AS ARR,
-            CAST(a.APS AS FLOAT) AS APS,
-            a.INDUSTRY,
-            a.SUB_INDUSTRY AS SUBINDUSTRY,
-            a.ACCOUNT_TIER AS TIER,
-            a.SEGMENT,
-            a.BILLING_CITY,
-            a.BILLING_STATE,
-            a.BILLING_COUNTRY,
-            a.NUMBER_OF_EMPLOYEES,
-            a.LAST_ACTIVITY_DATE,
-            lead_se.NAME AS LEAD_SE,
-            a.MATURITY_SCORE_C,
-            a.CONSUMPTION_RISK_C,
-            a.ACCOUNT_STRATEGY_C,
-            a.ACCOUNT_RISK_C,
-            a.ACCOUNT_COMMENTS_C,
-            a.CONSUMPTION_RISK_MITIGATION_STEPS_C,
-            CAST(a.PREDICTED_1_YV_C AS FLOAT) AS PREDICTED_1YV,
-            CAST(a.PREDICTED_3_YV_C AS FLOAT) AS PREDICTED_3YV,
-            a.TOTAL_ACCOUNTS,
-            a.AWS_ACCOUNTS,
-            a.AZURE_ACCOUNTS,
-            a.GCP_ACCOUNTS
-        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
-        JOIN FIVETRAN.SALESFORCE.ACCOUNT fa ON a.ACCOUNT_ID = fa.ID
-        LEFT JOIN FIVETRAN.SALESFORCE.USER lead_se ON fa.LEAD_SALES_ENGINEER_C = lead_se.ID
-        LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
-        LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
-        AND a.ACCOUNT_STATUS = 'Active'
-        AND a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
-        ORDER BY a.ARR DESC
-    """)).to_pandas()
-    return _fix_decimals(df)
+    return _apply_scope(_read_cache("SD_CACHE_ACCOUNTS_BASE"))
 
 
 @st.cache_data(ttl=86400)
 def load_capacity_renewals(_scope=None):
+    return _apply_scope(_read_cache("SD_CACHE_CAPACITY_RENEWALS"))
+
+
+def _load_capacity_renewals_ORIG(_scope=None):  # kept for SQL reference only
     session = _get_session()
     df = session.sql(_sql("""
         WITH base AS (
@@ -668,44 +689,7 @@ def load_capacity_renewals(_scope=None):
 
 @st.cache_data(ttl=86400)
 def load_capacity_pipeline(_scope=None):
-    session = _get_session()
-    df = session.sql(_sql("""
-        SELECT
-            o.ACCOUNT_NAME,
-            o.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
-            o.OPP_NAME AS OPPORTUNITY_NAME,
-            o.OPP_ID AS OPPORTUNITY_ID,
-            o.TYPE AS OPPORTUNITY_TYPE,
-            o.AGREEMENT_TYPE AS AGREEMENT_TYPE,
-            o.STAGE_NAME,
-            o.FORECAST_STATUS,
-            CAST(COALESCE(sf.FORECAST_ACV_C, 0) AS FLOAT) AS PRODUCT_FORECAST_ACV,
-            CAST(COALESCE(sf.PRODUCT_FORECAST_TCV_C, 0) AS FLOAT) AS PRODUCT_FORECAST_TCV,
-            CAST(
-                CASE WHEN COALESCE(sf.PRODUCT_FORECAST_TCV_C, 0) > 0
-                     THEN sf.PRODUCT_FORECAST_TCV_C
-                     ELSE COALESCE(sf.FORECAST_ACV_C, 0)
-                END AS FLOAT
-            ) AS CALCULATED_TCV,
-            o.CLOSE_DATE,
-            fc.FISCAL_PERIOD AS FISCAL_QUARTER,
-            o.REP_NAME AS OWNER,
-            o.SE_COMMENTS_C AS SE_COMMENTS,
-            o.NEXT_STEPS,
-            o.DM
-        FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY o
-        LEFT JOIN SNOWHOUSE.UTILS.FISCAL_CALENDAR fc ON fc._DATE = o.CLOSE_DATE
-        LEFT JOIN FIVETRAN.SALESFORCE.OPPORTUNITY sf ON sf.ID = o.OPP_ID
-        LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON o.REP_NAME = _ae.NAME
-        LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, o.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
-        AND o.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.OPPORTUNITIES_DAILY)
-        AND o.IS_CLOSED = FALSE
-        AND o.CLOSE_DATE >= CURRENT_DATE()
-        QUALIFY ROW_NUMBER() OVER (PARTITION BY o.ACCOUNT_ID, o.OPP_NAME ORDER BY o.OPP_ID DESC) = 1
-        ORDER BY o.CLOSE_DATE ASC
-    """)).to_pandas()
-    return _fix_decimals(df)
+    return _apply_scope(_read_cache("SD_CACHE_CAPACITY_PIPELINE"))
 
 
 @st.cache_data(ttl=3600)
@@ -755,17 +739,9 @@ def load_account_search_list():
         FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
         LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) ae_user ON a.REP_NAME = ae_user.NAME
         LEFT JOIN FIVETRAN.SALESFORCE.USER dm_user ON ae_user.MANAGER_ID = dm_user.ID
-        JOIN (SELECT DISTINCT NAME FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true) active_dms
-            ON COALESCE(dm_user.NAME, a.DM) = active_dms.NAME
         WHERE a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
         AND a.ACCOUNT_STATUS = 'Active'
-        AND a.REGION_NAME IN (
-            'LATAM','MajorsAcq','CommAcqEast','CommAcqWest',
-            'EntAcqCentral','EntAcqEast','EntAcqWest',
-            'NortheastExp','SoutheastExp','CentralExp','Commercial',
-            'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp',
-            'FSI','HCLS','MFG','RCG','TMT'
-        )
+        AND COALESCE(a.GEO_NAME, '') NOT ILIKE 'acctstodelete'
         ORDER BY ACCOUNT_NAME
     """).to_pandas()
     return df
@@ -818,52 +794,15 @@ def load_accounts_for_scope(district_name: str):
 
 @st.cache_data(ttl=86400)
 def load_use_cases(_scope=None):
-    session = _get_session()
-    df = session.sql(_sql("""
-        SELECT
-            a.ACCOUNT_NAME,
-            a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
-            uc.NAME_C AS USE_CASE_NAME,
-            uc.USE_CASE_STATUS_C AS USE_CASE_STATUS,
-            CAST(uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C AS FLOAT) AS ACV,
-            uc.STAGE_C AS STAGE,
-            uc.TECHNICAL_WIN_C          AS TECHNICAL_WIN,
-            uc.ACTUAL_GO_LIVE_DATE_C    AS ACTUAL_GO_LIVE,
-            uc.CREATED_DATE,
-            uc.LAST_MODIFIED_DATE,
-            uc.LAST_STAGE_CHANGE_IN_DAYS_C AS DAYS_IN_STAGE,
-            u.NAME AS OWNER,
-            uc.NEXT_STEPS_C AS NEXT_STEPS,
-            (uc.PS_ENGAGEMENT_C IS NOT NULL AND uc.PS_ENGAGEMENT_C != 'Not Yet Known') AS IS_PS_ENGAGED,
-            uc.PS_ENGAGEMENT_C AS PS_ENGAGEMENT,
-            NULL AS PS_DESCRIPTION,
-            a.DM,
-            a.SUB_INDUSTRY AS ACCOUNT_SUB_INDUSTRY,
-            uc.COMPETITORS_C AS COMPETITORS,
-            uc.MISSION_CRITICAL_C AS MISSION_CRITICAL,
-            uc.TECHNICAL_USE_CASE_C AS TECHNICAL_USE_CASE,
-            uc.ID AS USE_CASE_ID,
-            uc.NAME AS USE_CASE_NUMBER,
-            uc.DECISION_DATE_C AS DECISION_DATE,
-            uc.IMPLEMENTER_C AS IMPLEMENTER,
-            uc.TECHNICAL_WIN_DATE_FORECAST_C AS TARGET_GO_LIVE,
-            uc.USE_CASE_COMMENTS_C AS KEY_NOTES
-        FROM FIVETRAN.SALESFORCE.USE_CASE_C uc
-        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON uc.ACCOUNT_C = a.ACCOUNT_ID AND a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
-        LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
-        LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        LEFT JOIN FIVETRAN.SALESFORCE.USER u ON uc.OWNER_ID = u.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
-        AND uc.STAGE_C IS NOT NULL
-        AND uc.STAGE_C != '8 - Use Case Lost'
-        AND uc._FIVETRAN_DELETED = FALSE
-        ORDER BY uc.LAST_STAGE_CHANGE_IN_DAYS_C DESC NULLS LAST
-    """)).to_pandas()
-    return _fix_decimals(df)
+    return _apply_scope(_read_cache("SD_CACHE_USE_CASES"))
 
 
 @st.cache_data(ttl=86400)
 def load_ps_projects_active(_scope=None):
+    return _apply_scope(_read_cache("SD_CACHE_PS_PROJECTS_ACTIVE"))
+
+
+def _load_ps_projects_active_ORIG(_scope=None):  # kept for SQL reference only
     session = _get_session()
     df = session.sql(_sql("""
         WITH assignments AS (
@@ -942,6 +881,10 @@ def load_ps_projects_active(_scope=None):
 
 @st.cache_data(ttl=86400)
 def load_ps_pipeline(_scope=None):
+    return _apply_scope(_read_cache("SD_CACHE_PS_PIPELINE"))
+
+
+def _load_ps_pipeline_ORIG(_scope=None):  # kept for SQL reference only
     session = _get_session()
     df = session.sql(_sql("""
         WITH sda_opps AS (
@@ -1076,9 +1019,12 @@ def load_ps_pipeline(_scope=None):
     return _fix_decimals(df)
 
 
-
 @st.cache_data(ttl=86400)
 def load_ps_history(_scope=None):
+    return _apply_scope(_read_cache("SD_CACHE_PS_HISTORY"))
+
+
+def _load_ps_history_ORIG(_scope=None):  # kept for SQL reference only
     session = _get_session()
     df = session.sql(_sql("""
         WITH opp_ps_summary AS (
@@ -1131,115 +1077,27 @@ def load_ps_history(_scope=None):
 
 @st.cache_data(ttl=86400)
 def load_action_planner_pipeline(_scope=None):
-    session = _get_session()
-    df = session.sql(_sql("""
-        SELECT
-            sa.ACCOUNT_NAME,
-            sa.ACCOUNT_ID AS ACCOUNT_ID,
-            sa.DM AS DM,
-            u.DISTRICT_C AS DISTRICT,
-            sa.REP_NAME AS AE_NAME,
-            lead_se.NAME AS SE_NAME,
-            uc.ID AS USE_CASE_ID,
-            uc.NAME_C AS USE_CASE_NAME,
-            uc.STAGE_C AS STAGE,
-            uc.USE_CASE_STATUS_C AS USE_CASE_STATUS,
-            CAST(uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C AS FLOAT) AS EACV,
-            uc.TECHNICAL_USE_CASE_C AS TECHNICAL_UC,
-            uc.COMPETITORS_C AS COMPETITORS,
-            uc.IMPLEMENTER_C AS IMPLEMENTER,
-            uc.USE_CASE_COMMENTS_C AS USE_CASE_COMMENTS,
-            uc.NEXT_STEPS_C AS NEXT_STEPS,
-            uc.NAME AS USE_CASE_NUMBER,
-            uc.SPECIALIST_COMMENTS_C AS SE_COMMENTS_FULL
-        FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY sa
-        JOIN FIVETRAN.SALESFORCE.ACCOUNT a ON sa.ACCOUNT_ID = a.ID
-        JOIN FIVETRAN.SALESFORCE.USER u ON a.OWNER_ID = u.ID
-        LEFT JOIN FIVETRAN.SALESFORCE.USER lead_se ON a.LEAD_SALES_ENGINEER_C = lead_se.ID
-        JOIN FIVETRAN.SALESFORCE.USE_CASE_C uc ON uc.ACCOUNT_C = a.ID AND uc._FIVETRAN_DELETED = FALSE
-        LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON sa.REP_NAME = _ae.NAME
-        LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE sa.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
-        AND COALESCE(_dm.NAME, sa.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
-        AND sa.ACCOUNT_STATUS = 'Active'
-        AND uc.STAGE_C IS NOT NULL
-        AND uc.STAGE_C != '8 - Use Case Lost'
-        ORDER BY sa.ACCOUNT_NAME, uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C DESC NULLS LAST
-    """)).to_pandas()
-    return _fix_decimals(df)
+    return _apply_scope(_read_cache("SD_CACHE_ACTION_PLANNER"))
 
 
 
 
 @st.cache_data(ttl=86400)
 def load_exec_software_renewals(_scope=None):
-    session = _get_session()
-    df = session.sql(_sql("""
-        SELECT
-            o.NAME AS OPPORTUNITY_NAME,
-            o.ID AS OPPORTUNITY_ID,
-            a.ACCOUNT_NAME,
-            a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
-            o.STAGE_NAME,
-            o.FORECAST_CATEGORY_NAME AS FORECAST_STATUS,
-            CAST(COALESCE(o.FORECAST_ACV_C, o.PRODUCT_ACV_LOOKER_C, o.ACV_C, o.AMOUNT) AS FLOAT) AS TOTAL_ACV,
-            CAST(COALESCE(o.RENEWAL_ACV_LOOKER_C, o.ACV_C, 0) AS FLOAT) AS RENEWAL_ACV,
-            CAST(o.PRODUCT_FORECAST_TCV_C AS FLOAT) AS PRODUCT_FORECAST_TCV,
-            o.CLOSE_DATE,
-            o.NEXT_STEPS_C AS NEXT_STEPS,
-            a.REP_NAME AS OWNER,
-            a.DM
-        FROM FIVETRAN.SALESFORCE.OPPORTUNITY o
-        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON o.ACCOUNT_ID = a.ACCOUNT_ID AND a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
-        LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
-        LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
-        AND o.IS_CLOSED = FALSE
-        AND o.IS_DELETED = FALSE
-        AND o.TYPE = 'Renewal'
-        AND o.CLOSE_DATE BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 8, CURRENT_DATE())
-        ORDER BY o.CLOSE_DATE ASC
-    """)).to_pandas()
-    return _fix_decimals(df)
+    return _apply_scope(_read_cache("SD_CACHE_EXEC_SW_RENEWALS"))
 
 
 @st.cache_data(ttl=86400)
 def load_exec_services_renewals(_scope=None):
-    session = _get_session()
-    df = session.sql(_sql("""
-        SELECT
-            p.NAME AS PROJECT_NAME,
-            p.ID AS PROJECT_ID,
-            a.NAME AS ACCOUNT_NAME,
-            a.SALESFORCE_ACCOUNT_ID,
-            a.ACCOUNT_OWNER_MANAGER_C AS DM,
-            a.ACCOUNT_OWNER_NAME AS AE,
-            p.SUB_AGREEMENT_TYPE_C AS AGREEMENT_TYPE,
-            p.SERVICE_TYPE_C AS SERVICE_TYPE,
-            p.PSE_STAGE_C AS PROJECT_STAGE,
-            p.PSE_START_DATE_C AS START_DATE,
-            p.PSE_END_DATE_C AS END_DATE,
-            CAST(p.PROJECT_REVENUE_AMOUNT_C AS FLOAT) AS REVENUE_AMOUNT,
-            p.DELIVERY_MANAGER_ENGAGEMENT_C AS DELIVERY_MANAGER,
-            c.NAME AS PROJECT_MANAGER,
-            p.PSE_OPPORTUNITY_C AS OPPORTUNITY_ID,
-            DATEDIFF('day', CURRENT_DATE(), p.PSE_END_DATE_C) AS DAYS_TO_END
-        FROM FIVETRAN.SALESFORCE.PSE_PROJ_C p
-        JOIN SALES.RAVEN.ACCOUNT a ON p.PSE_ACCOUNT_C = a.SALESFORCE_ACCOUNT_ID
-        LEFT JOIN FIVETRAN.SALESFORCE.CONTACT c ON p.PSE_PROJECT_MANAGER_C = c.ID
-        WHERE a.ACCOUNT_OWNER_MANAGER_C IN ('__DM_SCOPE_PLACEHOLDER__')
-        AND a.ACCOUNT_STATUS_C = 'Active'
-        AND p.IS_DELETED = FALSE
-        AND p.PSE_IS_ACTIVE_C = TRUE
-        AND p.PSE_STAGE_C IN ('In Progress', 'Stalled', 'Stalled - Expiring', 'Pipeline', 'Out Year')
-        AND p.PSE_END_DATE_C BETWEEN CURRENT_DATE() AND DATEADD(MONTH, 6, CURRENT_DATE())
-        ORDER BY p.PSE_END_DATE_C ASC
-    """)).to_pandas()
-    return _fix_decimals(df)
+    return _apply_scope(_read_cache("SD_CACHE_EXEC_SVC_RENEWALS"))
 
 
 @st.cache_data(ttl=86400)
 def load_exec_new_opps(_scope=None):
+    return _apply_scope(_read_cache("SD_CACHE_EXEC_NEW_OPPS"))
+
+
+def _load_exec_new_opps_ORIG(_scope=None):  # kept for SQL reference only
     session = _get_session()
     df = session.sql(_sql("""
         WITH sda_new AS (
@@ -1299,34 +1157,7 @@ def load_exec_new_opps(_scope=None):
 
 @st.cache_data(ttl=86400)
 def load_exec_new_use_cases(_scope=None):
-    session = _get_session()
-    df = session.sql(_sql("""
-        SELECT
-            a.ACCOUNT_NAME,
-            a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
-            uc.NAME_C AS USE_CASE_NAME,
-            uc.USE_CASE_STATUS_C AS USE_CASE_STATUS,
-            CAST(uc.ESTIMATED_ANNUAL_CREDIT_CONSUMPTION_C AS FLOAT) AS ACV,
-            uc.STAGE_C AS STAGE,
-            uc.CREATED_DATE,
-            u.NAME AS OWNER,
-            uc.NEXT_STEPS_C AS NEXT_STEPS,
-            a.DM,
-            uc.ID AS USE_CASE_ID,
-            uc.NAME AS USE_CASE_NUMBER
-        FROM FIVETRAN.SALESFORCE.USE_CASE_C uc
-        JOIN SNOWHOUSE.SALES.ACCOUNTS_DAILY a ON uc.ACCOUNT_C = a.ACCOUNT_ID AND a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
-        LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) _ae ON a.REP_NAME = _ae.NAME
-        LEFT JOIN FIVETRAN.SALESFORCE.USER _dm ON _ae.MANAGER_ID = _dm.ID
-        LEFT JOIN FIVETRAN.SALESFORCE.USER u ON uc.OWNER_ID = u.ID
-        WHERE COALESCE(_dm.NAME, a.DM) IN ('__DM_SCOPE_PLACEHOLDER__')
-        AND uc.STAGE_C IS NOT NULL
-        AND uc.STAGE_C != '8 - Use Case Lost'
-        AND uc._FIVETRAN_DELETED = FALSE
-        AND uc.CREATED_DATE >= DATEADD('day', -90, CURRENT_DATE())
-        ORDER BY uc.CREATED_DATE DESC
-    """)).to_pandas()
-    return _fix_decimals(df)
+    return _apply_scope(_read_cache("SD_CACHE_EXEC_NEW_UCS"))
 
 
 @st.cache_data(ttl=86400)
@@ -1334,27 +1165,12 @@ def load_org_hierarchy():
     session = _get_session()
     df = session.sql("""
         WITH derived_dm AS (
-            SELECT a.ACCOUNT_ID, a.DISTRICT_NAME, a.REGION_NAME, a.GEO_NAME,
+            SELECT a.DISTRICT_NAME, a.REGION_NAME, a.GEO_NAME,
                 COALESCE(dm_user.NAME, a.DM) AS DM
             FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
             LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) ae_user ON a.REP_NAME = ae_user.NAME
             LEFT JOIN FIVETRAN.SALESFORCE.USER dm_user ON ae_user.MANAGER_ID = dm_user.ID
             WHERE a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY) AND a.ACCOUNT_STATUS = 'Active'
-            AND a.REGION_NAME IN (
-                'LATAM','MajorsAcq',
-                'CommAcqEast','CommAcqWest',
-                'EntAcqCentral','EntAcqEast','EntAcqWest',
-                'NortheastExp','SoutheastExp','CentralExp','Commercial',
-                'SouthwestExp','CanadaExp','NorthwestExp','USGrowthExp',
-                'FSI','HCLS','MFG','RCG','TMT',
-                'Federal','SLED'
-            )
-        ),
-        district_top_dm AS (
-            SELECT DISTRICT_NAME, REGION_NAME, GEO_NAME, DM,
-                RANK() OVER (PARTITION BY DISTRICT_NAME ORDER BY COUNT(DISTINCT ACCOUNT_ID) DESC) AS rk
-            FROM derived_dm WHERE DM IS NOT NULL
-            GROUP BY DISTRICT_NAME, REGION_NAME, GEO_NAME, DM
         )
         SELECT DISTINCT
             t.GEO_NAME      AS THEATRE,
@@ -1362,11 +1178,11 @@ def load_org_hierarchy():
             t.DISTRICT_NAME AS DISTRICT,
             t.DM            AS DISTRICT_MANAGER,
             COALESCE(u.IS_ACTIVE, false) AS DM_IS_ACTIVE
-        FROM district_top_dm t
+        FROM derived_dm t
         LEFT JOIN (SELECT DISTINCT NAME, IS_ACTIVE FROM FIVETRAN.SALESFORCE.USER) u
             ON t.DM = u.NAME
-        WHERE t.rk = 1
-        AND t.GEO_NAME IS NOT NULL AND t.DISTRICT_NAME IS NOT NULL
-        ORDER BY THEATRE, REGION, DISTRICT
+        WHERE t.GEO_NAME IS NOT NULL AND t.DISTRICT_NAME IS NOT NULL
+        AND TRIM(t.GEO_NAME) <> '' AND t.GEO_NAME NOT ILIKE 'acctstodelete'
+        ORDER BY THEATRE, REGION, DISTRICT, DISTRICT_MANAGER
     """).to_pandas()
     return df

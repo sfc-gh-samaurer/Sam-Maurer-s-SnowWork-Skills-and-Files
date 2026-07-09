@@ -17,7 +17,7 @@ from data import (
 )
 
 from constants import SFDC_BASE
-from components import section_banner, empty_state
+from components import section_banner, empty_state, tab_tip
 
 
 st.markdown("""
@@ -313,17 +313,28 @@ def health_badge(score):
 # ── Load account list scoped to sidebar DMs ───────────────────────────────────
 _search_list = load_account_search_list()
 _selected_dms = st.session_state.get("selected_dms") or []
+_selected_districts = st.session_state.get("selected_districts") or []
 
 section_banner("Account Details", "Account snapshot — search for an account in your scope")
+tab_tip(
+    "**Pull this up before any QBR, renewal call, or account review.** It combines contract data, services history, use cases, and pipeline in one place."
+    "\n\n"
+    "- **Before a renewal call** — check capacity remaining, contract end date, and open pipeline so you walk in with the full picture.\n"
+    "- **Before a QBR** — review active projects, use case stages, and ARR to frame the conversation around value delivered vs. potential.\n"
+    "- **Spotting attach opportunities** — accounts with ARR and active capacity but no PS project = potential services attach conversation.\n"
+    "- Search by account name, then use the tabs below the account header to navigate across contract, use case, pipeline, and project data."
+)
 
-if not _selected_dms:
+if not _selected_dms and not _selected_districts:
     empty_state("Select a Scope in the sidebar to load accounts.", icon="🗺️")
     st.stop()
 
-_selected_districts = st.session_state.get("selected_districts") or []
-_scoped_df = _search_list[_search_list["DM"].isin(_selected_dms)]
+# District-primary scoping: show every account in the selected districts, regardless of
+# whether its derived DM resolves. Falls back to DM only when no districts are in scope.
 if _selected_districts:
-    _scoped_df = _scoped_df[_scoped_df["DISTRICT_NAME"].isin(_selected_districts)]
+    _scoped_df = _search_list[_search_list["DISTRICT_NAME"].isin(_selected_districts)]
+else:
+    _scoped_df = _search_list[_search_list["DM"].isin(_selected_dms)]
 account_names = sorted(_scoped_df["ACCOUNT_NAME"].dropna().unique().tolist())
 
 selected = st.selectbox(

@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from data import load_ps_projects_active, load_accounts_base, render_html_table, load_wow_projects, _scope_key
 from constants import SFDC_BASE
-from components import section_banner, empty_state
+from components import section_banner, empty_state, tab_tip
 
 _sk = _scope_key()
 active_df = load_ps_projects_active(_scope=_sk)
@@ -11,6 +11,14 @@ if not active_df.empty and "PRACTICE" in active_df.columns:
     active_df = active_df[active_df["PRACTICE"] != "Education Services"]
 
 section_banner("Active SD Projects", "Active services delivery projects across all accounts")
+tab_tip(
+    "**Use this tab to stay ahead of delivery risk before it becomes a customer issue.**"
+    "\n\n"
+    "- **Stalled projects** — find the blocker. Is it waiting on customer access, a delayed kickoff, or an internal resourcing issue? Escalate to the PM.\n"
+    "- **Projects expiring in < 30 days** — if there's no renewal SOW in flight, flag to the PM and AE today.\n"
+    "- **Coverage metric** at the top shows what % of your accounts have active PS delivery — low coverage may mean attach rate opportunities.\n"
+    "- **WoW changes** show projects that just completed or kicked off — completed projects are a signal to check in with the AE on next steps."
+)
 
 _all_accounts = load_accounts_base(_scope=_sk)
 _total_accts = len(_all_accounts)

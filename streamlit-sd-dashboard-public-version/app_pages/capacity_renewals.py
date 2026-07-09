@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 from datetime import datetime
 from data import load_capacity_renewals, load_capacity_pipeline, render_html_table, _scope_key
 from constants import SFDC_BASE
@@ -101,7 +102,7 @@ with tab_candidates:
                                        "CONTRACT_END_DATE", "DAYS_LEFT",
                                        "TOTAL_CAP", "CAP_REMAINING", "OVERAGE_UNDERAGE_PREDICTION"]].copy()
             _pct = (conv_display["CAP_REMAINING"] / conv_display["TOTAL_CAP"] * 100).round(0)
-            conv_display["PCT_REMAINING"] = _pct.apply(lambda x: f"{int(x)}%" if pd.notna(x) and pd.isfinite(x) else "")
+            conv_display["PCT_REMAINING"] = _pct.apply(lambda x: f"{int(x)}%" if pd.notna(x) and np.isfinite(x) else "")
             conv_display["ACCOUNT_LINK"] = conv_display["SALESFORCE_ACCOUNT_ID"].apply(
                 lambda x: f"{SFDC_BASE}/Account/{x}/view" if pd.notna(x) and x else None
             )

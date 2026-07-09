@@ -1,6 +1,7 @@
 import streamlit as st
-from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list, get_current_user, _scope_key
-from datetime import datetime
+from data import clear_all_caches, _init_session, load_org_hierarchy, load_user_prefs, save_user_prefs, load_data_freshness, load_hierarchy, load_account_search_list, get_current_user, _scope_key, get_cache_last_updated, trigger_cache_refresh_async, get_refreshed_table_count_since
+from datetime import datetime, timezone
+import time
 import json
 import os
 
@@ -366,6 +367,7 @@ st.markdown("""
 _NAV_PAGES = [
     ":material/bar_chart: Executive Summary",
     ":material/business_center: SD Opportunities",
+    ":material/timeline: PS&T Sales Trends",
     ":material/trending_up: Capacity & Renewals",
     ":material/rocket_launch: Use Cases",
     ":material/support_agent: SD Projects",
@@ -467,6 +469,23 @@ with st.sidebar:
         st.session_state.last_refresh = datetime.now()
 
     if st.button(":material/refresh: Refresh Data", type="primary", use_container_width=True):
+        _TOTAL_TABLES = 15
+        _refresh_start = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
+        _progress = st.progress(0, text="Starting cache refresh...")
+        try:
+            _job = trigger_cache_refresh_async()
+            while not _job.is_done():
+                _n = get_refreshed_table_count_since(_refresh_start)
+                _progress.progress(
+                    min(_n / _TOTAL_TABLES, 0.99),
+                    text=f"Refreshing cache... ({_n}/{_TOTAL_TABLES} tables)",
+                )
+                time.sleep(3)
+            _job.result()  # raises if SP errored
+            _progress.progress(1.0, text="Refresh complete!")
+            time.sleep(0.5)
+        except Exception as _e:
+            st.error(f"Cache refresh failed: {_e}")
         clear_all_caches()
         st.session_state.last_refresh = datetime.now()
         st.rerun()
@@ -542,6 +561,10 @@ _theaters_str = ", ".join(st.session_state.get("sf_theater", [])) or "All Theate
 _n_dms        = len(st.session_state.get("selected_dms", []))
 _page_label   = st.session_state.get("current_page", "").split(": ")[-1]
 
+# Pull the oldest cache refresh timestamp for the "Data as of" badge
+_cache_meta    = get_cache_last_updated()
+_cache_ts_str  = min(_cache_meta.values()) if _cache_meta else "Not yet loaded"
+
 st.markdown(
     f'<div class="sf-app-header">'
     f'<div>'
@@ -553,15 +576,40 @@ st.markdown(
     f'</div>'
     f'<div style="text-align:right">'
     f'<p class="sf-app-title" style="font-size:0.95rem;color:#29B5E8;">{_page_label}</p>'
-    f'<p class="sf-app-scope">Refreshed {st.session_state.last_refresh.strftime("%b %d · %I:%M %p")}</p>'
+    f'<p class="sf-app-scope">Data as of: <strong>{_cache_ts_str}</strong></p>'
     f'</div>'
     f'</div>',
     unsafe_allow_html=True,
 )
 
+# ── STALE / FAILED CACHE WARNING ──────────────────────────────────────────────
+# The dashboard reads materialized SD_CACHE_* tables refreshed by a twice-daily
+# task. If that task stops or a source breaks, the app would otherwise silently
+# show weeks-old data. Surface it loudly instead.
+try:
+    from data import get_cache_max_staleness_hours, get_cache_failed_tables
+    _failed_tbls   = get_cache_failed_tables()
+    _stale_hours   = get_cache_max_staleness_hours()
+    if _failed_tbls:
+        st.error(
+            f"⚠️ **Cache refresh is failing.** {len(_failed_tbls)} table(s) did not update on the "
+            f"last run: `{'`, `'.join(_failed_tbls)}`. The figures from those areas may be stale. "
+            "Ask an admin to run `CALL SD_APPS_DB.SD_CENTER.REFRESH_CACHE_ALL();` and check "
+            "`SD_CACHE_METADATA` (STATUS / LAST_ERROR)."
+        )
+    elif _stale_hours is not None and _stale_hours > 24:
+        _days = _stale_hours / 24.0
+        st.error(
+            f"⚠️ **Data is {_days:.1f} days stale** — the scheduled cache refresh appears to have stopped. "
+            "Ask an admin to run `CALL SD_APPS_DB.SD_CENTER.REFRESH_CACHE_ALL();` and confirm the task "
+            "`SD_CACHE_REFRESH_TASK` is resumed (`SHOW TASKS`)."
+        )
+except Exception:
+    pass
+
 _PAGE_FILES = {
     ":material/bar_chart: Executive Summary": "exec_summary_tab.py",
-    ":material/business_center: SD Opportunities": "sd_opportunities_tab.py",
+    ":material/timeline: PS&T Sales Trends": "sd_trends_tab.py",
     ":material/trending_up: Capacity & Renewals": "capacity_renewals.py",
     ":material/rocket_launch: Use Cases": "use_cases_tab.py",
     ":material/support_agent: SD Projects": "pst_tab.py",
@@ -607,7 +655,25 @@ if st.session_state.get("_last_seen_at") != _today_str[:10]:
 _selected = st.session_state.get("current_page", ":material/bar_chart: Executive Summary")
 _no_scope = not st.session_state.get("selected_dms")
 
-if _no_scope:
+if _selected == ":material/business_center: SD Opportunities":
+    st.markdown("""
+    <div style="background:linear-gradient(135deg,#FFF7ED,#FFFBEB);border:2px solid #F59E0B;
+                border-radius:12px;padding:32px 36px;margin:40px auto;max-width:600px;text-align:center">
+      <div style="font-size:1.6rem;margin-bottom:10px">⚠️</div>
+      <div style="font-weight:700;font-size:1.1rem;color:#92400E;margin-bottom:10px">This page is being deprecated.</div>
+      <div style="color:#78350F;font-size:0.92rem;line-height:1.7;margin-bottom:20px">
+        Please use the <strong>SD Forecast app</strong> for all pipeline review.
+      </div>
+      <a href="https://oqmrfaixd-sfcogsops-snowhouse-aws-us-west-2.snowflakecomputing.app/pipeline"
+         target="_blank"
+         style="display:inline-block;background:linear-gradient(135deg,#0C4A6E,#0284C7);
+                color:white;font-weight:700;font-size:0.9rem;padding:10px 24px;
+                border-radius:8px;text-decoration:none;letter-spacing:0.02em;">
+        Open SD Forecast App →
+      </a>
+    </div>
+    """, unsafe_allow_html=True)
+elif _no_scope:
     st.markdown("""
     <div style="background:linear-gradient(135deg,#EFF8FF,#F0FAFF);border:2px solid #29B5E8;
                 border-radius:12px;padding:28px 32px;margin:40px auto;max-width:520px;text-align:center">

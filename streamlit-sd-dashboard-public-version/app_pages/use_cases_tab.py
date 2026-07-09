@@ -3,7 +3,7 @@ import pandas as pd
 import re
 from data import load_use_cases, load_action_planner_pipeline, render_html_table, load_wow_use_cases, _scope_key
 from constants import SFDC_BASE
-from components import section_banner, empty_state
+from components import section_banner, empty_state, tab_tip
 
 _sk = _scope_key()
 df    = load_use_cases(_scope=_sk)
@@ -11,6 +11,14 @@ ap_df = load_action_planner_pipeline(_scope=_sk)
 wow   = load_wow_use_cases(_scope=_sk)
 
 section_banner("Use Cases", "Pipeline use cases across all accounts")
+tab_tip(
+    "**Use this tab to identify stalled pursuit work before your weekly territory review.**"
+    "\n\n"
+    "- **Evaluating / Tech Win stages without a next step date** — these are at risk of going cold. Schedule a follow-up or qualify out.\n"
+    "- **POCs with no decision date** — push to define success criteria and a timeline with the AE.\n"
+    "- **WoW changes** show what moved stages recently — anything that stalled or regressed needs a conversation.\n"
+    "- **New use cases** added this week should have an SE owner and a clear next step within 5 business days."
+)
 
 
 def _stage_num(s):
