@@ -367,7 +367,6 @@ st.markdown("""
 _NAV_PAGES = [
     ":material/bar_chart: Executive Summary",
     ":material/business_center: SD Opportunities",
-    ":material/timeline: PS&T Sales Trends",
     ":material/trending_up: Capacity & Renewals",
     ":material/rocket_launch: Use Cases",
     ":material/support_agent: SD Projects",
@@ -609,7 +608,6 @@ except Exception:
 
 _PAGE_FILES = {
     ":material/bar_chart: Executive Summary": "exec_summary_tab.py",
-    ":material/timeline: PS&T Sales Trends": "sd_trends_tab.py",
     ":material/trending_up: Capacity & Renewals": "capacity_renewals.py",
     ":material/rocket_launch: Use Cases": "use_cases_tab.py",
     ":material/support_agent: SD Projects": "pst_tab.py",
