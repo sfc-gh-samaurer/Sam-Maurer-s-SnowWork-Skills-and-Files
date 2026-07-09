@@ -19,6 +19,7 @@ entities:
       - app_pages/use_cases_tab.py
       - app_pages/pst_tab.py
       - app_pages/sd_opportunities_tab.py
+      - app_pages/sd_trends_tab.py
       - app_pages/account_details_tab.py
   sd_presales_rtb_dashboard_test:
     type: streamlit
@@ -39,4 +40,5 @@ entities:
       - app_pages/use_cases_tab.py
       - app_pages/pst_tab.py
       - app_pages/sd_opportunities_tab.py
+      - app_pages/sd_trends_tab.py
       - app_pages/account_details_tab.py

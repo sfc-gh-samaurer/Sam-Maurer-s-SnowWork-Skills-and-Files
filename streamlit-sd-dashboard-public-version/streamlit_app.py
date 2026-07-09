@@ -371,6 +371,7 @@ _NAV_PAGES = [
     ":material/rocket_launch: Use Cases",
     ":material/support_agent: SD Projects",
     ":material/manage_accounts: Account Details",
+    ":material/timeline: Sales Data Reports",
 ]
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = _NAV_PAGES[0]
@@ -581,22 +582,15 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# ── STALE / FAILED CACHE WARNING ──────────────────────────────────────────────
+# ── STALE CACHE WARNING ───────────────────────────────────────────────────────
 # The dashboard reads materialized SD_CACHE_* tables refreshed by a twice-daily
-# task. If that task stops or a source breaks, the app would otherwise silently
-# show weeks-old data. Surface it loudly instead.
+# task. Per-table refresh FAILURES are alerted by email (SYSTEM$SEND_EMAIL in
+# REFRESH_CACHE_ALL), not shown in the app. We still surface the case where the
+# task appears to have stopped entirely (data broadly stale) as a last-resort net.
 try:
-    from data import get_cache_max_staleness_hours, get_cache_failed_tables
-    _failed_tbls   = get_cache_failed_tables()
-    _stale_hours   = get_cache_max_staleness_hours()
-    if _failed_tbls:
-        st.error(
-            f"⚠️ **Cache refresh is failing.** {len(_failed_tbls)} table(s) did not update on the "
-            f"last run: `{'`, `'.join(_failed_tbls)}`. The figures from those areas may be stale. "
-            "Ask an admin to run `CALL SD_APPS_DB.SD_CENTER.REFRESH_CACHE_ALL();` and check "
-            "`SD_CACHE_METADATA` (STATUS / LAST_ERROR)."
-        )
-    elif _stale_hours is not None and _stale_hours > 24:
+    from data import get_cache_max_staleness_hours
+    _stale_hours = get_cache_max_staleness_hours()
+    if _stale_hours is not None and _stale_hours > 24:
         _days = _stale_hours / 24.0
         st.error(
             f"⚠️ **Data is {_days:.1f} days stale** — the scheduled cache refresh appears to have stopped. "
@@ -612,6 +606,7 @@ _PAGE_FILES = {
     ":material/rocket_launch: Use Cases": "use_cases_tab.py",
     ":material/support_agent: SD Projects": "pst_tab.py",
     ":material/manage_accounts: Account Details": "account_details_tab.py",
+    ":material/timeline: Sales Data Reports": "sd_trends_tab.py",
 }
 
 # ── WHAT'S NEW BANNER ─────────────────────────────────────────────────────────

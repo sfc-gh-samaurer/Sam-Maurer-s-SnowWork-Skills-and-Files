@@ -1071,6 +1071,26 @@ BEGIN
   -- The 14 healthy tables have already been refreshed above; only the failed
   -- one(s) keep their prior LAST_REFRESHED_AT and now carry STATUS='FAILED'.
   IF (failed_tables <> '') THEN
+    -- Email alert on failure. Best-effort: wrapped in its own handler so a
+    -- notification error (e.g. integration missing / recipient unverified) can
+    -- never mask the real cache failure. Requires notification integration
+    -- SD_CACHE_ERROR_EMAIL (see OPTIONAL block below) with USAGE granted to this
+    -- proc's owner role (TECHNICAL_ACCOUNT_MANAGER).
+    BEGIN
+      CALL SYSTEM$SEND_EMAIL(
+        'SD_CACHE_ERROR_EMAIL',
+        'sam.maurer@snowflake.com',
+        'SD Dashboard: cache refresh FAILED',
+        'One or more SD_CACHE_* tables failed to refresh.' || CHR(10) ||
+        'Failed table(s): ' || :failed_tables || CHR(10) ||
+        'Time (UTC): ' || CURRENT_TIMESTAMP()::VARCHAR || CHR(10) ||
+        'Details: query SD_APPS_DB.SD_CENTER.SD_CACHE_METADATA (STATUS=FAILED, LAST_ERROR, LAST_ERROR_AT).' || CHR(10) ||
+        'Fix: CALL SD_APPS_DB.SD_CENTER.REFRESH_CACHE_ALL();'
+      );
+    EXCEPTION
+      WHEN OTHER THEN
+        cur_tbl := cur_tbl;  -- swallow notification errors; do not mask the real failure
+    END;
     RAISE cache_refresh_failed;
   END IF;
 
@@ -1086,10 +1106,10 @@ CREATE OR REPLACE TASK SD_APPS_DB.SD_CENTER.SD_CACHE_REFRESH_TASK
     SCHEDULE     = 'USING CRON 0 14,2 * * * UTC'
     SUSPEND_TASK_AFTER_NUM_FAILURES = 10   -- backstop: auto-suspend only after sustained failure (~5 days) so transient single-table errors still let 14/15 refresh
     COMMENT      = 'Refreshes SD Presales Dashboard cache tables twice daily'
-    -- To get an email on every failed refresh, create the notification integration
-    -- in the OPTIONAL block at the bottom of this script (one-time, ACCOUNTADMIN),
-    -- then uncomment the next line and re-run this CREATE OR REPLACE TASK:
-    -- ERROR_INTEGRATION = SD_CACHE_ERROR_EMAIL
+    -- NOTE: task ERROR_INTEGRATION only supports cloud-queue notifications
+    -- (SNS / Pub/Sub / Event Grid) — NOT email. Email alerting on failure is done
+    -- inside REFRESH_CACHE_ALL() via SYSTEM$SEND_EMAIL (see the failure branch and
+    -- the OPTIONAL integration block below).
 AS
     CALL SD_APPS_DB.SD_CENTER.REFRESH_CACHE_ALL();
 
@@ -1107,14 +1127,22 @@ FROM SD_APPS_DB.SD_CENTER.SD_CACHE_METADATA
 ORDER BY (STATUS = 'FAILED') DESC, TABLE_NAME;
 
 -- ---------------------------------------------------------------------------
--- 5. OPTIONAL: email alert on every failed refresh (one-time, ACCOUNTADMIN)
---    Because REFRESH_CACHE_ALL() RAISEs when any table fails, a task ERROR_INTEGRATION
---    will fire an email on each failed run. After creating the integration below,
---    add  ERROR_INTEGRATION = SD_CACHE_ERROR_EMAIL  to the task above and re-run
---    the CREATE OR REPLACE TASK statement.
+-- 5. REQUIRED for email alerts: email notification integration (one-time, ACCOUNTADMIN)
+--    REFRESH_CACHE_ALL() calls SYSTEM$SEND_EMAIL('SD_CACHE_ERROR_EMAIL', ...) on
+--    failure. That call is best-effort: if this integration does not exist, the
+--    email is silently skipped and the cache refresh still RAISEs as normal.
+--
+--    PREREQUISITE: sam.maurer@snowflake.com must be a VERIFIED email of a Snowflake
+--    user in this account, or CREATE NOTIFICATION INTEGRATION fails. Verify via
+--    Snowsight (profile → verify email) or, as an admin:
+--      CALL SYSTEM$START_USER_EMAIL_VERIFICATION('SAMAURER');
+--
+--    Run once as a role with the global CREATE INTEGRATION privilege (ACCOUNTADMIN):
 -- ---------------------------------------------------------------------------
 -- CREATE NOTIFICATION INTEGRATION IF NOT EXISTS SD_CACHE_ERROR_EMAIL
 --     TYPE = EMAIL
 --     ENABLED = TRUE
---     ALLOWED_RECIPIENTS = ('sam.maurer@snowflake.com');   -- must be verified Snowflake users
+--     ALLOWED_RECIPIENTS = ('sam.maurer@snowflake.com')     -- must be verified Snowflake users
+--     DEFAULT_RECIPIENTS = ('sam.maurer@snowflake.com')
+--     DEFAULT_SUBJECT = 'SD Dashboard: cache refresh FAILED';
 -- GRANT USAGE ON INTEGRATION SD_CACHE_ERROR_EMAIL TO ROLE TECHNICAL_ACCOUNT_MANAGER;
