@@ -1,0 +1,963 @@
+{
+  "output": "/tmp/CrowdStrike_Matillion_Migration_SOW_Attachment.docx",
+  "footer": "Confidential — Snowflake Professional Services | CrowdStrike Matillion Migration SOW Attachment",
+  "cover": {
+    "title": "STATEMENT OF WORK — ATTACHMENT A",
+    "subtitle": "Scope of Services: CrowdStrike — Matillion Migration (ACV Domain)",
+    "meta": [
+      [
+        "Provider:",
+        "Snowflake Inc. — Professional Services"
+      ],
+      [
+        "Client:",
+        "CrowdStrike, Inc."
+      ],
+      [
+        "Engagement:",
+        "Matillion Migration for ACV Reporting"
+      ],
+      [
+        "Engagement Type:",
+        "Fixed Fee / Fixed Outcome"
+      ],
+      [
+        "Term:",
+        "16 Weeks from confirmed Kickoff (Week 1)"
+      ],
+      [
+        "Date:",
+        "July 2026"
+      ]
+    ],
+    "note": "This Attachment is incorporated into and governed by the Order Form and the Master Services Agreement (or equivalent governing agreement) between the parties. Capitalized terms not defined herein have the meanings given in the governing agreement. This is a fixed-price, fixed-outcome engagement based on the scope defined below."
+  },
+  "sections": [
+    {
+      "heading": "Background and Engagement Overview",
+      "blocks": [
+        {
+          "type": "subheading",
+          "num": "1.1",
+          "text": "Our Understanding of the Problem"
+        },
+        {
+          "type": "paragraph",
+          "text": "CrowdStrike's Annual Contract Value (“ACV”) reporting depends on Matillion pipelines that load and transform data in Snowflake. The current design relies on full-scan soft-delete processing, embedded Python, and a multi-step Matillion orchestration chain, adding tooling cost, operational complexity, and a dependency outside the Snowflake platform. CrowdStrike wishes to retire Matillion, where possible, from the ELT process."
+        },
+        {
+          "type": "subheading",
+          "num": "1.2",
+          "text": "Engagement Summary"
+        },
+        {
+          "type": "paragraph",
+          "text": "Over a sixteen (16) week fixed-fee engagement, Snowflake Professional Services will migrate the ACV domain to a Snowflake-native dbt + Airflow/Streams + Tasks architecture and retire Matillion for data pipelines in Snowflake. Snowflake will validate financial parity before a de-risked, parallel-run cutover, and will then enable CrowdStrike to operate and extend the pattern independently. Snowflake is responsible for ensuring production-grade quality of the solution."
+        }
+      ]
+    },
+    {
+      "heading": "Engagement Objectives and Success Criteria",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "The engagement is measured against the following objectives and their associated success criteria:"
+        },
+        {
+          "type": "numbered",
+          "items": [
+            {
+              "num": "2.1",
+              "bold": "Migrate ACV Pipelines off Matillion",
+              "text": "Matillion is retired from the ACV workflow; all outputs are produced natively within Snowflake."
+            },
+            {
+              "num": "2.2",
+              "bold": "Guarantee Financial Parity",
+              "text": "Row counts, checksums, and ACV figures match the legacy outputs, confirmed by CrowdStrike."
+            },
+            {
+              "num": "2.3",
+              "bold": "Meet the 15-Minute Incremental SLA",
+              "text": "The Streams-based incremental pipeline runs reliably within fifteen (15) minutes."
+            },
+            {
+              "num": "2.4",
+              "bold": "Strengthen Data Quality & Governance",
+              "text": "dbt tests pass on each run; the monthly close is locked via a Snowflake Task and stored procedure."
+            },
+            {
+              "num": "2.5",
+              "bold": "De-Risk the Cutover",
+              "text": "Parallel-run parity is achieved with zero disruption to the monthly close."
+            },
+            {
+              "num": "2.6",
+              "bold": "Enable CrowdStrike to Operate & Scale",
+              "text": "CrowdStrike operates the solution independently, with a clear path to the next domain (e.g., ARR)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope of Services",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "The scope of services is organized into five (5) phases and their constituent workstreams. Activities within each workstream are set forth below. Estimated timelines are relative to the confirmed Kickoff (Week 1)."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Phase",
+            "Workstream",
+            "Activities",
+            "Est. Timeline"
+          ],
+          "widths": [
+            0.95,
+            1.25,
+            3.6,
+            0.8
+          ],
+          "body_size": 8.5,
+          "rows": [
+            [
+              "Kickoff",
+              "Project Setup & Kickoff",
+              "• Establish communication channels and define project frameworks\n• Complete internal handoffs and resource coordination\n• Conduct kickoff session; confirm goals, timelines, and success criteria\n• Request and validate access to Snowflake, Matillion, Git repos, and other systems\n• Provision Snowflake dev schemas; scaffold dbt project; configure dbt-Snowflake connection; set up CI/CD pipeline skeleton",
+              "Week 1"
+            ],
+            [
+              "Design",
+              "Assessment & Architecture Design",
+              "• Walk through all ACV Matillion jobs and catalog each pipeline inventory object (type, sources, targets, schedule)\n• Identify all pipeline object dependencies and lineage\n• Review each embedded script and categorize between SQL, Python, and other custom jobs\n• Capture row counts, checksums, and SLAs for all ACV domain output tables\n• Produce target architecture design with dbt model layers\n• Finalize pipeline toolset decision using Snowflake dbt projects + Tasks",
+              "Week 2–3"
+            ],
+            [
+              "Implementation",
+              "Staging and CDC Refactor",
+              "• Convert the 10 Matillion staging table load jobs into dbt source + staging models\n• Replace the soft-delete flag full-scan processes with Snowflake Streams on raw SF/CPQ tables\n• Add dbt tests to all staging models",
+              "Week 4–5"
+            ],
+            [
+              "Implementation",
+              "ACV Calculation and Transformations",
+              "• Convert CPQ/GenX union logic into dbt intermediate models\n• Convert each ACV calculation method into a dbt model and consolidate into mart-layer output\n• Replace the 5 embedded Python scripts with dbt SQL models, Snowflake Tasks, or Snowpark UDFs per design decision\n• Add dbt tests for ACV calculation correctness and custom financial logic",
+              "Week 6–9"
+            ],
+            [
+              "Implementation",
+              "Dimensions and Facts",
+              "• Implement dbt SCD2 snapshot for Product dimension\n• Implement dbt SCD2 snapshot for Account dimension\n• Convert ACV fact table load into dbt model\n• Implement monthly close lock using Snowflake Task + stored procedure",
+              "Week 10–11"
+            ],
+            [
+              "Implementation",
+              "Orchestration & Notification",
+              "• Configure DAG orchestration replacing the Matillion 3-step chain using Airflow or Tasks per design decision\n• Configure the 15-minute incremental schedule, retry logic, and Slack/email alerting\n• Set up parallel-run configuration for testing",
+              "Week 12"
+            ],
+            [
+              "Testing & Validation",
+              "Testing & Validation",
+              "• Run new pipeline in parallel with Matillion and compare cycle results\n• Parity check on row count, checksum, and other key metrics across all ACV output tables\n• ACV metric validation with CrowdStrike to confirm financial figures match Matillion outputs\n• Confirm pipeline execution and data freshness under the 15-min incremental SLA",
+              "Week 13–14"
+            ],
+            [
+              "UAT, Cutover, KT",
+              "UAT & Cutover",
+              "• Validate ACV outputs against existing records and resolve issues\n• Monitor first 3 incremental cycles of the new pipeline\n• Support the Matillion ACV jobs migration and cutover",
+              "Week 15"
+            ],
+            [
+              "UAT, Cutover, KT",
+              "Knowledge Transfer & Project Closure",
+              "• Provide architecture documentation, dbt model lineage, orchestration design, ACV data dictionary, and operational runbooks\n• Up to 3 knowledge-transfer sessions covering the new pipeline\n• Discuss how to scale and extend to the next data domain (e.g., ARR)",
+              "Week 16"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Engagement Deliverables",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Snowflake will produce the following deliverables. Deliverables are subject to the acceptance process defined in Section 6."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Phase",
+            "Deliverables",
+            "Description"
+          ],
+          "widths": [
+            1.1,
+            2.7,
+            2.8
+          ],
+          "body_size": 8.5,
+          "rows": [
+            [
+              "Kickoff",
+              "Kickoff Deck; Access Checklist; dbt Project Scaffold & CI/CD Skeleton",
+              "Kickoff alignment, validated system access, and an initialized dbt project with CI/CD skeleton."
+            ],
+            [
+              "Design",
+              "Pipeline Inventory Spreadsheet; Script Classification Log; Baseline QA Report; Data Architecture Diagram",
+              "Catalog of every Matillion ACV job, script classification, baseline of current outputs, and target dbt architecture."
+            ],
+            [
+              "Implementation",
+              "dbt Staging Models; Snowflake Streams CDC",
+              "Refactored staging layer with Streams-based CDC replacing soft-delete full scans."
+            ],
+            [
+              "Implementation",
+              "dbt Intermediate Models; dbt ACV Mart Models",
+              "ACV calculation logic and CPQ/GenX union rebuilt as dbt intermediate and mart-layer models."
+            ],
+            [
+              "Implementation",
+              "dbt Snapshot Models (Dimensions & Facts); Monthly Close Lock Solution",
+              "SCD2 Product/Account dimensions, ACV fact load, and a monthly close lock (Task + stored procedure)."
+            ],
+            [
+              "Implementation",
+              "Orchestration DAG Config; Alert & Notification Setup",
+              "DAG orchestration, 15-minute incremental schedule, retry logic, and Slack/email alerting."
+            ],
+            [
+              "Testing & Validation",
+              "Validation Report; Testing Sign-off Document",
+              "Parallel-run parity results across all ACV output tables, with formal testing sign-off."
+            ],
+            [
+              "UAT, Cutover, KT",
+              "UAT Sign-off Document",
+              "Documented UAT validation of ACV outputs and resolution of issues."
+            ],
+            [
+              "UAT, Cutover, KT",
+              "Solution Documentation & Runbook; KT Session Recordings",
+              "Architecture docs, dbt lineage, ACV data dictionary, runbooks, and up to 3 recorded KT sessions."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Project Timeline",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "The engagement spans sixteen (16) weeks across five (5) phases. Exact delivery dates are subject to change and are anchored at SOW execution."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Phase",
+            "Weeks"
+          ],
+          "widths": [
+            4.0,
+            1.6
+          ],
+          "rows": [
+            [
+              "Phase 0 · Kickoff",
+              "Week 1"
+            ],
+            [
+              "Phase 1 · Design",
+              "Weeks 2–3"
+            ],
+            [
+              "Phase 2 · Implementation",
+              "Weeks 4–12"
+            ],
+            [
+              "Phase 3 · Testing & Validation",
+              "Weeks 13–14"
+            ],
+            [
+              "Phase 4 · UAT, Cutover & Knowledge Transfer",
+              "Weeks 15–16"
+            ]
+          ]
+        },
+        {
+          "type": "subheading",
+          "num": "5.1",
+          "text": "Key Timeline Checkpoints"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "W1 — Kickoff & Environment Ready",
+            "W3 — Architecture & Inventory Sign-off",
+            "W5 — ACV Staging + CDC Refactor Complete",
+            "W9 — ACV Marts & Dimensions Complete",
+            "W12 — Orchestration Live — 15-min Incremental",
+            "W14 — Unit Test Sign-off, Financial Parity",
+            "W16 — UAT, Cutover & Knowledge Transfer"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Milestones and Acceptance Gates",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Each phase closes on a dated milestone with defined deliverables and a formal acceptance gate. Target weeks are relative to the confirmed Kickoff (Week 1); calendar dates are anchored at SOW execution. Deliverables are deemed accepted upon written approval or the lapse of the review period defined in Section 9."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "#",
+            "Milestone",
+            "Target",
+            "Key Deliverables",
+            "Acceptance Gate",
+            "Payment"
+          ],
+          "widths": [
+            0.35,
+            1.15,
+            0.5,
+            1.55,
+            1.65,
+            0.65
+          ],
+          "body_size": 8,
+          "rows": [
+            [
+              "M1",
+              "Kickoff & Environment Ready",
+              "End W1",
+              "Kickoff deck; access checklist; dbt scaffold + CI/CD skeleton",
+              "Snowflake / Matillion / Git access validated; dbt project initialized; named SMEs & weekly cadence confirmed",
+              "$62,500"
+            ],
+            [
+              "—",
+              "Architecture & Inventory Sign-off",
+              "End W3",
+              "Pipeline inventory; script classification log; baseline QA report; target architecture diagram",
+              "CrowdStrike approves target dbt + Tasks architecture and confirms pipeline inventory is complete",
+              "—"
+            ],
+            [
+              "M2",
+              "Staging + CDC Refactor Complete",
+              "End W5",
+              "dbt staging models; Streams-based CDC",
+              "dbt tests pass on all staging models; Streams CDC validated on raw SF / CPQ tables",
+              "$62,500"
+            ],
+            [
+              "—",
+              "ACV Marts & Dimensions Complete",
+              "End W11",
+              "dbt intermediate + ACV mart models; SCD2 dimensions; ACV fact load; monthly close lock",
+              "ACV calculation dbt tests pass; monthly close lock demonstrated",
+              "—"
+            ],
+            [
+              "M3",
+              "Orchestration Live — 15-min Incremental",
+              "End W12",
+              "Orchestration DAG config; alerting; parallel-run configuration",
+              "Incremental pipeline runs within the 15-minute SLA in the parallel-run environment",
+              "$62,500"
+            ],
+            [
+              "M4",
+              "Unit Test Sign-off, Financial Parity",
+              "End W14",
+              "Validation report; testing sign-off",
+              "CrowdStrike confirms row-count, checksum & ACV parity vs Matillion",
+              "$62,500"
+            ],
+            [
+              "—",
+              "UAT, Cutover & Knowledge Transfer",
+              "End W16",
+              "UAT sign-off; solution docs & runbook; up to 3 KT sessions",
+              "CrowdStrike signs off UAT; Matillion ACV jobs retired; KT complete",
+              "—"
+            ]
+          ]
+        },
+        {
+          "type": "paragraph",
+          "text": "Total Fixed Fee: $250,000, invoiced across the four (4) payment milestones set forth above."
+        }
+      ]
+    },
+    {
+      "heading": "Roles and Responsibilities",
+      "blocks": [
+        {
+          "type": "subheading",
+          "num": "7.1",
+          "text": "Snowflake — Technical Architect & Solutions Consultant"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "Lead the technical execution of the engagement across the defined workstreams",
+            "Own the overall solution design and technical delivery of the migration",
+            "Build and validate the new Snowflake-native pipelines and transformations",
+            "Safeguard financial parity, data quality, and a smooth cutover",
+            "Lead knowledge transfer and enablement for the CrowdStrike team",
+            "Align the target architecture with Snowflake and CrowdStrike best practices",
+            "Identify and mitigate technical risks throughout the migration",
+            "Provide hands-on guidance and code review to uphold engineering quality"
+          ]
+        },
+        {
+          "type": "subheading",
+          "num": "7.2",
+          "text": "Snowflake — Project Manager"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "Own engagement governance, delivery management, and alignment to scope, timeline, and outcomes",
+            "Establish and run the delivery cadence, including weekly status reviews, stakeholder checkpoints, and meeting coordination",
+            "Coordinate cross-functional activities and manage dependencies and risks",
+            "Manage the delivery plan, milestones, issue resolution, and tracking of progress against objectives",
+            "Ensure deliverables are reviewed and accepted",
+            "Drive clear communication on status, decisions, risks, and next steps",
+            "Support overall engagement quality, customer alignment, and a smooth transition through final handoff"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Engagement RACI",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Responsibility assignments for key activities are set forth below. Legend: R = Responsible, A = Accountable, C = Consulted, I = Informed."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Activity",
+            "Snowflake",
+            "CrowdStrike",
+            "Assumption"
+          ],
+          "widths": [
+            1.9,
+            0.85,
+            0.95,
+            2.3
+          ],
+          "body_size": 8.5,
+          "rows": [
+            [
+              "Environment & system access",
+              "C",
+              "R",
+              "Access to Snowflake, Matillion & Git provisioned in Week 1"
+            ],
+            [
+              "Pipeline inventory & walkthrough",
+              "R",
+              "C",
+              "CrowdStrike SMEs available for job walkthroughs"
+            ],
+            [
+              "Target architecture design",
+              "R",
+              "C",
+              "Snowflake-native dbt + Tasks toolset confirmed"
+            ],
+            [
+              "dbt model & pipeline build",
+              "R",
+              "I",
+              "Build owned by the Snowflake architect"
+            ],
+            [
+              "ACV financial parity validation",
+              "R",
+              "A",
+              "CrowdStrike confirms figures match Matillion"
+            ],
+            [
+              "Orchestration & alerting setup",
+              "R",
+              "C",
+              "15-minute incremental SLA target agreed"
+            ],
+            [
+              "Parallel run & cutover",
+              "R",
+              "A",
+              "Cutover window scheduled jointly"
+            ],
+            [
+              "UAT & deliverable acceptance",
+              "C",
+              "A",
+              "CrowdStrike signs off UAT and deliverables"
+            ],
+            [
+              "Knowledge transfer & closure",
+              "R",
+              "C",
+              "Up to 3 KT sessions; attendees available"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Customer Dependencies and Commitments",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "The fixed fee assumes the following time-bound commitments from CrowdStrike are met. Dependency dates map to the milestone acceptance gates; slippage on a commitment shifts the dependent gate and may affect the fixed-fee assumptions."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "#",
+            "Customer Commitment",
+            "Customer Owner",
+            "Required By",
+            "Impact if Delayed"
+          ],
+          "widths": [
+            0.3,
+            2.15,
+            1.35,
+            1.0,
+            1.8
+          ],
+          "body_size": 8,
+          "rows": [
+            [
+              "1",
+              "Provision access to Snowflake, Matillion & Git repositories",
+              "Platform Admin",
+              "Before kickoff / W1",
+              "Blocks dbt scaffold & CI/CD; delays all phases"
+            ],
+            [
+              "2",
+              "Commit named SMEs (ACV/Finance, Matillion lead) to a weekly cadence",
+              "Exec Sponsor / Data Eng Lead",
+              "From kickoff (W1)",
+              "Delays walkthroughs, design & parity validation"
+            ],
+            [
+              "3",
+              "Provide Matillion ACV job docs & pipeline inventory inputs",
+              "Matillion / Data Eng Lead",
+              "W2",
+              "Extends Design; risks M2 sign-off slip"
+            ],
+            [
+              "4",
+              "Confirm target toolset & architecture decision",
+              "Data / Platform Owner",
+              "W3 (M2 gate)",
+              "Holds Implementation start"
+            ],
+            [
+              "5",
+              "Maintain source-system stability / change freeze on ACV objects",
+              "Data Engineering Lead",
+              "W4–W14",
+              "Parity drift and refactor rework"
+            ],
+            [
+              "6",
+              "Validate ACV financial parity vs Matillion outputs",
+              "ACV / Finance SME",
+              "W13–W14 (gate)",
+              "Blocks parity sign-off & cutover"
+            ],
+            [
+              "7",
+              "UAT participation & deliverable sign-off",
+              "Analytics / BI Stakeholder",
+              "W15–W16 (gate)",
+              "Delays cutover & project closure"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Resource Effort",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "The estimated level of effort by role and workstream is set forth below. Hours are estimates supporting the fixed fee and do not constitute a time-and-materials commitment."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "#",
+            "Workstream",
+            "Phase",
+            "Technical Architect",
+            "Solutions Consultant",
+            "Project Manager",
+            "Total Hours"
+          ],
+          "widths": [
+            0.3,
+            2.0,
+            0.5,
+            1.0,
+            1.0,
+            0.9,
+            0.8
+          ],
+          "body_size": 8,
+          "rows": [
+            [
+              "1",
+              "Project Setup & Kickoff",
+              "0",
+              "10",
+              "20",
+              "6",
+              "36"
+            ],
+            [
+              "2",
+              "Assessment & Architecture Design",
+              "1",
+              "20",
+              "40",
+              "12",
+              "72"
+            ],
+            [
+              "3",
+              "Staging and CDC Refactor",
+              "2",
+              "20",
+              "40",
+              "12",
+              "72"
+            ],
+            [
+              "4",
+              "ACV Calculation & Transformations",
+              "2",
+              "40",
+              "80",
+              "24",
+              "144"
+            ],
+            [
+              "5",
+              "Dimensions and Facts",
+              "2",
+              "20",
+              "40",
+              "12",
+              "72"
+            ],
+            [
+              "6",
+              "Orchestration & Notification",
+              "2",
+              "10",
+              "20",
+              "6",
+              "36"
+            ],
+            [
+              "7",
+              "Testing & Validation",
+              "3",
+              "20",
+              "40",
+              "12",
+              "72"
+            ],
+            [
+              "8",
+              "UAT & Cutover",
+              "4",
+              "10",
+              "20",
+              "6",
+              "36"
+            ],
+            [
+              "9",
+              "Knowledge Transfer & Closure",
+              "4",
+              "10",
+              "20",
+              "6",
+              "36"
+            ],
+            [
+              "",
+              "Base Total",
+              "",
+              "160",
+              "320",
+              "96",
+              "576"
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assumptions and Exclusions",
+      "blocks": [
+        {
+          "type": "subheading",
+          "num": "11.1",
+          "text": "Customer Responsibilities"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "Snowflake, Matillion & Git access provisioned by Week 1 (pre-kickoff)",
+            "Named SMEs committed to a weekly cadence from kickoff (W1)",
+            "ACV / Finance SME available for parity validation in W13–W14",
+            "Deliverables reviewed & signed off within five (5) business days at each gate"
+          ]
+        },
+        {
+          "type": "subheading",
+          "num": "11.2",
+          "text": "Technical Assumptions"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "Scope is limited to the ACV data domain",
+            "Source systems (SF / CPQ / GenX) remain stable through validation (W14)",
+            "Matillion remains operational until cutover (W15)",
+            "Snowflake-native dbt + Tasks target toolset confirmed by W3 (M2 gate)",
+            "Estimate (subject to change) of approximately 30 total models based on the layers and components refactored — Staging: 10; Intermediate: 5; Mart: 5; Dimensions and Facts: 5; Python processes: 5"
+          ]
+        },
+        {
+          "type": "subheading",
+          "num": "11.3",
+          "text": "Scope Boundaries"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "Migration delivers functional parity of existing ACV logic",
+            "Orchestration via Tasks or Airflow per the design decision",
+            "Up to three (3) knowledge-transfer sessions",
+            "Parallel run precedes cutover",
+            "If Airflow is selected at the design decision gate, any Airflow/Astronomer integration and configuration is outside of Snowflake Services scope"
+          ]
+        },
+        {
+          "type": "subheading",
+          "num": "11.4",
+          "text": "Engagement Exclusions"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "Other data domains (e.g., ARR) beyond a scaling discussion",
+            "Net-new metrics or business-logic changes",
+            "BI / dashboard rebuilds and non-ACV Matillion jobs",
+            "Infrastructure procurement and licensing"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Risks and Mitigations",
+      "blocks": [
+        {
+          "type": "table",
+          "headers": [
+            "Risk",
+            "Severity",
+            "Description",
+            "Mitigation"
+          ],
+          "widths": [
+            1.35,
+            0.75,
+            2.05,
+            2.35
+          ],
+          "body_size": 8.5,
+          "rows": [
+            [
+              "SME Availability",
+              "High",
+              "Limited CrowdStrike SME time delays walkthroughs and parity validation.",
+              "Agree a weekly cadence and named SMEs at kickoff."
+            ],
+            [
+              "Financial Parity Gaps",
+              "High",
+              "Migrated ACV figures diverge from Matillion outputs.",
+              "Parallel run with row-count/checksum parity and joint validation before cutover."
+            ],
+            [
+              "Embedded Python Complexity",
+              "Medium",
+              "The 5 embedded scripts are harder to refactor than expected.",
+              "Classify scripts early in Design; choose dbt / Tasks / Snowpark per script."
+            ],
+            [
+              "Environment Access Delays",
+              "Medium",
+              "Access to Snowflake, Matillion, or Git slips past Week 1.",
+              "Issue an access checklist before kickoff."
+            ],
+            [
+              "Scope Creep Beyond ACV",
+              "Medium",
+              "Requests to include other domains or logic changes.",
+              "Scope fixed to ACV parity; change control for additions."
+            ],
+            [
+              "15-Minute SLA",
+              "Low",
+              "The incremental pipeline misses the 15-minute SLA.",
+              "Streams-based CDC, tuned scheduling, retry logic, monitored in parallel run."
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pricing",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "This is a fixed-price, fixed-outcome engagement utilizing Snowflake Services Delivery. The approach is based on a clearly defined scope of work, guaranteeing the delivery of the specified outcomes for a fixed price."
+        },
+        {
+          "type": "table",
+          "headers": [
+            "Term",
+            "Detail"
+          ],
+          "widths": [
+            1.7,
+            3.9
+          ],
+          "rows": [
+            [
+              "Engagement Type",
+              "Fixed Fee"
+            ],
+            [
+              "Engagement",
+              "CrowdStrike Matillion Migration for ACV"
+            ],
+            [
+              "Timeline",
+              "16 Weeks"
+            ],
+            [
+              "Skills / Resources",
+              "Technical Architect; Solutions Consultant; Project Manager"
+            ],
+            [
+              "Total Price",
+              "$250,000"
+            ]
+          ]
+        },
+        {
+          "type": "subheading",
+          "num": "13.1",
+          "text": "Committed Outcomes"
+        },
+        {
+          "type": "bullets",
+          "items": [
+            "Matillion retired: ACV pipelines migrated off Matillion; all outputs produced natively",
+            "Financial parity guaranteed: row counts, checksums, and ACV figures match, confirmed by CrowdStrike",
+            "15-minute incremental SLA met: Streams-based pipeline runs reliably within 15 minutes",
+            "Stronger data quality & governance: dbt tests pass each run; monthly close locked via Task + procedure",
+            "De-risked cutover: parallel-run parity with zero disruption to the monthly close",
+            "CrowdStrike enabled to operate & scale: runs it independently, with a clear path to the next domain (e.g., ARR)"
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Next Steps",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "num": "14.1",
+          "text": "Sign-off on scope and approach"
+        },
+        {
+          "type": "paragraph",
+          "num": "14.2",
+          "text": "Budget approval"
+        },
+        {
+          "type": "paragraph",
+          "num": "14.3",
+          "text": "Execute Order Form and SOW"
+        },
+        {
+          "type": "paragraph",
+          "num": "14.4",
+          "text": "Initiate staffing (Snowflake delivery team)"
+        },
+        {
+          "type": "paragraph",
+          "num": "14.5",
+          "text": "Assign named CrowdStrike stakeholders"
+        },
+        {
+          "type": "paragraph",
+          "num": "14.6",
+          "text": "Complete access and environment readiness"
+        },
+        {
+          "type": "paragraph",
+          "num": "14.7",
+          "text": "Project Kickoff"
+        }
+      ]
+    },
+    {
+      "heading": "Acceptance",
+      "blocks": [
+        {
+          "type": "paragraph",
+          "text": "Agreed and accepted by the authorized representatives of the parties:"
+        },
+        {
+          "type": "signature",
+          "parties": [
+            "Snowflake Inc.",
+            "CrowdStrike, Inc."
+          ]
+        }
+      ]
+    }
+  ]
+}

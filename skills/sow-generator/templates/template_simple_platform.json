@@ -1,0 +1,74 @@
+{
+  "_template": "simple_platform",
+  "_description": "Single work stream: Platform Implementation only. 2 milestones, 50/50 split. Use for standalone Snowflake platform setup engagements.",
+  "_instructions": "Replace all [CUSTOMER], [TBD], and [PLACEHOLDER] values. Add Snowflake Responsibilities to Attachment 2.",
+
+  "customer_name": "[CUSTOMER NAME]",
+  "sow_title": "Statement of Work — [CUSTOMER NAME] Snowflake Platform Implementation",
+  "engagement_type": "fixed_fee",
+  "total_fee": "$[TBD]",
+
+  "engagement_duration": "[X] weeks",
+  "source_environments": ["[Legacy Platform, e.g. Amazon Redshift]"],
+  "target_environments": ["Snowflake Business Critical account(s)"],
+  "production_access": {"needed": false},
+  "assumption_validation_checkpoint": {"enabled": false},
+  "subcontractor": {"enabled": false},
+  "training_funds": {"amount": "$[TBD]", "expiry": "twelve (12) months"},
+
+  "roles": {
+    "snowflake": [
+      {"role": "Services Delivery Manager (SDM)", "responsibilities": "Overall program governance, escalation management, weekly status reporting, and milestone coordination."},
+      {"role": "Solutions Architect (SA)", "responsibilities": "Technical design and oversight, RBAC architecture, security policy design, and platform configuration."}
+    ],
+    "customer": [
+      {"role": "Project Sponsor", "responsibilities": "Executive oversight and final approval authority for all engagement decisions."},
+      {"role": "Technical Lead", "responsibilities": "Day-to-day technical coordination, SME availability, and environment access."}
+    ]
+  },
+
+  "attachments": [
+    {
+      "type": "platform_implementation",
+      "title": "Attachment 2: Platform Implementation",
+      "brief_description": "Design, provisioning, and configuration of Customer's Snowflake Business Critical platform, including RBAC framework, security policies, network connectivity, and operational documentation.",
+      "scope_table": [
+        ["Source Platform", "[LEGACY PLATFORM]"],
+        ["Target Platform", "Snowflake Business Critical"],
+        ["Estimated Duration", "[X] weeks"],
+        ["Fixed Fee", "$[TBD]"]
+      ],
+      "snowflake_responsibilities": [
+        "[ADD: Environment provisioning and account configuration]",
+        "[ADD: RBAC framework design and implementation]",
+        "[ADD: Security policy design (masking, row access)]",
+        "[ADD: Network connectivity (Private Link / VPN)]",
+        "[ADD: Knowledge transfer and runbook delivery]"
+      ],
+      "assumptions_extra": [
+        "[ADD: Customer-specific assumptions here]"
+      ]
+    }
+  ],
+
+  "milestones": {
+    "items": [
+      {
+        "num": "1",
+        "name": "Milestone 1: Platform Foundation",
+        "deliverables": "Snowflake environment provisioned; RBAC framework implemented; security policies configured; network connectivity validated",
+        "pct": "50%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      },
+      {
+        "num": "2",
+        "name": "Milestone 2: Go-Live & Knowledge Transfer",
+        "deliverables": "All configurations production-ready; operational runbooks delivered; knowledge transfer sessions completed; Customer team signed off",
+        "pct": "50%",
+        "amount": "$[TBD]",
+        "target": "Week [X]"
+      }
+    ]
+  }
+}

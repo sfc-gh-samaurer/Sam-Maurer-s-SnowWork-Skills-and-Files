@@ -15,11 +15,12 @@ import importlib.util
 import json
 import sys
 import os
+from copy import deepcopy
 from datetime import date
 from docx import Document
 from docx.shared import Pt, Inches, Emu, Twips
 from docx.oxml.ns import qn, nsdecls
-from docx.oxml import parse_xml
+from docx.oxml import parse_xml, OxmlElement
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
 
@@ -33,7 +34,7 @@ MARGIN_LR = 457200     # 0.5 in
 MARGIN_TOP = 337185     # ~0.37 in
 MARGIN_BOTTOM = 640080  # 0.7 in
 TABLE_WIDTH_DXA = 10800
-LINE_SPACING = 170  # twips, ~0.85 line spacing
+LINE_SPACING = 240  # twips = single spacing (Word standard)
 
 
 def create_document():
@@ -80,11 +81,11 @@ def set_paragraph_spacing(paragraph):
     pPr = paragraph._p.get_or_add_pPr()
     spacing = pPr.find(qn('w:spacing'))
     if spacing is None:
-        spacing = parse_xml(f'<w:spacing {nsdecls("w")} w:before="0" w:after="0" w:line="{LINE_SPACING}" w:lineRule="auto"/>')
+        spacing = parse_xml(f'<w:spacing {nsdecls("w")} w:before="0" w:after="60" w:line="{LINE_SPACING}" w:lineRule="auto"/>')
         pPr.append(spacing)
     else:
         spacing.set(qn('w:before'), '0')
-        spacing.set(qn('w:after'), '0')
+        spacing.set(qn('w:after'), '60')
         spacing.set(qn('w:line'), str(LINE_SPACING))
         spacing.set(qn('w:lineRule'), 'auto')
 
@@ -701,8 +702,945 @@ def _load_attachment_generator():
     return mod
 
 
+# ── Multi-Attachment SOW Generator ───────────────────────────────────────────
+#
+# When the input JSON contains an "attachments" key, the generator switches to
+# the template-based multi-attachment path (matching JD Power v5 format).
+# The existing simple path is preserved for backwards compatibility.
+#
+# Template paragraph indexes (rocket_sow_template.docx):
+#   2   → body text (normal, line=170 auto)
+#   6   → Heading 1
+#   10  → bold label (before=0 after=0)
+#   12  → main bullet (numId=18, line=170, ind left=720)
+#   118 → attachment top-level header
+#   122 → attachment sub-section (i., ii.)
+#   145 → category header bullet (numId=12, line=240, ind left=720)
+#   156 → sub-bullet (numId=13, line=240, ind left=1440)
+
+TEMPLATE_PATH = "/tmp/rocket_sow_template.docx"
+_NS_XML = 'http://www.w3.org/XML/1998/namespace'
+
+
+def _load_template():
+    """Load template pPr/rPr clones. Returns (ppr_dict, rpr_dict, doc)."""
+    if not os.path.exists(TEMPLATE_PATH):
+        raise FileNotFoundError(
+            f"SOW template not found at {TEMPLATE_PATH}. "
+            "Export it first:\n"
+            "  cd ~/.snowflake/cortex/.mcp-servers/google-workspace\n"
+            "  ./node export_gdoc.mjs 1n-BAcsVTN0YuK6Ky_uDQvIHKRGjYjRb5zSmcRbli4t4 /tmp/rocket_sow_template.docx"
+        )
+    tmpl = Document(TEMPLATE_PATH)
+
+    def _ppr(idx):
+        el = tmpl.paragraphs[idx]._p.find(qn('w:pPr'))
+        return deepcopy(el) if el is not None else None
+
+    def _rpr(idx, run_idx=0):
+        runs = tmpl.paragraphs[idx].runs
+        if not runs:
+            return None
+        el = runs[run_idx]._r.find(qn('w:rPr'))
+        return deepcopy(el) if el is not None else None
+
+    ppr = {
+        "body":       _ppr(2),
+        "h1":         _ppr(6),
+        "bold_label": _ppr(10),
+        "bullet":     _ppr(12),
+        "attach_h1":  _ppr(118),
+        "attach_h2":  _ppr(122),
+        "cat_hdr":    _ppr(145),
+        "sub_bullet": _ppr(156),
+    }
+    rpr = {
+        "normal": _rpr(2),
+        "bullet": _rpr(12),
+    }
+    return ppr, rpr
+
+
+def _rpr_bold(rpr_normal):
+    """Clone the normal rPr and set bold on."""
+    rpr = deepcopy(rpr_normal)
+    b = OxmlElement('w:b')
+    rpr.insert(0, b)
+    return rpr
+
+
+def _make_run(text, rpr_el):
+    r = OxmlElement('w:r')
+    if rpr_el is not None:
+        r.append(deepcopy(rpr_el))
+    t = OxmlElement('w:t')
+    t.text = text
+    t.set(f'{{{_NS_XML}}}space', 'preserve')
+    r.append(t)
+    return r
+
+
+def _append_p(doc, ppr_el, runs):
+    """Build <w:p> and insert before sectPr (critical for correct table ordering)."""
+    p = OxmlElement('w:p')
+    if ppr_el is not None:
+        p.append(deepcopy(ppr_el))
+    for text, rpr_el in runs:
+        if text:
+            p.append(_make_run(text, rpr_el))
+    body = doc.element.body
+    sect_pr = body.find(qn('w:sectPr'))
+    if sect_pr is not None:
+        sect_pr.addprevious(p)
+    else:
+        body.append(p)
+    return p
+
+
+def _page_break(doc):
+    p = OxmlElement('w:p')
+    r = OxmlElement('w:r')
+    br = OxmlElement('w:br')
+    br.set(qn('w:type'), 'page')
+    r.append(br)
+    p.append(r)
+    body = doc.element.body
+    sect_pr = body.find(qn('w:sectPr'))
+    if sect_pr is not None:
+        sect_pr.addprevious(p)
+    else:
+        body.append(p)
+
+
+def _tmpl_table(doc, ppr, rpr, headers, rows):
+    """Full-width table using template formatting."""
+    n = len(headers)
+    t = doc.add_table(rows=1 + len(rows), cols=n)
+    try:
+        t.style = 'TableNormal'
+    except KeyError:
+        pass
+    tbl_el = t._tbl
+    tbl_pr = tbl_el.find(qn('w:tblPr'))
+    if tbl_pr is None:
+        tbl_pr = OxmlElement('w:tblPr')
+        tbl_el.insert(0, tbl_pr)
+    existing_w = tbl_pr.find(qn('w:tblW'))
+    if existing_w is not None:
+        tbl_pr.remove(existing_w)
+    tbl_w = OxmlElement('w:tblW')
+    tbl_w.set(qn('w:w'), '10800')
+    tbl_w.set(qn('w:type'), 'dxa')
+    tbl_pr.insert(0, tbl_w)
+    borders_xml = (
+        '<w:tblBorders xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+        '<w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+        '<w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+        '<w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+        '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+        '<w:insideV w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+        '</w:tblBorders>'
+    )
+    tbl_pr.append(parse_xml(borders_xml))
+
+    def _cell_p(cell, text, bold=False):
+        for para in list(cell.paragraphs):
+            para._element.getparent().remove(para._element)
+        p = OxmlElement('w:p')
+        p.append(deepcopy(ppr["body"]))
+        r_el = _rpr_bold(rpr["normal"]) if bold else deepcopy(rpr["normal"])
+        p.append(_make_run(str(text), r_el))
+        cell._tc.append(p)
+
+    for ci, h in enumerate(headers):
+        _cell_p(t.rows[0].cells[ci], h, bold=True)
+    for ri, row in enumerate(rows):
+        for ci, val in enumerate(row):
+            _cell_p(t.rows[ri + 1].cells[ci], str(val))
+    return t
+
+
+# ── Template-based paragraph shorthand helpers ───────────────────────────────
+
+def _tb(doc, ppr, rpr, text, bold=False):
+    """Body paragraph."""
+    r = _rpr_bold(rpr["normal"]) if bold else rpr["normal"]
+    _append_p(doc, ppr["body"], [(text, r)])
+
+
+def _blank(doc, ppr, rpr):
+    _append_p(doc, ppr["body"], [('', rpr["normal"])])
+
+
+def _h1(doc, ppr, rpr, text):
+    _append_p(doc, ppr["h1"], [(text, rpr["normal"])])
+
+
+def _bold_label(doc, ppr, rpr, text):
+    _append_p(doc, ppr["bold_label"], [(text, _rpr_bold(rpr["normal"]))])
+
+
+def _bullet(doc, ppr, rpr, text):
+    _append_p(doc, ppr["bullet"], [(text, rpr["bullet"])])
+
+
+def _attach_h1(doc, ppr, rpr, text):
+    """Section/attachment header: left-aligned bold text with bottom border line."""
+    p = OxmlElement('w:p')
+    src = ppr.get("attach_h1")
+    new_ppr = deepcopy(src) if src is not None else OxmlElement('w:pPr')
+    # Force left alignment (remove any center/right jc)
+    for jc in new_ppr.findall(qn('w:jc')):
+        new_ppr.remove(jc)
+    jc_el = OxmlElement('w:jc')
+    jc_el.set(qn('w:val'), 'left')
+    new_ppr.append(jc_el)
+    # Add bottom border (line under header)
+    for pBdr in new_ppr.findall(qn('w:pBdr')):
+        new_ppr.remove(pBdr)
+    new_ppr.append(parse_xml(
+        '<w:pBdr xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+        '<w:bottom w:val="single" w:sz="6" w:space="1" w:color="000000"/>'
+        '</w:pBdr>'
+    ))
+    p.append(new_ppr)
+    p.append(_make_run(text, _rpr_bold(rpr["normal"])))
+    body = doc.element.body
+    sect_pr = body.find(qn('w:sectPr'))
+    if sect_pr is not None:
+        sect_pr.addprevious(p)
+    else:
+        body.append(p)
+    return p
+
+
+def _attach_h2(doc, ppr, rpr, text):
+    _append_p(doc, ppr["attach_h2"], [(text, _rpr_bold(rpr["normal"]))])
+
+
+def _cat_hdr(doc, ppr, rpr, text):
+    _append_p(doc, ppr["cat_hdr"], [(text, _rpr_bold(rpr["normal"]))])
+
+
+def _sub_bullet(doc, ppr, rpr, text):
+    _append_p(doc, ppr["sub_bullet"], [(text, rpr["bullet"])])
+
+
+# ── Main body (preamble + legal sections) ────────────────────────────────────
+
+def _gen_main_body(doc, ppr, rpr, data):
+    """Standard SOW preamble and legal sections (before attachments).
+
+    Uses verbatim text from static_content.py for all boilerplate.
+    Section headers use _attach_h1() (no auto-numbering) so the letter in the
+    title string is the ONLY label — no double-prefixing.
+    Roles are NOT rendered here; they belong in attachments or proposals.
+
+    Section map: A B C(Training Funds) D(Payments) E(Scheduling)
+                 F(Snowflake Access) G(Additional Terms)
+                 H(AVC — optional) I(Subcontractor — optional)
+    """
+    import sys as _sys
+    _sys.path.insert(0, os.path.dirname(__file__))
+    import static_content as sc
+
+    customer_name     = data.get("customer_name", "Customer")
+    attachments       = data.get("attachments", [])
+    production_access = data.get("production_access", {})
+    avc_data          = data.get("assumption_validation_checkpoint", {})
+    sub_data          = data.get("subcontractor", {})
+    source_envs       = data.get("source_environments", [])
+    target_envs       = data.get("target_environments", [])
+    duration          = data.get("engagement_duration", sc.SECTION_E_DURATION_DEFAULT)
+    training_amount   = data.get("training_funds", {}).get("amount", sc.SECTION_C_AMOUNT_DEFAULT)
+    training_expiry   = data.get("training_funds", {}).get("expiry", sc.SECTION_C_EXPIRY_DEFAULT)
+
+    # ── Header & Preamble ────────────────────────────────────────────────────
+    _attach_h1(doc, ppr, rpr, sc.HEADER)
+    _blank(doc, ppr, rpr)
+    _tb(doc, ppr, rpr, sc.PREAMBLE_P1)
+    _tb(doc, ppr, rpr, sc.PREAMBLE_P2.format(customer_name=customer_name))
+    _blank(doc, ppr, rpr)
+
+    # ── A. Description of Technical Services ─────────────────────────────────
+    _attach_h1(doc, ppr, rpr, sc.SECTION_A_TITLE)
+    _blank(doc, ppr, rpr)
+    _tb(doc, ppr, rpr, sc.SECTION_A_BODY)
+    _blank(doc, ppr, rpr)
+
+    # ── B. Custom Fixed Fee ───────────────────────────────────────────────────
+    _attach_h1(doc, ppr, rpr, sc.SECTION_B_TITLE)
+    _blank(doc, ppr, rpr)
+    _tb(doc, ppr, rpr, sc.SECTION_B_INTRO)
+    _blank(doc, ppr, rpr)
+    milestones_att_number = len(attachments) + 2
+    milestones_att_title  = f"Attachment {milestones_att_number}: Milestones and Payment Terms"
+    for i, att in enumerate(attachments):
+        att_title = att.get("title", f"Attachment {i+2}")
+        att_desc  = att.get("brief_description", "")
+        _bold_label(doc, ppr, rpr, att_title)
+        if att_desc:
+            _tb(doc, ppr, rpr, att_desc)
+        _blank(doc, ppr, rpr)
+    _bold_label(doc, ppr, rpr, milestones_att_title)
+    _tb(doc, ppr, rpr, "Consolidated milestone payment schedule and payment terms for all Technical Services under this SOW.")
+    _blank(doc, ppr, rpr)
+
+    # ── C. Training Funds ─────────────────────────────────────────────────────
+    _attach_h1(doc, ppr, rpr, sc.SECTION_C_TITLE)
+    _blank(doc, ppr, rpr)
+    _tb(doc, ppr, rpr, sc.SECTION_C_BODY.format(
+        training_amount=training_amount,
+        training_expiry=training_expiry,
+    ))
+    _blank(doc, ppr, rpr)
+
+    # ── D. Payments and Expenses ──────────────────────────────────────────────
+    _attach_h1(doc, ppr, rpr, sc.SECTION_D_TITLE)
+    _blank(doc, ppr, rpr)
+    _tb(doc, ppr, rpr, sc.SECTION_D_P1)
+    _tb(doc, ppr, rpr, sc.SECTION_D_P2)
+    _blank(doc, ppr, rpr)
+
+    # ── E. Scheduling and Term ────────────────────────────────────────────────
+    _attach_h1(doc, ppr, rpr, sc.SECTION_E_TITLE)
+    _blank(doc, ppr, rpr)
+    _tb(doc, ppr, rpr, sc.SECTION_E_BODY.format(engagement_duration=duration))
+    _blank(doc, ppr, rpr)
+
+    # ── F. Snowflake Access ───────────────────────────────────────────────────
+    _attach_h1(doc, ppr, rpr, sc.SECTION_F_TITLE)
+    _blank(doc, ppr, rpr)
+
+    _attach_h2(doc, ppr, rpr, sc.F_1_HEADER)
+    if source_envs:
+        source_list = ", ".join(source_envs)
+        target_env  = ", ".join(target_envs) if target_envs else "Snowflake account(s)"
+        _tb(doc, ppr, rpr, sc.F_1_BODY_TEMPLATE.format(
+            source_list=source_list, target_env=target_env
+        ))
+    else:
+        _tb(doc, ppr, rpr, sc.F_1_BODY_GENERIC)
+
+    _attach_h2(doc, ppr, rpr, sc.F_2_HEADER)
+    _tb(doc, ppr, rpr, sc.F_2_BODY)
+
+    _attach_h2(doc, ppr, rpr, sc.F_3_HEADER)
+    _tb(doc, ppr, rpr, sc.F_3_BODY)
+    if production_access.get("needed"):
+        _tb(doc, ppr, rpr, sc.F_3_PROD_NOTE)
+
+    _attach_h2(doc, ppr, rpr, sc.F_4_HEADER)
+    _tb(doc, ppr, rpr, sc.F_4_BODY)
+    _blank(doc, ppr, rpr)
+
+    # ── G. Additional Terms ───────────────────────────────────────────────────
+    _attach_h1(doc, ppr, rpr, sc.SECTION_G_TITLE)
+    _blank(doc, ppr, rpr)
+
+    _attach_h2(doc, ppr, rpr, sc.G_1_HEADER)
+    _tb(doc, ppr, rpr, sc.G_1_BODY)
+
+    _attach_h2(doc, ppr, rpr, sc.G_2_HEADER)
+    _tb(doc, ppr, rpr, sc.G_2_BODY)
+
+    _attach_h2(doc, ppr, rpr, sc.G_3_HEADER)
+    _tb(doc, ppr, rpr, sc.G_3_BODY)
+
+    _attach_h2(doc, ppr, rpr, sc.G_4_HEADER)
+    _tb(doc, ppr, rpr, sc.G_4_BODY)
+
+    _attach_h2(doc, ppr, rpr, sc.G_5_HEADER)
+    if sub_data.get("enabled") and sub_data.get("name"):
+        _tb(doc, ppr, rpr, sc.G_5_WITH_PARTNER.format(
+            partner_name=sub_data["name"],
+            attachment_reference=sub_data.get("attachment_reference", "the applicable Attachment")
+        ))
+    else:
+        _tb(doc, ppr, rpr, sc.G_5_NO_PARTNER)
+    _blank(doc, ppr, rpr)
+
+    # ── H. Fixed Fee Engagement Terms (OPTIONAL — AVC) ───────────────────────
+    if avc_data.get("enabled"):
+        _attach_h1(doc, ppr, rpr, sc.SECTION_H_TITLE)
+        _blank(doc, ppr, rpr)
+        _attach_h2(doc, ppr, rpr, sc.H_1_HEADER)
+        _tb(doc, ppr, rpr, sc.H_AVC_BODY.format(
+            trigger_milestone=avc_data.get("trigger_milestone", "the applicable milestone"),
+            duration=avc_data.get("duration", "one (1) week")
+        ))
+        _blank(doc, ppr, rpr)
+        _tb(doc, ppr, rpr, sc.H_AVC_GOVERNANCE_LABEL, bold=True)
+        _tb(doc, ppr, rpr, sc.H_AVC_GOVERNANCE_BODY)
+        _blank(doc, ppr, rpr)
+
+    # ── I. Subcontractor Technical Services (OPTIONAL) ───────────────────────
+    if sub_data.get("enabled") and sub_data.get("name"):
+        _attach_h1(doc, ppr, rpr, sc.SECTION_I_TITLE)
+        _blank(doc, ppr, rpr)
+        _tb(doc, ppr, rpr, sc.I_SUBCONTRACTOR_BODY.format(
+            partner_name=sub_data["name"],
+            partner_role=sub_data.get("role", "Execution Partner"),
+            attachment_reference=sub_data.get("attachment_reference", "the applicable Attachment")
+        ))
+        _blank(doc, ppr, rpr)
+
+
+
+# ── Single attachment section ────────────────────────────────────────────────
+
+def _gen_attachment_section(doc, ppr, rpr, att_data, att_number, library_defaults):
+    """Generate one full attachment section."""
+    from attachment_library import merge_customer_responsibilities, merge_list
+
+    title = att_data.get("title", f"Attachment {att_number}: {library_defaults['title_default']}")
+    _page_break(doc)
+    _attach_h1(doc, ppr, rpr, title)
+    _blank(doc, ppr, rpr)
+
+    # Intro
+    scope_intro = att_data.get("scope_intro", library_defaults.get("scope_intro", ""))
+    if scope_intro:
+        _tb(doc, ppr, rpr, scope_intro)
+        _blank(doc, ppr, rpr)
+
+    # i. Scope table
+    scope_table = att_data.get("scope_table", [])
+    if scope_table:
+        _attach_h2(doc, ppr, rpr, "i.  Scope.")
+        _tb(doc, ppr, rpr, "The following table outlines the scope of services under this Attachment.")
+        _tmpl_table(doc, ppr, rpr, ["Parameter", "Detail"], scope_table)
+        _blank(doc, ppr, rpr)
+
+    # ii. Snowflake Responsibilities
+    sf_resp = att_data.get("snowflake_responsibilities", [])
+    if sf_resp:
+        _attach_h2(doc, ppr, rpr, "ii.  Snowflake Responsibilities:")
+        _tb(doc, ppr, rpr, "Snowflake will perform the following tasks subject to the terms of this Attachment:")
+        for item in sf_resp:
+            _bullet(doc, ppr, rpr, item)
+        _blank(doc, ppr, rpr)
+
+    # iii. Customer Responsibilities — merge defaults with extras
+    default_cust_resp = library_defaults.get("customer_responsibilities", [])
+    extras_cust_resp = att_data.get("customer_responsibilities_extra", [])
+    # If full override provided, use it directly
+    if att_data.get("customer_responsibilities_override"):
+        cust_resp_categories = att_data["customer_responsibilities_override"]
+    else:
+        cust_resp_categories = merge_customer_responsibilities(default_cust_resp, extras_cust_resp)
+
+    if cust_resp_categories:
+        _attach_h2(doc, ppr, rpr, "iii.  Customer Responsibilities:")
+        _tb(doc, ppr, rpr,
+            "Snowflake's performance of the Technical Services under this Attachment is dependent "
+            "on Customer's timely performing of the activities listed below.")
+        _blank(doc, ppr, rpr)
+        for cat in cust_resp_categories:
+            category_name = cat.get("category", "")
+            items = cat.get("items", [])
+            if items:
+                _cat_hdr(doc, ppr, rpr, category_name)
+                for item in items:
+                    _sub_bullet(doc, ppr, rpr, item)
+                _blank(doc, ppr, rpr)
+
+    # iv. Technical Scope Exclusions
+    default_excl = library_defaults.get("exclusions", [])
+    extras_excl = att_data.get("exclusions_extra", [])
+    if att_data.get("exclusions_override"):
+        exclusions = att_data["exclusions_override"]
+    else:
+        exclusions = merge_list(default_excl, extras_excl)
+
+    if exclusions:
+        _attach_h2(doc, ppr, rpr, "iv.  Technical Scope Exclusions:")
+        _tb(doc, ppr, rpr, "The following Technical Services are not in-scope for purposes of this Attachment:")
+        for item in exclusions:
+            _bullet(doc, ppr, rpr, item)
+        _blank(doc, ppr, rpr)
+
+    # v. Technical Scope Assumptions
+    default_assump = library_defaults.get("assumptions", [])
+    extras_assump = att_data.get("assumptions_extra", [])
+    if att_data.get("assumptions_override"):
+        assumptions = att_data["assumptions_override"]
+    else:
+        assumptions = merge_list(default_assump, extras_assump)
+
+    if assumptions:
+        _attach_h2(doc, ppr, rpr, "v.  Technical Scope Assumptions:")
+        _tb(doc, ppr, rpr,
+            "The parties are proceeding with this Attachment under the following assumptions. "
+            "If any assumptions are incorrect, each party acknowledges and agrees that a "
+            "Change Order may be required.")
+        for item in assumptions:
+            _bullet(doc, ppr, rpr, item)
+        _blank(doc, ppr, rpr)
+
+    # vi. RACI
+    raci_items = att_data.get("raci", library_defaults.get("raci_default", []))
+    raci_parties = att_data.get("raci_parties", ["Snowflake SD", "Customer"])
+
+    if raci_items:
+        _attach_h2(doc, ppr, rpr, "vi.  Responsibility Assignment (RACI):")
+        _tb(doc, ppr, rpr, "R – Responsible. A – Accountable. C – Consulted. I – Informed.")
+        # Build table columns: Activity + one per party
+        headers = ["Activity"] + raci_parties
+        rows = []
+        for item in raci_items:
+            row = [item.get("activity", "")]
+            for party_key in ["sf", "customer", "partner", "partner2"]:
+                if len(row) < len(headers):
+                    row.append(item.get(party_key, "—"))
+            rows.append(row[:len(headers)])
+        _tmpl_table(doc, ppr, rpr, headers, rows)
+        _blank(doc, ppr, rpr)
+
+
+# ── Milestones table helper (reused in PM attachment) ────────────────────────
+
+def _gen_milestones_table(doc, ppr, rpr, data):
+    """Emit milestone table + payment terms subsections (no page break, no header).
+    Called from within the Program Management attachment."""
+    engagement_type = data.get("engagement_type", "fixed_fee")
+    total_fee       = data.get("total_fee", "$[TBD]")
+    milestones_data = data.get("milestones", {})
+    milestones      = milestones_data.get("items", [])
+
+    if milestones:
+        _attach_h2(doc, ppr, rpr, "vii.  Milestone Payment Schedule:")
+        _tb(doc, ppr, rpr, (
+            "The following table sets forth the consolidated milestone payment schedule for all "
+            "Technical Services under this SOW. Payment is due upon Customer written acceptance "
+            "of the Key Deliverables for each milestone."
+        ))
+        _blank(doc, ppr, rpr)
+        if engagement_type == "fixed_fee":
+            headers = ["#", "Milestone Name", "Key Deliverables", "%", "Amount ($)", "Target"]
+            rows = [[
+                m.get("num", ""),
+                m.get("name", ""),
+                m.get("deliverables", ""),
+                m.get("pct", ""),
+                m.get("amount", total_fee),
+                m.get("target", ""),
+            ] for m in milestones]
+        else:
+            headers = ["#", "Milestone Name", "Key Deliverables", "Target"]
+            rows = [[
+                m.get("num", ""),
+                m.get("name", ""),
+                m.get("deliverables", ""),
+                m.get("target", ""),
+            ] for m in milestones]
+        _tmpl_table(doc, ppr, rpr, headers, rows)
+        _blank(doc, ppr, rpr)
+
+    _attach_h2(doc, ppr, rpr, "viii.  Payment Terms:")
+    _tb(doc, ppr, rpr, (
+        "All fees are fixed and milestone-gated as described in the Milestone Payment Schedule "
+        "above. Payment is due within thirty (30) days of Snowflake\u2019s invoice following "
+        "Customer\u2019s written acceptance of the applicable milestone deliverables. Fixed fees "
+        "are inclusive of Snowflake Professional Services delivery management and practice "
+        "management oversight."
+    ))
+    _tb(doc, ppr, rpr, (
+        f"The total fixed fee for this engagement is {total_fee}, payable across "
+        f"{len(milestones)} milestone(s) as described above."
+    ))
+    _blank(doc, ppr, rpr)
+
+
+def _gen_gantt_section(doc, ppr, rpr, gantt_image_path):
+    """Embed Gantt chart image from a local file path."""
+    from docx.shared import Inches
+    if not gantt_image_path or not os.path.exists(gantt_image_path):
+        return
+    _attach_h2(doc, ppr, rpr, "ix.  Project Timeline:")
+    _blank(doc, ppr, rpr)
+    try:
+        para = doc.add_paragraph()
+        run = para.add_run()
+        run.add_picture(gantt_image_path, width=Inches(6.5))
+        body = doc.element.body
+        sect_pr = body.find(qn('w:sectPr'))
+        para_el = para._element
+        body.remove(para_el)
+        if sect_pr is not None:
+            sect_pr.addprevious(para_el)
+        else:
+            body.append(para_el)
+    except Exception as e:
+        _tb(doc, ppr, rpr, f"[Gantt image could not be embedded: {e}]")
+    _blank(doc, ppr, rpr)
+
+
+def _gen_cross_workstream_governance(doc, ppr, rpr, attachments):
+    """Cross-workstream governance subsection — only when 2+ core work streams."""
+    _attach_h2(doc, ppr, rpr, "x.  Cross-Workstream Governance:")
+    _tb(doc, ppr, rpr, (
+        "This engagement involves multiple concurrent work streams. The following governance "
+        "structure applies across all work streams to ensure coordinated delivery, timely "
+        "dependency resolution, and joint milestone gate management."
+    ))
+    _blank(doc, ppr, rpr)
+    _cat_hdr(doc, ppr, rpr, "Wave Sequencing and Dependency Management")
+    _sub_bullet(doc, ppr, rpr, "Snowflake SDM maintains the joint dependency map across all work streams and flags cross-workstream blockers in weekly status calls.")
+    _sub_bullet(doc, ppr, rpr, "Milestone gates for downstream work streams are dependent on successful completion of upstream gates. Delays in one work stream may require re-sequencing of subsequent milestones.")
+    _blank(doc, ppr, rpr)
+    _cat_hdr(doc, ppr, rpr, "Joint Milestone Gates")
+    _sub_bullet(doc, ppr, rpr, "Each milestone gate requires written sign-off from the designated Customer stakeholder for the applicable work stream.")
+    _sub_bullet(doc, ppr, rpr, "Program-level milestone gates (where multiple work streams converge) require sign-off from the Customer Project Sponsor.")
+    _blank(doc, ppr, rpr)
+    _cat_hdr(doc, ppr, rpr, "Change Management Across Work Streams")
+    _sub_bullet(doc, ppr, rpr, "Change Requests that affect scope, timeline, or cost in one work stream are evaluated for impact across all work streams before approval.")
+    _sub_bullet(doc, ppr, rpr, "A signed Change Order is required before any out-of-scope work begins in any work stream.")
+    _blank(doc, ppr, rpr)
+
+
+def _gen_pm_attachment(doc, ppr, rpr, att_data, att_number, library_defaults, data):
+    """Generate Program Management attachment including milestones, optional Gantt,
+    and optional Cross-Workstream Governance (when 2+ core work streams)."""
+    from attachment_library import merge_customer_responsibilities, merge_list
+
+    title = att_data.get("title", f"Attachment {att_number}: Program Management & Cross-Workstream Governance")
+    _page_break(doc)
+    _attach_h1(doc, ppr, rpr, title)
+    _blank(doc, ppr, rpr)
+
+    scope_intro = att_data.get("scope_intro", library_defaults.get("scope_intro", ""))
+    if scope_intro:
+        _tb(doc, ppr, rpr, scope_intro)
+        _blank(doc, ppr, rpr)
+
+    # i. Scope table
+    scope_table = att_data.get("scope_table", [])
+    if scope_table:
+        _attach_h2(doc, ppr, rpr, "i.  Scope.")
+        _tmpl_table(doc, ppr, rpr, ["Parameter", "Detail"], scope_table)
+        _blank(doc, ppr, rpr)
+
+    # ii. Snowflake Responsibilities
+    sf_resp = att_data.get("snowflake_responsibilities", [])
+    if sf_resp:
+        _attach_h2(doc, ppr, rpr, "ii.  Snowflake Responsibilities:")
+        for item in sf_resp:
+            _bullet(doc, ppr, rpr, item)
+        _blank(doc, ppr, rpr)
+
+    # iii. Customer Responsibilities
+    default_cust = library_defaults.get("customer_responsibilities", [])
+    extras_cust  = att_data.get("customer_responsibilities_extra", [])
+    if att_data.get("customer_responsibilities_override"):
+        cust_resp = att_data["customer_responsibilities_override"]
+    else:
+        cust_resp = merge_customer_responsibilities(default_cust, extras_cust)
+
+    if cust_resp:
+        _attach_h2(doc, ppr, rpr, "iii.  Customer Responsibilities:")
+        _tb(doc, ppr, rpr,
+            "Snowflake\u2019s performance of the Program Management services is dependent on "
+            "Customer\u2019s timely performing of the activities listed below.")
+        _blank(doc, ppr, rpr)
+        for cat in cust_resp:
+            items = cat.get("items", [])
+            if items:
+                _cat_hdr(doc, ppr, rpr, cat.get("category", ""))
+                for item in items:
+                    _sub_bullet(doc, ppr, rpr, item)
+                _blank(doc, ppr, rpr)
+
+    # iv. Technical Scope Exclusions
+    exclusions = att_data.get("exclusions_override") or merge_list(
+        library_defaults.get("exclusions", []), att_data.get("exclusions_extra", []))
+    if exclusions:
+        _attach_h2(doc, ppr, rpr, "iv.  Technical Scope Exclusions:")
+        for item in exclusions:
+            _bullet(doc, ppr, rpr, item)
+        _blank(doc, ppr, rpr)
+
+    # v. Technical Scope Assumptions
+    assumptions = att_data.get("assumptions_override") or merge_list(
+        library_defaults.get("assumptions", []), att_data.get("assumptions_extra", []))
+    if assumptions:
+        _attach_h2(doc, ppr, rpr, "v.  Technical Scope Assumptions:")
+        for item in assumptions:
+            _bullet(doc, ppr, rpr, item)
+        _blank(doc, ppr, rpr)
+
+    # vi. RACI
+    raci_items  = att_data.get("raci", library_defaults.get("raci_default", []))
+    raci_parties = att_data.get("raci_parties", ["Snowflake SD", "Customer"])
+    if raci_items:
+        _attach_h2(doc, ppr, rpr, "vi.  Responsibility Assignment (RACI):")
+        _tb(doc, ppr, rpr, "R \u2013 Responsible. A \u2013 Accountable. C \u2013 Consulted. I \u2013 Informed.")
+        headers = ["Activity"] + raci_parties
+        rows = []
+        for item in raci_items:
+            row = [item.get("activity", "")]
+            for key in ["sf", "customer", "partner", "partner2"]:
+                if len(row) < len(headers):
+                    row.append(item.get(key, "\u2014"))
+            rows.append(row[:len(headers)])
+        _tmpl_table(doc, ppr, rpr, headers, rows)
+        _blank(doc, ppr, rpr)
+
+    # vii–viii. Milestones and Payment Terms (moved here from separate attachment)
+    _gen_milestones_table(doc, ppr, rpr, data)
+
+    # ix. Gantt chart (optional)
+    gantt_path = att_data.get("gantt_image_path") or data.get("gantt_image_path")
+    _gen_gantt_section(doc, ppr, rpr, gantt_path)
+
+    # x. Cross-Workstream Governance (only when 2+ core work streams)
+    all_attachments = data.get("attachments", [])
+    core_streams = [a for a in all_attachments if a.get("type") != "program_management"]
+    if len(core_streams) >= 2:
+        _gen_cross_workstream_governance(doc, ppr, rpr, core_streams)
+
+
+# ── Multi-attachment SOW entry point ─────────────────────────────────────────
+
+def generate_multi_attachment_sow(data, output_path):
+    """
+    Generate a multi-attachment SOW using the template-based format.
+    Called when data contains an 'attachments' key.
+
+    Structure:
+      Order Form Exhibit (main body: sections A-I)
+      Attachment 1: Program Management (always — auto-added if not in attachments[])
+        - includes Milestones, optional Gantt, optional Cross-Workstream Governance
+      Attachment 2+: Core work streams
+      Signatures
+    """
+    import sys
+    sys.path.insert(0, os.path.dirname(__file__))
+    from attachment_library import get_attachment_defaults, merge_list, merge_customer_responsibilities
+
+    ppr, rpr = _load_template()
+
+    doc = Document(TEMPLATE_PATH)
+    body = doc.element.body
+    for child in list(body):
+        tag = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+        if tag in ('p', 'tbl', 'sdt'):
+            body.remove(child)
+
+    s = doc.sections[0]
+    s.page_width = Emu(7772400)
+    s.page_height = Emu(10058400)
+    s.left_margin = Emu(457200)
+    s.right_margin = Emu(457200)
+    s.top_margin = Emu(337185)
+    s.bottom_margin = Emu(640080)
+
+    # Main body (Order Form Exhibit sections A-I)
+    _gen_main_body(doc, ppr, rpr, data)
+
+    # Separate PM attachments from core work stream attachments
+    attachments = data.get("attachments", [])
+    pm_atts   = [a for a in attachments if a.get("type") == "program_management"]
+    core_atts = [a for a in attachments if a.get("type") != "program_management"]
+
+    # Ensure there is always exactly one PM attachment (auto-create if missing)
+    if not pm_atts:
+        pm_att = {
+            "type": "program_management",
+            "title": "Attachment 1: Program Management",
+        }
+    else:
+        pm_att = pm_atts[0]
+        pm_att.setdefault("title", "Attachment 1: Program Management")
+
+    # Generate PM attachment (Attachment 1 — includes milestones)
+    pm_defaults = get_attachment_defaults("program_management")
+    _gen_pm_attachment(doc, ppr, rpr, pm_att, 1, pm_defaults, data)
+
+    # Generate core work stream attachments (Attachment 2, 3, ...)
+    for i, att_data in enumerate(core_atts):
+        att_number = i + 2
+        att_type = att_data.get("type", "generic")
+        library_defaults = get_attachment_defaults(att_type)
+        _gen_attachment_section(doc, ppr, rpr, att_data, att_number, library_defaults)
+
+    # Signature blocks (after all attachments)
+    _page_break(doc)
+    _attach_h1(doc, ppr, rpr, "Signatures")
+    _blank(doc, ppr, rpr)
+    _tb(doc, ppr, rpr,
+        "IN WITNESS WHEREOF, the parties have executed this Statement of Work as of the "
+        "Effective Date first written above.")
+    _blank(doc, ppr, rpr)
+    customer_name = data.get("customer_name", "Customer")
+    _bold_label(doc, ppr, rpr, "SNOWFLAKE INC.")
+    _tmpl_table(doc, ppr, rpr, ["Signature:", "_________________________________"], [
+        ["Name:", "_________________________________"],
+        ["Title:", "_________________________________"],
+        ["Date:", "_________________________________"],
+    ])
+    _blank(doc, ppr, rpr)
+    _bold_label(doc, ppr, rpr, customer_name.upper())
+    _tmpl_table(doc, ppr, rpr, ["Signature:", "_________________________________"], [
+        ["Name:", "_________________________________"],
+        ["Title:", "_________________________________"],
+        ["Date:", "_________________________________"],
+    ])
+
+    doc.save(output_path)
+    return output_path, []
+
+
+# ── SOW Validation ───────────────────────────────────────────────────────────
+
+def validate_sow_data(data):
+    """
+    Validate SOW JSON before generation.
+
+    Returns (issues, warnings, checklist) where:
+      issues   — blocking problems that MUST be fixed before CLM submission
+      warnings — non-blocking items worth reviewing
+      checklist — summary snapshot always shown to the PM
+
+    Usage:
+        issues, warnings, checklist = validate_sow_data(data)
+        for item in checklist:
+            print(item)
+        if issues:
+            print("BLOCKED:", issues)
+    """
+    issues   = []
+    warnings = []
+
+    # ── Required fields ──────────────────────────────────────────────────────
+    cname = data.get("customer_name", "")
+    if not cname or cname.strip().lower() == "customer":
+        issues.append("customer_name: must be set to the actual customer name (not 'Customer')")
+
+    total_fee = str(data.get("total_fee", ""))
+    if not total_fee:
+        issues.append("total_fee: required — set to dollar amount or '$[TBD]' with note")
+    elif "$[TBD]" in total_fee:
+        warnings.append("total_fee is '$[TBD]' — fill in before sending to CLM/Legal")
+
+    # ── Training funds ───────────────────────────────────────────────────────
+    tf = data.get("training_funds", {})
+    if "$[TBD]" in str(tf.get("amount", "$[TBD]")):
+        warnings.append("training_funds.amount is '$[TBD]' — confirm amount with deal team")
+
+    # ── Duration ─────────────────────────────────────────────────────────────
+    if not data.get("engagement_duration"):
+        warnings.append("engagement_duration not set — Section E will default to 'twelve (12) months'")
+
+    # ── Source environments ──────────────────────────────────────────────────
+    if not data.get("source_environments"):
+        warnings.append("source_environments not set — Section F.1 will use generic access text")
+
+    # ── Milestones ───────────────────────────────────────────────────────────
+    milestones = data.get("milestones", {}).get("items", [])
+    if not milestones:
+        issues.append("milestones.items: no milestones defined — required for fixed-fee SOW")
+    elif len(milestones) < 2:
+        warnings.append(f"only {len(milestones)} milestone defined — fixed-fee SOWs typically have 2+")
+    for m in milestones:
+        num = m.get("num", "?")
+        if not m.get("target"):
+            warnings.append(f"Milestone {num}: no target date/week — add before customer review")
+        if "$[TBD]" in str(m.get("amount", "")):
+            warnings.append(f"Milestone {num} amount: '$[TBD]' — fill in before CLM")
+        if not m.get("deliverables"):
+            warnings.append(f"Milestone {num}: deliverables description is empty")
+
+    # ── Per-attachment validation ─────────────────────────────────────────────
+    attachments = data.get("attachments", [])
+    if not attachments:
+        issues.append("attachments: no work streams defined — add at least one core work stream")
+    core_atts = [a for a in attachments if a.get("type") != "program_management"]
+    if not core_atts:
+        issues.append("attachments: no core work stream (non-program_management) defined")
+    for att in attachments:
+        att_type = att.get("type", "generic")
+        title    = att.get("title", att_type)
+        if att_type == "program_management":
+            continue
+        sf_resp = att.get("snowflake_responsibilities", [])
+        if not sf_resp:
+            issues.append(f"'{title}': Snowflake Responsibilities is empty — required for all work streams")
+        if not att.get("brief_description"):
+            warnings.append(f"'{title}': brief_description missing — Section B will show no description")
+        if not att.get("scope_table"):
+            warnings.append(f"'{title}': scope_table is empty — add source/target platform and fee")
+
+    # ── AVC / Subcontractor ──────────────────────────────────────────────────
+    avc = data.get("assumption_validation_checkpoint", {})
+    if avc.get("enabled") and not avc.get("trigger_milestone"):
+        warnings.append("AVC enabled but trigger_milestone not set — specify which milestone triggers it")
+
+    sub = data.get("subcontractor", {})
+    if sub.get("enabled") and not sub.get("name"):
+        issues.append("subcontractor.enabled is true but name is not set")
+    if sub.get("enabled") and not sub.get("attachment_reference"):
+        warnings.append("subcontractor.attachment_reference not set — Section I will use generic reference")
+
+    # ── Build review checklist ───────────────────────────────────────────────
+    checklist = [
+        f"Customer:           {cname or '[NOT SET]'}",
+        f"Total fee:          {total_fee or '[NOT SET]'}",
+        f"Duration:           {data.get('engagement_duration', '[default: 12 months]')}",
+        f"Milestones:         {len(milestones)} defined",
+        f"Work streams:       {len(core_atts)} — {', '.join(a.get('type','?') for a in core_atts) or 'none'}",
+        f"AVC (Section H):    {'Yes — after ' + avc.get('trigger_milestone','?') if avc.get('enabled') else 'No'}",
+        f"Subcontractor (I):  {sub.get('name','None') if sub.get('enabled') else 'None'}",
+        f"Gantt image:        {'Yes — ' + str(data.get('gantt_image_path')) if data.get('gantt_image_path') else 'Not provided'}",
+        f"Training funds:     {tf.get('amount', '$[TBD]')}",
+        f"Source envs:        {', '.join(data.get('source_environments', [])) or '[generic text]'}",
+        f"Legal text version: {_get_legal_version()}",
+    ]
+    return issues, warnings, checklist
+
+
+def _get_legal_version():
+    """Return the legal text version from static_content.py."""
+    try:
+        import sys as _sys
+        _sys.path.insert(0, os.path.dirname(__file__))
+        import static_content as sc
+        return getattr(sc, "LEGAL_TEXT_VERSION", "unknown")
+    except Exception:
+        return "unknown"
+
+
+def print_validation_report(data):
+    """Print a validation report to stdout. Called by the skill before confirming generation."""
+    issues, warnings, checklist = validate_sow_data(data)
+    print("\n" + "=" * 60)
+    print("SOW PRE-GENERATION REVIEW")
+    print("=" * 60)
+    print("\n--- CHECKLIST ---")
+    for line in checklist:
+        print(f"  {line}")
+    if warnings:
+        print("\n--- WARNINGS (review before CLM) ---")
+        for w in warnings:
+            print(f"  ⚠  {w}")
+    if issues:
+        print("\n--- ISSUES (must fix before generating) ---")
+        for issue in issues:
+            print(f"  ✗  {issue}")
+        print("\nGeneration BLOCKED. Fix issues above and retry.")
+    else:
+        print("\n✓ No blocking issues. Ready to generate.")
+    print("=" * 60 + "\n")
+    return issues, warnings, checklist
+
+
 def generate_sow(data, output_path):
     """Main generation function."""
+    # Route to multi-attachment generator when attachments key is present
+    if "attachments" in data:
+        return generate_multi_attachment_sow(data, output_path)
+
     doc = create_document()
 
     # Title
@@ -777,6 +1715,11 @@ def main():
 
     with open(json_path, 'r') as f:
         data = json.load(f)
+
+    # Always validate before generating — show checklist and block on issues
+    issues, warnings, checklist = print_validation_report(data)
+    if issues:
+        sys.exit(1)
 
     result, attachments = generate_sow(data, output_path)
     print(f"SOW generated: {result}")

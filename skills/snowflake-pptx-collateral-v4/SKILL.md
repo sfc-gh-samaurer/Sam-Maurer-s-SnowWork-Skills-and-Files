@@ -1,6 +1,6 @@
 ---
 name: snowflake-pptx-collateral-v4
-description: "Create professional Snowflake-branded PowerPoint (PPTX) decks. Designs slides in HTML/CSS first (world-class visual quality), then converts to PPTX in one of two modes: (1) Image Mode — pixel-perfect PNG slides, not editable; (2) Editable Mode — native python-pptx shapes and text boxes, fully editable in PowerPoint. Use for: presentations, business reviews, district reviews, customer decks, summary slides, status updates, executive presentations. Triggers: PPTX, PowerPoint, deck, slides, presentation, create deck, build slides, business review deck, summary slide."
+description: "Create professional Snowflake-branded PowerPoint (PPTX) decks. Designs slides in HTML/CSS first (world-class visual quality), then converts to PPTX in one of two modes: (1) Image Mode — pixel-perfect PNG slides, not editable; (2) Editable Mode — native python-pptx shapes and text boxes, fully editable in PowerPoint. Use for: presentations, business reviews, district reviews, customer decks, summary slides, status updates, executive presentations, PS engagement proposals, customer proposals, engagement proposals, services delivery proposal. Triggers: PPTX, PowerPoint, deck, slides, presentation, create deck, build slides, business review deck, summary slide, PS proposal, engagement proposal, customer proposal, services proposal."
 allowed-tools: Bash, Read, Write
 log_marker: SKILL_USED_RENDER_PPTX
 skill_version: "2026-04-15"
@@ -182,6 +182,28 @@ In editable mode, the HTML slides serve as the visual specification. Write a Pyt
 5. Run the script and confirm the `.pptx` was created
 6. **Offer** to adjust any slide and regenerate
 
+**⚠ Re-read the current HTML before an editable rebuild.** If the HTML slides changed since the
+last build (edits, new/removed slides, reordering), **read every current `slides/*.html` file first**
+and build the editable script from that — never from memory or a stale script. An editable deck is
+only correct if it reflects the HTML as it exists *now*. Mismatched content is the #1 editable-mode defect.
+
+**After building, run a bounds check** to catch layout bugs before delivering:
+```python
+from pptx import Presentation
+prs = Presentation(output_path)
+W, H = prs.slide_width, prs.slide_height
+tol = 9144  # ~0.01"
+for i, s in enumerate(prs.slides, 1):
+    for sh in s.shapes:
+        if sh.left is None or sh.top is None:
+            continue
+        r, b = sh.left + (sh.width or 0), sh.top + (sh.height or 0)
+        if sh.left < -tol or sh.top < -tol or r > W + tol or b > H + tol:
+            print(f"Slide {i}: '{sh.name}' overflows canvas")
+# Intentional decorative bleed (e.g. oversized ghost chapter numbers) is expected — ignore those.
+```
+
+
 **Editable Mode Output — Default Save Location:**
 ```python
 import os
@@ -348,6 +370,7 @@ In both modes:
 
 | File | Purpose |
 |------|---------|
+| `references/ps-engagement-proposal.md` | **PS PROPOSAL** — Canonical 28-slide structure for PS engagement proposals. Defines mandatory vs. conditional slides, content rules per slide, engagement-type variants (FinOps/Architecture/AI/Migration), and a bootstrap build script. **Read this first** when the user asks for a PS proposal or customer engagement deck. |
 | `references/html-slide-design.md` | **PRIMARY** — CSS design tokens, official brand rules (typography, colors, logo, footer), 12 full HTML slide templates |
 | `references/html-to-pptx-conversion.md` | **Image mode** — Playwright conversion script, image-only PPTX rules, file naming |
 | `references/html-to-editable-pptx.md` | **Editable mode** — python-pptx builder patterns for all 12 slide types, CSS→pptx mapping |

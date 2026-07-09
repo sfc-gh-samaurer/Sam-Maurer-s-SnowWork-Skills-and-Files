@@ -43,13 +43,31 @@ This ensures:
 
 ---
 
+## Core Rule: Kill the Default Drop Shadow on EVERY Shape
+
+**Every `add_shape()` shape inherits a soft theme drop shadow by default.** Across a slide full
+of rectangles, badges, and pills these stacked shadows are the single biggest reason an editable
+deck looks like generic clip-art instead of a designed slide. The HTML source has flat shapes —
+match it.
+
+```python
+shape.shadow.inherit = False   # ← set on EVERY rect/oval/triangle you create
+```
+
+This is already baked into `add_rect()` above. If you create a shape any other way
+(`add_shape(MSO_SHAPE.OVAL, …)`, `add_shape(MSO_SHAPE.ISOSCELES_TRIANGLE, …)` for a roof, etc.),
+set `shape.shadow.inherit = False` manually right after creating it. Tables and `add_textbox()`
+do not need it.
+
+---
+
 ## Dependencies
 
 ```python
 from pptx import Presentation
 from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
 from pptx.enum.shapes import MSO_SHAPE_TYPE
 from io import BytesIO
 ```
@@ -150,6 +168,7 @@ def add_rect(slide, left, top, width, height, fill=None, line=None, line_width=P
         shape.line.width = line_width
     else:
         shape.line.fill.background()
+    shape.shadow.inherit = False   # ← CRITICAL: kill the default theme drop shadow
     return shape
 
 def set_shape_text(shape, text, size=10, bold=False, color=SF_WHITE,
@@ -163,6 +182,13 @@ def set_shape_text(shape, text, size=10, bold=False, color=SF_WHITE,
     tf = shape.text_frame
     tf.word_wrap = wrap
     tf.vertical_anchor = valign
+    tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE   # ← safety net: shrink text to fit
+    # Tight internal margins — the python-pptx default (~0.1") makes labels float
+    # awkwardly inside small bars, pills, and badges. Override explicitly.
+    tf.margin_left = Pt(6)
+    tf.margin_right = Pt(6)
+    tf.margin_top = Pt(3)
+    tf.margin_bottom = Pt(3)
     p = tf.paragraphs[0]
     p.alignment = align
     run = p.add_run()
@@ -226,6 +252,86 @@ def add_para(tf, text, size=9, bold=False, color=SF_DARK_TEXT,
     p.space_after = space_after
     return p
 ```
+
+---
+
+## Mixed-Run Text: Bold Lead + Body in One Paragraph (HIGH-VALUE PATTERN)
+
+HTML constantly uses a **bold (often colored) lead phrase followed by normal body text** in a
+single line — callout bars ("**Our Approach:** address the data foundation…"), required-action
+strips ("**Required Action:** the team must…"), key-principle notes, and bullets with a bold
+keyword ("**Pilot build** — Snowflake PS builds…"). A single-run helper cannot reproduce this.
+Use these two helpers — they are the difference between flat, generic slides and ones that read
+like the HTML source.
+
+```python
+def add_callout_bar(slide, left, top, width, height, lead, body,
+                    fill=SF_LIGHT_BLUE, accent=SF_BLUE,
+                    lead_color=SF_MID_BLUE, body_color=SF_DARK_TEXT, size=9):
+    """A filled callout bar with a colored left accent stripe and a bold lead + normal body
+    on one line. Used for 'Our Approach:', 'Required Action:', 'Key principle:' style strips."""
+    bar = add_rect(slide, left, top, width, height, fill)
+    add_rect(slide, left, top, Inches(0.04), height, accent)   # left accent stripe
+    tf = bar.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
+    tf.margin_left = Pt(10); tf.margin_right = Pt(8)
+    p = tf.paragraphs[0]; p.alignment = PP_ALIGN.LEFT
+    r0 = p.add_run(); r0.text = lead + "  "
+    r0.font.size = Pt(size); r0.font.bold = True
+    r0.font.color.rgb = lead_color; r0.font.name = "Arial"
+    r1 = p.add_run(); r1.text = body
+    r1.font.size = Pt(size); r1.font.color.rgb = body_color; r1.font.name = "Arial"
+    return bar
+
+def add_bold_lead_bullets(shape, items, size=9, marker="\u2022  ",
+                          marker_color=SF_BLUE, lead_color=SF_MID_BLUE,
+                          body_color=SF_DARK_TEXT, space_after=Pt(4)):
+    """Fill a shape with bullets. Each item is either a plain string OR a (lead, rest) tuple
+    that renders a bold colored lead phrase followed by normal body text on the same line.
+    Sets tight margins so text doesn't float inside the panel."""
+    tf = shape.text_frame
+    tf.word_wrap = True
+    tf.vertical_anchor = MSO_ANCHOR.TOP
+    tf.auto_size = MSO_AUTO_SIZE.TEXT_TO_FIT_SHAPE
+    tf.margin_left = Pt(8); tf.margin_right = Pt(8)
+    tf.margin_top = Pt(6); tf.margin_bottom = Pt(6)
+    for j, item in enumerate(items):
+        p = tf.paragraphs[0] if j == 0 else tf.add_paragraph()
+        p.alignment = PP_ALIGN.LEFT
+        p.space_before = Pt(1); p.space_after = space_after
+        r0 = p.add_run(); r0.text = marker
+        r0.font.size = Pt(size); r0.font.color.rgb = marker_color; r0.font.name = "Arial"
+        if isinstance(item, tuple):
+            lead, rest = item
+            r1 = p.add_run(); r1.text = lead
+            r1.font.size = Pt(size); r1.font.bold = True
+            r1.font.color.rgb = lead_color; r1.font.name = "Arial"
+            r2 = p.add_run(); r2.text = rest
+            r2.font.size = Pt(size); r2.font.color.rgb = body_color; r2.font.name = "Arial"
+        else:
+            r1 = p.add_run(); r1.text = item
+            r1.font.size = Pt(size); r1.font.color.rgb = body_color; r1.font.name = "Arial"
+```
+
+**Usage:**
+```python
+# Callout strip at the bottom of a slide
+add_callout_bar(slide, PAD_LEFT, Inches(4.46), CONTENT_W, Inches(0.46),
+                "Our Approach:", "Address the data foundation and use cases in parallel.")
+
+# Bullets with bold keyword leads (mix tuples and plain strings freely)
+body = add_rect(slide, x, y, col_w, col_h, SF_MID_BLUE)
+add_bold_lead_bullets(body, [
+    ("Pilot build", " \u2014 Snowflake PS builds 1\u20132 data products end-to-end."),
+    ("Full catalog migration", " \u2014 migrate all remaining products once the pattern is proven."),
+    "Plain bullet with no bold lead also works.",
+], lead_color=SF_TEAL, body_color=RGBColor(0xD2, 0xE2, 0xEE))   # use light text on dark fills
+```
+
+⚠ On **dark-fill** panels (SF_MID_BLUE, navy), pass `lead_color=SF_TEAL` and a light
+`body_color` (e.g. `#D2E2EE`). On **light** panels keep the SF_MID_BLUE / SF_DARK_TEXT defaults.
 
 ---
 

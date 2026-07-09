@@ -1,356 +1,314 @@
 ---
 name: sow-generator
-description: Generate properly formatted Snowflake PS Statement of Work (.docx) documents matching the official template specification. Supports Fixed Fee and T&M engagements with structured JSON, markdown, or conversational input modes.
+description: Generate properly formatted Snowflake PS Fixed Fee Statement of Work (.docx) documents. Supports all fixed-fee engagement types (Platform, Migration, Analytics, Advisory, AI/ML, Governance, Training, SPCS). Uses guided conversational intake, auto-reads proposals/TDRs, validates before generating, and uploads to Google Drive.
 ---
 
-# SOW Generator Skill
+# SOW Generator Skill — Fixed Fee Engagements
 
-Generate Snowflake Professional Services SOW Attachment 1 documents as .docx files with exact template formatting.
+Generate Snowflake Professional Services Fixed Fee SOW documents (.docx) with exact Snowflake PS template formatting.
+
+## ⚖️ Legal Authority — PRIMARY SOURCE
+
+**ALWAYS read `references/legal_cx_sow_guidance.md` before generating any SOW.**
+
+This file is the authoritative legal source provided by SD Legal (Katie Flanagan). It contains:
+- Official approved attachment templates with Google Doc links
+- Mandatory drafting rules for T&M and Fixed Fee engagements
+- The standard SOW attachment skeleton (8 sections)
+- Critical overrides to default skill behavior
+
+**Where this guide conflicts with instructions elsewhere in this skill, the guide wins.**  
+Where this guide is silent, the existing skill instructions remain valid.
+
+### Critical Overrides from Legal Guidance
+
+1. **NO acceptance criteria in Fixed Fee SOWs** — Do not auto-include acceptance criteria in milestone tables. Only add if customer has explicitly required it AND only after first sending without it. This overrides any default behavior that includes acceptance criteria.
+
+2. **Project Plan / RACI are OPTIONAL** — Only include these attachment sections if the customer has requested them or there is a specific need. Do NOT auto-generate them.
+
+3. **Timelines must say "target"** — Any project timeline in the attachment body must be framed as a "target timeline."
+
+4. **T&M: never commit to deliverables** — Qualify all outcomes as "potential", "anticipated", or "targeted."
+
+5. **AI/ML SOWs require Nick DiRienzo sign-off** — Consult Nick DiRienzo's team before drafting AI/ML Use Case Support SOWs.
 
 ## What This Skill Produces
 
-A Word document (.docx) containing **SOW Attachment 1** — the project-specific scope document (Sections 1-16). This does NOT include the legal wrapper (pages 1-2 of a full SOW), which is added separately during the signing process.
+A Word document (.docx) containing the complete SOW — Order Form Exhibit (Sections A–I) + Attachment 1 (Program Management with Milestones) + per-work-stream attachments + Signatures. Uses verbatim legal boilerplate from `static_content.py` (legal text version tracked).
 
-## Output Location
+**This skill is Fixed Fee only.** It does not support T&M engagements.
 
-Default: `./deals/` relative to the user's working directory. On first run, check if this directory exists and create it if the user confirms. Use the naming convention: `Customer_SOW_YYYY-MM-DD_vN.docx`
+## Legal Text Version
 
-**SOW documents remain as .docx files and are NOT converted to Google Docs.** Save locally to `~/CoCo/Accounts/{AccountName}/SOW/` or share the .docx directly.
+All generated SOWs use legal text from `static_content.py`. Check `LEGAL_TEXT_VERSION` before sending to CLM to confirm you are using current approved language.
+
+## Output — Drive First
+
+SOW documents are saved locally AND uploaded to the account's Google Drive folder:
+- **Local**: `~/CoCo/Accounts/{AccountName}/SOW/{CustomerName}_SOW_{YYYY-MM-DD}_vN.docx`
+- **Drive**: Upload to the account's Google Drive folder using `upload_docx.mjs`
+- **Version management**: Before generating, search Drive for existing `{CustomerName}_SOW` files to determine the next version number (v1, v2, v3...)
+- Return the Drive link as the primary output
 
 ## Email Draft Bullet Formatting Rule
 
-If this skill creates any Gmail drafts (e.g., to share the SOW), all bullet lists in `mcp_google-worksp_create_draft` body content MUST use 4-space indented format:
+If this skill creates any Gmail drafts, all bullet lists in `mcp_google-worksp_create_draft` body content MUST use 4-space indented format:
 ```
     • item one
     • item two
 ```
-Never use flush-left bullets (`• item` or `- item`) in email body content.
 
-## Engagement Types
-
-- **Fixed Fee** (`fixed_fee`): Milestone-based with payment percentages. The milestone table has 4 columns (Milestone, Payment, Description, Deliverable). Do NOT include Acceptance Criteria — Snowflake Legal has directed that acceptance criteria be removed from SOWs. The fee section has a payment schedule table.
-- **Time & Materials** (`t_and_m`): Either milestones without payments (3-column table: Milestone, Description, Deliverable) OR phases with a rate card. Do NOT include Acceptance Criteria.
-
-## Workflow
-
-### Step 1: Determine Input Mode
-
-Ask the user how they want to provide SOW content:
-
-1. **Structured JSON** — User already has (or will provide) a JSON file matching the schema below
-2. **Markdown** — User has a markdown SOW draft to convert
-3. **Conversational** — Walk through each section interactively
-
-### Step 2: Collect Content
-
-#### Mode 1: Structured JSON
-- User provides the path to a JSON file
-- Read and validate it against the schema
-- Confirm any missing optional sections
-
-#### Mode 2: Markdown
-- Read the user's markdown file
-- Parse sections based on heading structure (# and ## headings map to the 16 SOW sections)
-- Convert to the JSON schema format
-- Show the user a summary of what was parsed and confirm before generating
-
-#### Mode 3: Conversational
-Walk through each section with the user. For each section:
-1. Explain what it needs
-2. Ask for the content
-3. Confirm before moving on
-
-**Required sections** (must have content):
-- customer_name, engagement_type
-- scope_of_services (executive_summary at minimum)
-- milestones (at least 2)
-- fees (total amount and payment structure)
-
-**Standard sections** (suggest defaults if user skips):
-- acceptance_process, change_management, general_provisions, signatures, term
-
-**Project-specific sections** (ask for but allow empty):
-- key_scope_items, raci, roles, governance, assumptions, dependencies, risks, access_security
-
-### Step 3: Build JSON and Generate
-
-Once content is collected and confirmed:
-
-1. Write the JSON to a temp file (or the deals directory)
-2. Run the generator script:
+## STOP — Always run validate_sow_data() before generating.
 
 ```bash
 python3 SKILL_DIR/scripts/generate_sow.py <json_path> <output_path>
 ```
+The CLI automatically runs validation and blocks generation if there are blocking issues.
 
-Where `SKILL_DIR` is the directory containing this SKILL.md file (use the `__skill_dir__` path or resolve from the skill location at `~/.snowflake/cortex/skills/sow-generator/`).
+## Core Workflow (5 Phases)
 
-3. Confirm the output file was created and report its path
+---
 
-### Step 4: Review
+### Phase 0 — Proposal / TDR Auto-Read (ALWAYS DO THIS FIRST)
 
-After generation, offer to:
-- Open or describe the document structure
-- Make changes to specific sections (re-run with modified JSON)
-- Generate a different version (v2, v3, etc.)
+Before asking ANY other questions, ask:
 
-## STOP — Always confirm with the user before running the generation script.
+> "Do you have a Google Slides proposal or TDR deck for this engagement? If so, share the link and I'll read it to pre-populate the SOW."
 
-## JSON Schema
+**If YES**: Read the Google Slides presentation using `mcp_google-worksp_read_presentation`. Extract:
+- Work stream descriptions → `attachments[].brief_description`
+- Milestone names and target weeks → `milestones.items[]`
+- Snowflake responsibilities bullet points → `attachments[].snowflake_responsibilities`
+- Team roles (SDM, SA, DE) → `roles.snowflake[]`
+- Customer stakeholders → `roles.customer[]`
+- Scope items, assumptions, exclusions → use as starting point for overrides
+- Gantt/timeline slide → note the slide ID and offer to screenshot it for `gantt_image_path`
 
-The input JSON must have this top-level structure:
+After reading: "I found the following in your proposal. Here's what I've pre-populated — please review and correct anything before I proceed:" Then show a structured summary.
+
+**If NO**: Proceed to Phase 1.
+
+---
+
+### Phase 1 — Engagement Template OR Start Fresh
+
+Ask: "Do you want to start from an engagement template, or build from scratch?"
+
+**Available templates** (in `SKILL_DIR/templates/`):
+| Template | Use Case |
+|----------|----------|
+| `template_simple_platform.json` | Platform setup only, 2 milestones |
+| `template_data_migration.json` | Platform + DMVA migration, 3 milestones |
+| `template_full_migration.json` | Platform + Ingestion + DMVA + Code Conversion, 5 milestones |
+| `template_analytics.json` | Platform + Analytics Enablement (Cortex, dashboards), 2 milestones |
+| `template_advisory.json` | Advisory/Assessment only, 2 milestones |
+
+**If user selects a template**: Load the JSON, show a summary, ask the user to fill in all `[PLACEHOLDER]` fields.
+**If starting fresh**: Proceed to Phase 2.
+
+---
+
+### Phase 2 — Work Streams & Attachment Types
+
+Ask which work types are in scope (can select multiple):
+
+**Core work streams** (these become the numbered attachments):
+- `platform_implementation` — Platform provisioning, RBAC, CI/CD, security (Attachment 2+)
+- `data_ingestion` — Snowpipe, Openflow CDC, External Stage, API integrations
+- `historical_data_migration` — DMVA-based one-time bulk migration
+- `code_conversion` — SnowConvert, Snowpark Connect, SQL/PySpark rewrite
+- `spcs_container_migration` — Docker/R/Python lift-and-shift to SPCS
+- `analytics_enablement` — Cortex AI/ML, Streamlit apps, semantic layers, dashboards
+- `advisory_assessment` — Architecture assessment, FinOps, WAF, migration scoping
+- `data_governance` — Masking policies, row access policies, data products, tagging
+- `training_enablement` — Workshop delivery, knowledge transfer programs
+- `ai_ml_factory` — Feature stores, model registry, Cortex ML pipelines
+- `generic` — Custom/other work type (requires full user-provided content)
+
+> **Program Management (Attachment 1) is ALWAYS included automatically.** The generator auto-creates it. Cross-Workstream Governance is auto-added when 2+ core work streams.
+> **Milestones** live inside Attachment 1 (NOT a separate final attachment).
+> **Gantt chart**: Provide `gantt_image_path` (local image file) to embed a project timeline.
+
+---
+
+### Phase 3 — Order Form Exhibit Questions
+
+For the Order Form Exhibit (Sections A–I), ask:
+
+1. **Customer name** — Substituted into preamble and signature block.
+
+2. **Source environments** *(Section F.1)*  
+   "What source data environments will Snowflake SD need access to?"  
+   Examples: "Amazon Redshift", "Google BigQuery AIC V3", "Cerner HealtheEDW Data Share"  
+   → `source_environments` array
+
+3. **Target Snowflake environment** *(Section F.1)*  
+   "What is the target Snowflake account type?"  
+   Examples: "Snowflake Business Critical account(s)", "Snowflake Business Critical with Private Link"  
+   → `target_environments` array
+
+4. **Engagement duration** *(Section E)*  
+   "What is the estimated engagement duration?"  
+   Format: "ten (10) weeks", "six (6) months"  
+   Default if not provided: `"twelve (12) months"`  
+   → `engagement_duration` string
+
+5. **Training Funds amount** *(Section C)*  
+   "What is the training credit amount included in this engagement?"  
+   Default: `$[TBD]`  
+   → `training_funds.amount`
+
+6. **Production access** *(Section F.3)*  
+   "Will Snowflake SD need access to any Customer production environments?"  
+   → `production_access.needed`
+
+7. **Assumption Validation Checkpoint — ALWAYS ASK** *(Section H — OPTIONAL)*  
+   "Is there an Assumption Validation Checkpoint in this engagement?"  
+   If yes: "After which milestone? How long? (e.g., 'one (1) week')"  
+   → `assumption_validation_checkpoint`
+
+8. **Subcontractor — ALWAYS ASK** *(Sections G.5 and I — OPTIONAL)*  
+   "Is there a named subcontractor on Snowflake paper?"  
+   If yes: "Partner name, their role, and which Attachment covers their work?"  
+   → `subcontractor`
+
+---
+
+### Phase 4 — Per-Attachment Details
+
+For each work stream selected in Phase 2, ask:
+
+1. **Title** — Default from library (e.g., "Attachment 2: Platform Implementation"). Confirm or override.
+2. **Brief description** — 1–2 sentences for Section B listing. → `brief_description`
+3. **Scope table rows** — Source/target platform, hours (omit Snowflake hours by default), fixed fee or `$[TBD]`.
+4. **Snowflake Responsibilities** — Action-oriented bullets. Must be provided; this is the most engagement-specific section. Pre-populated from proposal if available.
+5. **Customer Responsibilities extras** — Show library defaults, ask what to add. → `customer_responsibilities_extra`
+6. **Scope Exclusions extras** — Library defaults shown, ask for additions. → `exclusions_extra`
+7. **Scope Assumptions extras** — Library defaults shown, ask for additions. → `assumptions_extra`
+8. **RACI parties** — 2-party (Snowflake + Customer) or 3-party (add partner)? → `raci_parties`
+
+---
+
+### Phase 5 — Milestones & Fees
+
+1. **Milestone names** — 2+ milestones required. For each: name, key deliverables, percentage (%), amount, and target week/date.
+2. **Total fee** — Overall fixed fee. Can be `$[TBD]`.
+3. **Gantt image** — "Is there a project timeline image you want embedded? Provide a local file path." → `gantt_image_path`
+
+---
+
+### Phase 6 — Validation, Confirm & Generate
+
+1. Run `validate_sow_data()` by executing `generate_sow.py` with the JSON (CLI auto-validates).
+2. Show the validation checklist to the user.
+3. Surface any warnings (e.g., `$[TBD]` amounts, missing scope tables).
+4. **Block generation** if there are blocking issues. Ask the user to fix them.
+5. Once clean: "Ready to generate. The SOW will be saved locally and uploaded to Drive. Confirm?"
+6. Generate, upload to Drive, return the Drive link.
+
+---
+
+## Order Form Exhibit — Section Map (A–I)
+
+| Section | Title | Type | Notes |
+|---------|-------|------|-------|
+| Header | Order Form Exhibit - TECHNICAL SERVICES SOW | Verbatim | Always |
+| Preamble | Parties and definitions | Verbatim + `{customer_name}` | Always |
+| **A** | Description of Technical Services | Verbatim | Always |
+| **B** | Custom Fixed Fee | Dynamic | Per-attachment `brief_description` list |
+| **C** | Training Funds | Verbatim + `{training_amount}` | Always; defaults `$[TBD]` |
+| **D** | Payments and Expenses | Verbatim | Always |
+| **E** | Scheduling and Term | Verbatim + `{engagement_duration}` | Always |
+| **F** | Snowflake Access (F.1–F.4) | Mostly verbatim; F.1 dynamic | F.1 uses `source_environments` |
+| **G** | Additional Terms (G.1–G.5) | Mostly verbatim; G.5 dynamic | G.5 dynamic if subcontractor |
+| **H** | Fixed Fee Engagement Terms (AVC) | Verbatim + `{trigger_milestone}` | **OPTIONAL — ALWAYS ASK** |
+| **I** | Subcontractor Technical Services | Verbatim + `{partner_name}` | **OPTIONAL — ALWAYS ASK** |
+
+---
+
+## Attachment Library Summary
+
+Pre-built transferable content (customer responsibilities, exclusions, assumptions, RACI) for each work type:
+
+| Type | Category Headers (Customer Responsibilities) | Default Exclusions |
+|------|---------------------------------------------|-------------------|
+| `platform_implementation` | Before Kickoff, Week 1, Within First 4 Weeks, Throughout, Post-Migration | 2 |
+| `data_ingestion` | Week 1, 5 Days After Kickoff, By Week 4, Throughout, Per Wave, Post-Migration | 7 |
+| `historical_data_migration` | Before Kickoff, 5 Days After Kickoff, Week 1, Week 1-2, Weeks 1-6, Before Pilot, During Migration, Per Phase, Production, Post | 11 |
+| `code_conversion` | Before Pilot, 5 Days After Kickoff, Throughout, Per Wave | 9 |
+| `spcs_container_migration` | Before Kickoff, Week 1, Throughout, Post-Migration | 7 |
+| `analytics_enablement` | Before Kickoff, Throughout, Post-Delivery | 5 |
+| `advisory_assessment` | Before Kickoff, Throughout Assessment, Post-Delivery | 5 |
+| `data_governance` | Before Kickoff, Throughout, Post-Delivery | 5 |
+| `training_enablement` | Before Kickoff, Throughout, Post-Delivery | 4 |
+| `ai_ml_factory` | Before Kickoff, Throughout, Post-Delivery | 6 |
+| `program_management` | Before Kickoff, Throughout | 2 |
+| `generic` | Before Kickoff, Throughout | 1 |
+
+**IMPORTANT**: Always show the user what's included in the defaults and ask for additions — never silently apply defaults without showing them.
+
+---
+
+
+---
+
+## JSON Schema (Quick Reference)
+
+The input JSON uses this top-level structure. All fields are described in the Phase 3–5 workflow above.
 
 ```json
 {
   "customer_name": "Acme Corp",
-  "sow_title": "Statement of Work — Acme Corp Data Platform",
+  "sow_title": "Statement of Work — Acme Corp",
   "engagement_type": "fixed_fee",
-  "scope_of_services": { ... },
-  "milestones": { ... },
-  "acceptance_process": { ... },
-  "key_scope_items": { ... },
-  "raci": { ... },
-  "roles": { ... },
-  "governance": { ... },
-  "assumptions": [ ... ],
-  "dependencies": [ ... ],
-  "risks": [ ... ],
-  "access_security": { ... },
-  "change_management": { ... },
-  "fees": { ... },
-  "term": { ... },
-  "general_provisions": { ... },
-  "signatures": { ... }
-}
-```
-
-### Section Schemas
-
-**scope_of_services**:
-```json
-{
-  "executive_summary": ["Paragraph 1...", "Paragraph 2..."],
-  "business_outcomes": [
-    {"outcome": "Name", "description": "Details"}
-  ],
-  "our_understanding": {
-    "paragraphs": ["..."],
-    "challenges": [{"challenge": "Name", "description": "Details"}],
-    "solution_paragraphs": ["..."],
-    "solution_components": [{"component": "Name", "description": "Details"}]
+  "total_fee": "$[TBD]",
+  "engagement_duration": "ten (10) weeks",
+  "source_environments": ["AWS Redshift"],
+  "target_environments": ["Snowflake Business Critical account(s)"],
+  "production_access": {"needed": false},
+  "training_funds": {"amount": "$[TBD]", "expiry": "twelve (12) months"},
+  "assumption_validation_checkpoint": {"enabled": false},
+  "subcontractor": {"enabled": false},
+  "gantt_image_path": null,
+  "roles": {
+    "snowflake": [{"role": "SDM", "responsibilities": "..."}],
+    "customer": [{"role": "Project Sponsor", "responsibilities": "..."}]
   },
-  "methodology": {
-    "paragraphs": ["Overview paragraph..."],
-    "phases": [
-      {
-        "title": "Phase 1: Foundation (Weeks 1-10)",
-        "paragraphs": ["Phase description..."],
-        "activities": ["Activity 1", "Activity 2"]
-      }
+  "attachments": [
+    {
+      "type": "platform_implementation",
+      "title": "Attachment 2: Platform Implementation",
+      "brief_description": "One or two sentence description for Section B.",
+      "scope_table": [["Source Platform", "..."], ["Target Platform", "..."], ["Fixed Fee", "$[TBD]"]],
+      "snowflake_responsibilities": ["Action-oriented bullet 1", "Bullet 2"],
+      "customer_responsibilities_extra": [{"category": "Before Kickoff", "items": ["Extra item..."]}],
+      "exclusions_extra": ["Engagement-specific exclusion"],
+      "assumptions_extra": ["Engagement-specific assumption"],
+      "customer_responsibilities_override": null,
+      "exclusions_override": null,
+      "assumptions_override": null,
+      "raci_parties": ["Snowflake SD", "Customer"],
+      "raci": [{"activity": "RBAC design", "sf": "A/R", "customer": "C"}]
+    }
+  ],
+  "milestones": {
+    "items": [
+      {"num": "1", "name": "Milestone 1 Name", "deliverables": "...", "pct": "50%", "amount": "$[TBD]", "target": "Week X"},
+      {"num": "2", "name": "Milestone 2 Name", "deliverables": "...", "pct": "50%", "amount": "$[TBD]", "target": "Week Y"}
     ]
   }
 }
 ```
 
-**milestones**:
-```json
-{
-  "intro": "The following table sets forth...",
-  "items": [
-    {
-      "name": "Milestone 0: Project Kickoff",
-      "payment": "10%",
-      "description": "Initial setup and alignment...",
-      "deliverable": "Kickoff deck, project plan"
-    }
-  ]
-}
-```
-Note: `payment` field is only used for `fixed_fee` engagements. Do NOT include `acceptance_criteria` — removed per Snowflake Legal directive.
+**Override behavior:**
+- `*_extra` arrays: APPEND to library defaults
+- `*_override` arrays: REPLACE library defaults entirely
+- `raci`: if provided, replaces library defaults; if omitted, library defaults are used
 
-**acceptance_process**:
-```json
-{
-  "subsections": [
-    {
-      "number": "3.1",
-      "title": "Deliverable Submission",
-      "paragraphs": ["Upon completion of each milestone..."]
-    }
-  ]
-}
-```
+---
 
-**key_scope_items**:
-```json
-{
-  "in_scope": [
-    {"phase": "Phase 1", "scope_item": "DCDF gap assessment"}
-  ],
-  "out_of_scope": [
-    "Production data migration",
-    "Custom UI development"
-  ]
-}
-```
 
-Out-of-scope also supports structured format (numbered subsections):
-```json
-{
-  "out_of_scope": [
-    {"number": "4.2.1", "title": "Production Data Migration", "description": "Migration of production datasets is excluded from this engagement."},
-    {"number": "4.2.2", "title": "Custom UI Development", "description": "Any custom front-end development beyond standard Snowflake interfaces."}
-  ]
-}
-```
 
-**raci**:
-```json
-{
-  "intro": "The following RACI matrix...",
-  "accountability_note": "Customer is Accountable (A) for every activity listed below.",
-  "items": [
-    {"is_phase_header": true, "activity": "Phase 1: Foundations"},
-    {
-      "activity": "DCDF Assessment",
-      "responsible": "Snowflake",
-      "accountable": "Snowflake",
-      "consulted": "Customer",
-      "informed": "Customer"
-    }
-  ],
-  "work_products": [
-    {"phase": "Phase 1", "work_product": "Assessment Report", "owner": "Snowflake"}
-  ]
-}
-```
-
-**roles**:
-```json
-{
-  "snowflake": [
-    {"role": "Engagement Manager", "responsibilities": "Overall delivery..."}
-  ],
-  "customer": [
-    {"role": "Executive Sponsor", "responsibilities": "Strategic alignment..."}
-  ]
-}
-```
-
-**governance**:
-```json
-{
-  "intro": "The following governance structure...",
-  "alignment": {
-    "paragraphs": ["The project alignment process ensures both parties maintain shared understanding of objectives, progress, and any changes throughout the engagement lifecycle."]
-  },
-  "forums": [
-    {
-      "forum": "Weekly Status",
-      "cadence": "Weekly",
-      "participants": "PM, Tech Lead",
-      "responsibility": "Track progress",
-      "materials": "Status report"
-    }
-  ]
-}
-```
-
-**assumptions**: Array of strings OR array of objects. Both formats supported:
-
-Simple (backward compatible):
-```json
-["Customer will provide access by Week 1", "VPN connectivity available"]
-```
-
-Structured (numbered with descriptions, preferred for complex engagements):
-```json
-[
-  {"number": "8.1", "assumption": "Customer will designate a project lead with decision-making authority for the duration of the engagement."},
-  {"number": "8.2", "assumption": "All required Snowflake accounts will be provisioned prior to the engagement start date."}
-]
-```
-
-**dependencies**:
-```json
-[
-  {"dependency": "Snowflake account provisioned", "required_by": "Week 1"}
-]
-```
-
-**risks**:
-```json
-[
-  {
-    "risk": "Data quality issues",
-    "impact": "High",
-    "likelihood": "Medium",
-    "mitigation": "Early data profiling in Phase 1"
-  }
-]
-```
-
-**access_security**:
-```json
-{
-  "paragraphs": ["All work will be performed..."],
-  "items": ["VPN access required", "MFA enabled"]
-}
-```
-
-**change_management**:
-```json
-{
-  "paragraphs": ["Any changes to the scope..."]
-}
-```
-
-**fees** (Fixed Fee):
-```json
-{
-  "paragraphs": ["The total fixed fee for this engagement..."],
-  "total": "$250,000",
-  "payment_schedule": [
-    {"milestone": "Milestone 0: Kickoff", "percentage": "10%"}
-  ]
-}
-```
-
-**fees** (T&M):
-```json
-{
-  "paragraphs": ["Services will be billed..."],
-  "total": "$300,000 (estimated)",
-  "not_to_exceed": "$350,000",
-  "rate_card": [
-    {"role": "Senior Consultant", "rate": "$350/hr"}
-  ],
-  "phases": [
-    {"phase": "Phase 1", "hours": "400", "cost": "$140,000"}
-  ]
-}
-```
-
-**term**:
-```json
-{
-  "paragraphs": ["This SOW shall commence on the Effective Date..."]
-}
-```
-
-**general_provisions**:
-```json
-{
-  "paragraphs": ["This SOW is governed by the terms of the Master Agreement..."]
-}
-```
-
-**signatures**:
-```json
-{
-  "intro": "IN WITNESS WHEREOF, the parties have executed this SOW..."
-}
-```
 
 ---
 
@@ -459,14 +417,176 @@ as plain (un-tracked) text.
 
 ## Document Formatting Specification
 
-The generated .docx matches these exact specifications (derived from the Snowflake PS template):
+The Snowflake PS SOW format is derived from the reference Google Doc:
+- **Reference**: https://docs.google.com/document/d/1n-BAcsVTN0YuK6Ky_uDQvIHKRGjYjRb5zSmcRbli4t4/edit
+- **Local template**: exported to `/tmp/rocket_sow_template.docx` (see Template Approach section below)
 
-- **Font**: Arial, 7.5pt (95250 EMU) for ALL text — body, headings, and table cells
-- **H1 headings**: Bold Arial 7.5pt (section titles like "SCOPE OF SERVICES")
-- **H2 headings**: Non-bold Arial 7.5pt (subsections like "1.1 Executive Summary")
-- **Page**: Letter size (8.5" x 11")
-- **Margins**: 0.5" left/right, ~0.37" top, 0.7" bottom
-- **Line spacing**: 170 twips (~0.85 spacing), 0pt before/after
-- **Tables**: Full-width (10800 dxa), black single borders (sz=4), bold header row text (where applicable), no cell shading
-- **Bullets**: Unicode bullet character (•) in normal paragraphs
-- **Section numbering**: In the text itself (e.g., "2. OUTCOMES AND ACCEPTANCE CRITERIA"), not Word auto-numbering
+### Font & Page
+- **Font**: Arial, 7.5pt (`w:sz val="15"`, `w:szCs val="15"`) for ALL text — body, headings, table cells
+- **Page**: Letter (8.5" × 11"), margins: 0.5" left/right, ~0.37" top, 0.7" bottom
+
+### Line Spacing (EXACT values from reference doc)
+| Paragraph type | `w:line` | `w:lineRule` | `w:before` | `w:after` |
+|----------------|----------|--------------|------------|----------|
+| Body text (normal) | `170` | `auto` | (none) | (none) |
+| Main bullets | `170` | `auto` | `0` | `0` |
+| Category headers (Cust. Resp.) | `240` | `auto` | `0` | `0` |
+| Sub-bullets under categories | `240` | `auto` | (none) | (none) |
+| Heading 1 | `170` | `auto` | `0` | (none) |
+
+**Do NOT** use `w:lineRule="exact"` — the reference doc uses `"auto"` throughout.
+
+### Bullet System (3 types, all using Word numPr)
+Bullets in the reference doc use Word's native list numbering system (`numPr`), NOT Unicode `•` characters. The `numId` values reference numbering definitions inside the template file.
+
+| Bullet type | `numId` | `ilvl` | `w:line` | `ind:left` | `ind:hanging` | Use |
+|-------------|---------|--------|----------|------------|---------------|-----|
+| Main bullets (role items, SF responsibilities) | `18` | `0` | `170` | `720` | `360` | Snowflake Responsibilities, main body lists |
+| Category headers (Customer Responsibilities) | `12` | `0` | `240` | `720` | `360` | "Access — Week 1 of Term" headers |
+| Sub-bullets under categories | `13` | `0` | `240` | `1440` | `360` | Items under each category header |
+
+These `numId` values are only valid when using the exported template file as the document base (they reference `abstractNum` definitions inside that file).
+
+### Heading / Style Types
+- **Main body section headers** ("Description of Technical Services"): Use `Heading1` style
+- **Attachment top-level headers** ("Attachment 1: Platform Implementation"): `style='normal'` + bold run
+- **Attachment sub-sections** ("i. Scope.", "ii. Snowflake Responsibilities:"): `style='normal'` + bold run
+- **Role labels** ("T&M Senior Solutions Architect"): `style='normal'` + bold run, `before=0 after=0`
+- **All body text**: `style='normal'` (lowercase), `w:line="170" w:lineRule="auto"`
+
+### Table Formatting
+- **Table style**: `'TableNormal'` (NOT `'Table Grid'` — that style doesn't exist in the Google-exported template)
+- **Borders**: Must be added manually via `<w:tblBorders>` XML since TableNormal has no default borders
+- **Width**: Full-width via `<w:tblW w:w="10800" w:type="dxa"/>`
+- `CT_Tbl` does NOT have `get_or_add_tblPr()` — use `tbl_el.find(qn('w:tblPr'))` instead
+
+Borders XML to inject:
+```python
+borders_xml = (
+    '<w:tblBorders xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
+    '<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+    '<w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+    '<w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+    '<w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+    '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+    '<w:insideV w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+    '</w:tblBorders>'
+)
+tbl_pr.append(parse_xml(borders_xml))
+```
+
+---
+
+## ⚠️ Critical Bug: Table Ordering (sect_pr.addprevious)
+
+**This is the #1 python-docx gotcha for custom SOW scripts.**
+
+When mixing `doc.element.body.append(p)` for paragraphs with `doc.add_table()` for tables, **all tables will appear at the TOP of the document** and all paragraphs at the bottom. This happens because:
+
+- `doc.add_table()` inserts the table **before** `<w:sectPr>` (the section properties element that Word keeps as the last child of `<w:body>`)
+- `doc.element.body.append(p)` appends paragraphs **after** `<w:sectPr>`
+
+**Fix**: Always insert paragraphs before `<w:sectPr>`:
+
+```python
+def _append_p(doc, ppr_el, runs):
+    p = OxmlElement('w:p')
+    # ... build paragraph content ...
+    body = doc.element.body
+    sect_pr = body.find(qn('w:sectPr'))
+    if sect_pr is not None:
+        sect_pr.addprevious(p)  # ← CRITICAL: not body.append(p)
+    else:
+        body.append(p)
+    return p
+```
+
+Apply the same fix to any `page_break()` function that appends to `body`. This ensures paragraphs and tables are in the same ordered space in the document XML.
+
+---
+
+## Template Approach (Exact Format Match)
+
+For format-compatible SOWs, always start from the reference Google Doc exported as .docx. **Do not build from a blank Document() — you will lose all numbering definitions and styles.**
+
+### Step 1: Export reference Google Doc
+
+Use `export_gdoc.mjs` at `~/.snowflake/cortex/.mcp-servers/google-workspace/`:
+
+```bash
+cd ~/.snowflake/cortex/.mcp-servers/google-workspace
+./node export_gdoc.mjs "1n-BAcsVTN0YuK6Ky_uDQvIHKRGjYjRb5zSmcRbli4t4" "/tmp/rocket_sow_template.docx"
+```
+
+### Step 2: Open template, clear body, rebuild
+
+```python
+from docx import Document
+from docx.oxml.ns import qn
+from copy import deepcopy
+
+tmpl = Document("/tmp/rocket_sow_template.docx")
+
+# Clone pPr from specific template paragraphs (see indexes below)
+PPR_BODY       = deepcopy(tmpl.paragraphs[2]._p.find(qn('w:pPr')))   # body text
+PPR_H1         = deepcopy(tmpl.paragraphs[6]._p.find(qn('w:pPr')))   # Heading 1
+PPR_BOLD_ROLE  = deepcopy(tmpl.paragraphs[10]._p.find(qn('w:pPr')))  # bold label
+PPR_BULLET     = deepcopy(tmpl.paragraphs[12]._p.find(qn('w:pPr')))  # main bullet (numId=18, line=170)
+PPR_CAT_HDR    = deepcopy(tmpl.paragraphs[145]._p.find(qn('w:pPr'))) # cat header (numId=12, line=240)
+PPR_SUB_BULLET = deepcopy(tmpl.paragraphs[156]._p.find(qn('w:pPr'))) # sub-bullet (numId=13, line=240)
+PPR_ATTACH_HDR = deepcopy(tmpl.paragraphs[118]._p.find(qn('w:pPr'))) # attachment title
+PPR_SUBSEC     = deepcopy(tmpl.paragraphs[122]._p.find(qn('w:pPr'))) # attach sub-section
+
+# Clone rPr from specific template runs
+RPR_NORMAL = deepcopy(tmpl.paragraphs[2].runs[0]._r.find(qn('w:rPr')))
+RPR_BULLET_RUN = deepcopy(tmpl.paragraphs[12].runs[0]._r.find(qn('w:rPr')))
+
+# Open fresh copy, clear all body content
+doc = Document("/tmp/rocket_sow_template.docx")
+for child in list(doc.element.body):
+    tag = child.tag.split('}')[-1] if '}' in child.tag else child.tag
+    if tag in ('p', 'tbl', 'sdt'):
+        doc.element.body.remove(child)
+```
+
+### Step 3: Build paragraphs by cloning pPr
+
+```python
+def _append_p(doc, ppr_el, runs):
+    p = OxmlElement('w:p')
+    if ppr_el is not None:
+        p.append(deepcopy(ppr_el))
+    for text, rpr_el in runs:
+        if text:
+            r = OxmlElement('w:r')
+            if rpr_el is not None:
+                r.append(deepcopy(rpr_el))
+            t = OxmlElement('w:t')
+            t.text = text
+            t.set('{http://www.w3.org/XML/1998/namespace}space', 'preserve')
+            r.append(t)
+            p.append(r)
+    # CRITICAL: insert before sectPr (not append to body)
+    sect_pr = doc.element.body.find(qn('w:sectPr'))
+    if sect_pr is not None:
+        sect_pr.addprevious(p)
+    else:
+        doc.element.body.append(p)
+    return p
+```
+
+### Template Paragraph Index Reference
+
+| Index | Paragraph type | Key XML |
+|-------|---------------|--------|
+| 0 | Document title | `pStyle=Title`, `line=170 auto` |
+| 2 | Body text (normal) | `line=170 auto`, no before/after |
+| 6 | Heading 1 | `pStyle=Heading1`, `numPr numId=21`, `before=0` |
+| 10 | Bold role label ("T&M SA") | `normal`, `before=0 after=0`, bold run |
+| 12 | Main bullet | `numPr numId=18`, `line=170`, `ind left=720 hanging=360` |
+| 118 | Attachment top-level header | `normal`, no explicit spacing, bold run |
+| 122 | Attachment sub-section (i., ii.) | `normal`, no explicit spacing, bold run |
+| 145 | Category header (Cust. Resp.) | `numPr numId=12`, `line=240`, `ind left=720 hanging=360` |
+| 156 | Sub-bullet | `numPr numId=13`, `line=240`, `ind left=1440 hanging=360` |
+
+---

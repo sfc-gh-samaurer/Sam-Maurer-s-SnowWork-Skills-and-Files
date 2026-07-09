@@ -918,6 +918,7 @@ def add_shape_text(slide, shape_type, left, top, width, height,
     shape.fill.solid()
     shape.fill.fore_color.rgb = fill_colour
     shape.line.fill.background()                 # no outline
+    shape.shadow.inherit = False                 # no default theme drop shadow
 
     # AUTO LINE-BREAK: narrow shapes (≤2") can't word-wrap legibly.
     # If caller forgot \n, insert it between words automatically.
