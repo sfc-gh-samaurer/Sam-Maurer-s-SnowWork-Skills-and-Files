@@ -657,7 +657,7 @@ if _selected == ":material/business_center: SD Opportunities":
       <div style="color:#78350F;font-size:0.92rem;line-height:1.7;margin-bottom:20px">
         Please use the <strong>SD Forecast app</strong> for all pipeline review.
       </div>
-      <a href="https://gjnjhaixd-spcs.sfcogsops-snowhouse-aws-us-west-2.us-west-2.aws.snowflake.app/"
+      <a href="https://oivrhaixd-spcs.sfcogsops-snowhouse-aws-us-west-2.us-west-2.aws.snowflake.app/"
          target="_blank"
          style="display:inline-block;background:linear-gradient(135deg,#0C4A6E,#0284C7);
                 color:white;font-weight:700;font-size:0.9rem;padding:10px 24px;
