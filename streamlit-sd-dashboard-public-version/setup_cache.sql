@@ -40,7 +40,12 @@ CREATE OR REPLACE TABLE SD_APPS_DB.SD_CENTER.SD_CACHE_METADATA (
 CREATE OR REPLACE PROCEDURE SD_APPS_DB.SD_CENTER.REFRESH_CACHE_ALL()
   RETURNS VARCHAR
   LANGUAGE SQL
-  EXECUTE AS CALLER
+  -- EXECUTE AS OWNER so CURRENT_USER() resolves to SAMAURER (proc owner) in all
+  -- execution contexts, including scheduled tasks where EXECUTE AS CALLER returns
+  -- CURRENT_USER() = 'SYSTEM'. RAVEN views (DIM_CONTRACT_VIEW,
+  -- A360_OVERAGE_UNDERAGE_PREDICTION_VIEW) use CURRENT_USER()-based row-access
+  -- policies to scope territory; 'SYSTEM' has no mapping and returns empty results.
+  EXECUTE AS OWNER
 AS
 $$
 DECLARE
