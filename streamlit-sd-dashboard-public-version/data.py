@@ -561,7 +561,114 @@ def load_accounts_base(_scope=None):
 
 @st.cache_data(ttl=86400)
 def load_capacity_renewals(_scope=None):
-    return _apply_scope(_read_cache("SD_CACHE_CAPACITY_RENEWALS"))
+    # Query RAVEN directly in app user-session context (not a background task).
+    # RAVEN views use CURRENT_USER()-based row-access policies; in scheduled-task
+    # context CURRENT_USER()='SYSTEM' has no territory mapping and returns empty
+    # results. Querying here ensures CURRENT_USER()=SAMAURER and full data is returned.
+    # @st.cache_data caches the DataFrame for 24h per scope key, so RAVEN is only
+    # hit once per scope combination per day.
+    session = _get_session()
+    df = _fix_decimals(session.sql("""
+        WITH base AS (
+            SELECT
+                a.ACCOUNT_ID AS SALESFORCE_ACCOUNT_ID,
+                a.ACCOUNT_NAME,
+                a.REP_NAME AS ACCOUNT_OWNER,
+                COALESCE(dm_user.NAME, a.DM) AS DM,
+                a.ACCOUNT_TIER AS TIER,
+                a.DISTRICT_NAME
+            FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY a
+            LEFT JOIN (SELECT NAME, MANAGER_ID FROM FIVETRAN.SALESFORCE.USER WHERE IS_ACTIVE = true QUALIFY ROW_NUMBER() OVER (PARTITION BY NAME ORDER BY ID) = 1) ae_user ON a.REP_NAME = ae_user.NAME
+            LEFT JOIN FIVETRAN.SALESFORCE.USER dm_user ON ae_user.MANAGER_ID = dm_user.ID
+            WHERE a.DS = (SELECT MAX(DS) FROM SNOWHOUSE.SALES.ACCOUNTS_DAILY)
+            AND a.ACCOUNT_STATUS = 'Active'
+        ),
+        capacity AS (
+            SELECT
+                dc.SALESFORCE_ACCOUNT_ID,
+                MAX(dc.CONTRACT_START_DATE) AS CONTRACT_START_DATE,
+                MAX(dc.CONTRACT_END_DATE) AS CONTRACT_END_DATE,
+                CAST(SUM(dc.CAPACITY_PURCHASED) AS FLOAT) AS CAP_PURCHASED,
+                CAST(SUM(dc.TOTAL_CAPACITY) AS FLOAT) AS TOTAL_CAP,
+                CAST(SUM(dc.TOTAL_CAPACITY - dc.CAPACITY_USAGE_REMAINING) AS FLOAT) AS CAP_USED,
+                CAST(SUM(dc.CAPACITY_USAGE_REMAINING) AS FLOAT) AS CAP_REMAINING
+            FROM SALES.RAVEN.DIM_CONTRACT_VIEW dc
+            WHERE dc.AGREEMENT_TYPE = 'Capacity'
+            AND dc.CAPACITY_PURCHASED > 0
+            AND dc.CONTRACT_END_DATE = (
+                SELECT MAX(dc2.CONTRACT_END_DATE)
+                FROM SALES.RAVEN.DIM_CONTRACT_VIEW dc2
+                WHERE dc2.SALESFORCE_ACCOUNT_ID = dc.SALESFORCE_ACCOUNT_ID
+                AND dc2.AGREEMENT_TYPE = 'Capacity' AND dc2.CAPACITY_PURCHASED > 0
+            )
+            GROUP BY dc.SALESFORCE_ACCOUNT_ID
+        ),
+        capacity_fallback AS (
+            SELECT
+                f.SALESFORCE_ACCOUNT_ID,
+                f.SEGMENT_CONTRACT_START_DATE AS CONTRACT_START_DATE,
+                f.SEGMENT_CONTRACT_END_DATE AS CONTRACT_END_DATE,
+                CAST(NULL AS FLOAT) AS CAP_PURCHASED,
+                CAST(NULL AS FLOAT) AS TOTAL_CAP,
+                CAST(NULL AS FLOAT) AS CAP_USED,
+                CAST(f.SEGMENT_CONTRACT_CAPACITY_REMAINING_ AS FLOAT) AS CAP_REMAINING
+            FROM SNOWHOUSE.SALES.FUTURE_CONTRACT_SEGMENT_OVERAGE f
+            WHERE f._DATE = f.DS
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY f.SALESFORCE_ACCOUNT_ID ORDER BY f.SEGMENT_CONTRACT_END_DATE DESC) = 1
+        ),
+        overage AS (
+            SELECT
+                ov.SALESFORCE_ACCOUNT_ID,
+                CAST(SUM(ov.OVERAGE_UNDERAGE_PREDICTION) AS FLOAT) AS OVERAGE_UNDERAGE_PREDICTION,
+                MAX(ov.DAY_OF_OVERAGE) AS OVERAGE_DATE
+            FROM SALES.RAVEN.A360_OVERAGE_UNDERAGE_PREDICTION_VIEW ov
+            WHERE ov.CONTRACT_END_DATE = (
+                SELECT MAX(ov2.CONTRACT_END_DATE)
+                FROM SALES.RAVEN.A360_OVERAGE_UNDERAGE_PREDICTION_VIEW ov2
+                WHERE ov2.SALESFORCE_ACCOUNT_ID = ov.SALESFORCE_ACCOUNT_ID
+            )
+            GROUP BY ov.SALESFORCE_ACCOUNT_ID
+        ),
+        overage_fallback AS (
+            SELECT
+                f.SALESFORCE_ACCOUNT_ID,
+                CAST(f.SEGMENT_CONTRACT_CAPACITY_REMAINING_ AS FLOAT) AS OVERAGE_UNDERAGE_PREDICTION,
+                f.OVERAGE_DATE
+            FROM SNOWHOUSE.SALES.FUTURE_CONTRACT_SEGMENT_OVERAGE f
+            WHERE f._DATE = f.DS
+            QUALIFY ROW_NUMBER() OVER (PARTITION BY f.SALESFORCE_ACCOUNT_ID ORDER BY f.SEGMENT_CONTRACT_END_DATE DESC) = 1
+        ),
+        lead_se AS (
+            SELECT fa.ID AS SALESFORCE_ACCOUNT_ID, u.NAME AS LEAD_SE
+            FROM FIVETRAN.SALESFORCE.ACCOUNT fa
+            LEFT JOIN FIVETRAN.SALESFORCE.USER u ON fa.LEAD_SALES_ENGINEER_C = u.ID
+        )
+        SELECT
+            b.ACCOUNT_NAME,
+            b.SALESFORCE_ACCOUNT_ID,
+            b.ACCOUNT_OWNER,
+            b.DM,
+            b.TIER,
+            b.DISTRICT_NAME,
+            ls.LEAD_SE,
+            IFF(YEAR(COALESCE(cap.CONTRACT_START_DATE, fb.CONTRACT_START_DATE)) BETWEEN 1900 AND 2200, COALESCE(cap.CONTRACT_START_DATE, fb.CONTRACT_START_DATE), NULL) AS CONTRACT_START_DATE,
+            IFF(YEAR(COALESCE(cap.CONTRACT_END_DATE, fb.CONTRACT_END_DATE)) BETWEEN 1900 AND 2200, COALESCE(cap.CONTRACT_END_DATE, fb.CONTRACT_END_DATE), NULL) AS CONTRACT_END_DATE,
+            COALESCE(cap.CAP_PURCHASED, fb.CAP_PURCHASED) AS CAP_PURCHASED,
+            COALESCE(cap.TOTAL_CAP,     fb.TOTAL_CAP)     AS TOTAL_CAP,
+            COALESCE(cap.CAP_USED,      fb.CAP_USED)      AS CAP_USED,
+            COALESCE(cap.CAP_REMAINING, fb.CAP_REMAINING) AS CAP_REMAINING,
+            COALESCE(ovp.OVERAGE_UNDERAGE_PREDICTION, ovf.OVERAGE_UNDERAGE_PREDICTION) AS OVERAGE_UNDERAGE_PREDICTION,
+            IFF(YEAR(COALESCE(ovp.OVERAGE_DATE, ovf.OVERAGE_DATE)) BETWEEN 1900 AND 2200, COALESCE(ovp.OVERAGE_DATE, ovf.OVERAGE_DATE), NULL) AS OVERAGE_DATE
+        FROM base b
+        LEFT JOIN capacity          cap ON b.SALESFORCE_ACCOUNT_ID = cap.SALESFORCE_ACCOUNT_ID
+        LEFT JOIN capacity_fallback fb  ON b.SALESFORCE_ACCOUNT_ID = fb.SALESFORCE_ACCOUNT_ID
+        LEFT JOIN overage           ovp ON b.SALESFORCE_ACCOUNT_ID = ovp.SALESFORCE_ACCOUNT_ID
+        LEFT JOIN overage_fallback  ovf ON b.SALESFORCE_ACCOUNT_ID = ovf.SALESFORCE_ACCOUNT_ID
+        LEFT JOIN lead_se           ls  ON b.SALESFORCE_ACCOUNT_ID = ls.SALESFORCE_ACCOUNT_ID
+        WHERE COALESCE(cap.CONTRACT_END_DATE, fb.CONTRACT_END_DATE) IS NOT NULL
+        ORDER BY COALESCE(cap.CAP_PURCHASED, fb.CAP_PURCHASED) DESC NULLS LAST
+    """).to_pandas())
+    return _apply_scope(df)
 
 
 def _load_capacity_renewals_ORIG(_scope=None):  # kept for SQL reference only
