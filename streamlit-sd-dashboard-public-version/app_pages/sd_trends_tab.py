@@ -227,9 +227,44 @@ def _render_district_scorecard(frame, all_fys, sel_fys, source_col, is_dollar,
     if score_df.empty:
         return
 
-    # Sort by current FY YTD descending
-    sort_col = cur_fy if cur_fy in score_df.columns else sel_fys[-1]
-    score_df = score_df.sort_values(sort_col, ascending=False).reset_index(drop=True)
+    # Sort control — user picks which FY to rank by
+    fy_sort_options = [c for c in sel_fys if c in score_df.columns]
+    _default_sort = cur_fy if cur_fy in fy_sort_options else (fy_sort_options[-1] if fy_sort_options else None)
+    if len(fy_sort_options) > 1:
+        sort_col = st.selectbox(
+            "Rank districts by",
+            fy_sort_options,
+            index=fy_sort_options.index(_default_sort) if _default_sort in fy_sort_options else len(fy_sort_options) - 1,
+            key="scorecard_sort_by",
+        )
+    else:
+        sort_col = _default_sort or (sel_fys[-1] if sel_fys else None)
+
+    if sort_col and sort_col in score_df.columns:
+        score_df = score_df.sort_values(sort_col, ascending=False).reset_index(drop=True)
+
+    # Ranked bar chart
+    if sort_col and sort_col in score_df.columns:
+        bar_df = score_df[score_df[sort_col] != 0][["District", sort_col]].copy()
+        if not bar_df.empty:
+            _y_order = bar_df.sort_values(sort_col, ascending=False)["District"].tolist()
+            _ax = alt.Axis(format="$,.0f") if is_dollar else alt.Axis(format=",d")
+            _tip_fmt = "$,.0f" if is_dollar else ",d"
+            _bar = (
+                alt.Chart(bar_df)
+                .mark_bar()
+                .encode(
+                    y=alt.Y("District:N", sort=_y_order, title=None),
+                    x=alt.X(f"{sort_col}:Q", title=f"{sort_col} · {metric_name}", axis=_ax),
+                    color=alt.value("#0284C7"),
+                    tooltip=[
+                        alt.Tooltip("District:N", title="District"),
+                        alt.Tooltip(f"{sort_col}:Q", title=metric_name, format=_tip_fmt),
+                    ],
+                )
+                .properties(height=max(220, len(bar_df) * 24))
+            )
+            st.altair_chart(_bar, use_container_width=True)
 
     # Format for display
     def _style_yoy(val):
