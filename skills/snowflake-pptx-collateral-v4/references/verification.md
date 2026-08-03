@@ -701,6 +701,140 @@ prs.save(output_path)
 | TIGHT FIT | Long text crammed into narrow shape (<1.5" wide) | Move description to separate text box below shape, or shorten text |
 | LOW VISUAL DENSITY | Less than 40% of content slides have visual elements (shapes/diagrams/tables) | Add chevrons, hub-spoke, stat callouts, timelines from `patterns-enterprise.md`. Bullet-only decks REJECTED. |
 | CONSECUTIVE TEXT | More than 2 bullet-only slides in a row | Insert a visual pattern slide (diagram, table, stat callout) between text slides |
+| RENDERED TABLE OVERFLOW | Table's *rendered* height exceeds the safe zone even though its declared height does not | Run `est_table_bottom()` below — the built-in TABLE OVERFLOW check cannot catch this |
+
+---
+
+## 23b. Rendered Table Height — Known False Negative
+
+> **`verify_slide()`'s TABLE OVERFLOW check under-reports and will pass tables that visibly run off
+> the slide.** Read this before trusting a clean verification run on any deck containing tables.
+
+### The problem
+
+The Check 2 table test derives row height from the shape's **declared** geometry:
+
+```python
+row_h = h / n_rows        # h = shape.height — the DECLARED height
+bot   = t + h
+```
+
+But `slide.shapes.add_table(rows, cols, left, top, width, height)` treats `height` as a *starting*
+total that PowerPoint then **expands at render time** to fit cell content. Builders routinely pass a
+small nominal height:
+
+```python
+tbl = slide.shapes.add_table(14, 7, Inches(0.40), Inches(1.18),
+                             Inches(sum(widths)), Inches(0.30)).table   # 0.30" declared
+```
+
+`verify_slide()` sees `bottom = 1.18 + 0.30 = 1.48"`, well inside the safe zone, and reports clean.
+The table actually renders ~3.2" tall. **Every table this skill produces is subject to this**, since
+the recommended `simple_table()` helper passes a single row height as the total.
+
+The shape-level checks (Check 1 / 1c) are unaffected and remain reliable — they caught two footnote
+textboxes positioned under a long table. It is specifically the table height that is wrong.
+
+### Measured impact
+
+Measured across the 14 tables in a real 27-slide proposal deck, declared bottom edge vs. estimated
+rendered bottom edge:
+
+| Slide | Rows | Declared bottom | Est. rendered bottom | Under-reported by |
+|---|---|---|---|---|
+| 5 | 4 | 1.71" | 4.87" | **3.16"** |
+| 8 | 11 | 1.67" | 4.83" | **3.16"** |
+| 17 | 14 | 1.70" | 4.38" | 2.69" |
+| 12 | 9 | 1.82" | 4.40" | 2.57" |
+| 20 | 6 | 2.78" | 4.60" | 1.82" |
+
+Every table under-reported, by 1.5"–3.2". The scope-summary tables on slides 5–6 render to 4.87" —
+just 0.23" of headroom — while the built-in check sees 1.71" and reports comfortable slack. One extra
+bullet in a workstream row pushes them off the slide with **no warning whatsoever**. This is not an
+edge case; it is the default behaviour for every table-bearing slide.
+
+### The fix — content-aware estimator
+
+Add this alongside `verify_slide()` and run it over the saved deck. It estimates wrapped line count
+per cell from column width and font size, which tracks PowerPoint's autofit closely enough to catch
+real overflow:
+
+```python
+import math
+from pptx import Presentation
+
+FOOTER_TOP = 5.32          # footer textbox sits here; content must clear it
+HARD_LIMIT = 5.30
+
+def est_table_bottom(tbl, top):
+    """Estimate a table's RENDERED bottom edge in inches.
+
+    verify_slide() cannot do this — it only sees the declared shape height, which
+    PowerPoint expands at render time. See Section 23b.
+    """
+    h = 0.0
+    for row in tbl.rows:
+        max_lines, row_pt = 1, 8.0
+        for ci, cell in enumerate(row.cells):
+            if not cell.text:
+                continue
+            col_w = tbl.columns[ci].width / 914400
+            sizes = [r.font.size.pt for p in cell.text_frame.paragraphs
+                     for r in p.runs if r.font.size]
+            pt = max(sizes) if sizes else 8.0
+            # Arial average glyph advance ~= 0.5 * point size; 10pt of cell margin
+            chars_per_line = max(8, (col_w * 72 - 10) / (0.5 * pt))
+            lines = sum(max(1, math.ceil(len(p.text) / chars_per_line))
+                        for p in cell.text_frame.paragraphs if p.text)
+            if lines > max_lines:
+                max_lines, row_pt = lines, pt
+        h += max_lines * (row_pt * 1.25) / 72 + 0.09   # 1.25 leading + cell margins
+    return top + h
+
+
+def verify_rendered_heights(path):
+    """Flag slides whose real content bottom crosses the footer. Run on the SAVED file."""
+    prs, bad = Presentation(path), []
+    for i, slide in enumerate(prs.slides, 1):
+        bottoms = []
+        for sh in slide.shapes:
+            if sh.top is None:
+                continue
+            # skip the confidential footer itself
+            if sh.has_text_frame and "Confidential" in sh.text_frame.text:
+                continue
+            bottoms.append(est_table_bottom(sh.table, sh.top / 914400) if sh.has_table
+                           else (sh.top + sh.height) / 914400)
+        if bottoms and max(bottoms) > HARD_LIMIT:
+            bad.append((i, round(max(bottoms), 2)))
+    for n, b in bad:
+        print(f"  RENDERED OVERFLOW: slide {n} content bottom ~{b}\" > {HARD_LIMIT}\"")
+    if not bad:
+        print("  Rendered heights OK")
+    return bad
+```
+
+Call it after saving:
+
+```python
+prs.save(output_path)
+verify_rendered_heights(output_path)
+```
+
+The estimator is deliberately slightly pessimistic. Treat a flag as "inspect", not "definitely
+broken" — but never ship a flagged slide unchecked.
+
+### Do not try to render a PDF to check visually
+
+On managed Snowflake laptops both of the obvious approaches are dead ends. Don't burn time:
+
+| Approach | Result |
+|---|---|
+| `soffice --headless --convert-to pdf` | LibreOffice is not installed |
+| PowerPoint via `osascript` / AppleScript | `execution error: Parameter error. (-50)` — automation permission is not granted, and it cannot write to `/tmp` even when it is |
+
+The programmatic estimator above is the practical substitute. If you genuinely need eyes on a slide,
+ask the user to open the file and report back rather than attempting an automated export.
 
 ---
 

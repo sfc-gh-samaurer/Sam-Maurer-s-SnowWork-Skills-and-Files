@@ -53,6 +53,8 @@ Both modes use the same HTML/CSS design system as the visual source of truth. Im
 12. **Tables are ALWAYS native table objects (Editable mode)** — any tabular, matrix, or grid content (data tables, RACI, deliverables, pricing, scope summaries) MUST be built with `slide.shapes.add_table(...)`, NEVER as a grid of individual `add_rect()` cell rectangles. A grid of rectangles is not editable as a table, breaks row/column insertion, and is the #1 cause of "it doesn't behave like a table in PowerPoint." Per-cell fills and RACI color coding are set via `cell.fill.solid(); cell.fill.fore_color.rgb = ...` on the native table cell. Only non-tabular accents (legend badges, callout bars) may use `add_rect()`. See `html-to-editable-pptx.md` → "Core Rule: Tables Use Native Table Objects."
 13. **Bullets are ALWAYS native PowerPoint bullets (Editable mode)** — bulleted lists inside custom shapes/text frames MUST be real list bullets set via OOXML (`a:buChar` on each paragraph's `pPr`), NEVER a typed glyph prefix like `"•  "` or `"✓  "` inside the run text. Typed glyphs don't behave as a list: no hanging indent (wrapped lines align under the dot, not the text), the bullet button can't toggle them, and indent/restyle is broken. Use `set_bullet(para, char="•", color=...)` / `clear_bullet(para)` from `core-helpers.md` Section 12.7b — the bullet glyph (•, ✓, –, etc.) and brand color are preserved, it's just a true bullet. Placeholder text already gets native bullets via `set_ph_sections()` / `set_ph_lines()`; this rule closes the gap for custom shapes. See `html-to-editable-pptx.md` → "Core Rule: Bullets Are Native, Never Typed Glyphs."
 
+14. **`verify_slide()` cannot catch table overflow — run the rendered-height check too** — `slide.shapes.add_table(..., height)` treats `height` as a *starting* total that PowerPoint expands at render time to fit content. `verify_slide()` measures the **declared** height, so a 14-row table declared at `Inches(0.30)` reports a bottom edge of 1.48" and passes cleanly while rendering ~3.2" tall. This affects **every** table this skill produces, including `simple_table()`. After saving, run `verify_rendered_heights(output_path)` from `verification.md` Section 23b, which estimates wrapped line counts per cell. Also do not attempt a PDF export to eyeball it: LibreOffice is absent and PowerPoint AppleScript automation fails with `Parameter error (-50)` on managed laptops. See `verification.md` → "Rendered Table Height — Known False Negative."
+
 ### Dark-Background Constant (Editable Mode — Copy Into Every Script)
 
 ```python
@@ -375,6 +377,7 @@ In both modes:
 | File | Purpose |
 |------|---------|
 | `references/ps-engagement-proposal.md` | **PS PROPOSAL** — Canonical 28-slide structure for PS engagement proposals. Defines mandatory vs. conditional slides, content rules per slide, engagement-type variants (FinOps/Architecture/AI/Migration), and a bootstrap build script. **Read this first** when the user asks for a PS proposal or customer engagement deck. |
+| `references/fixed-fee-engagement-proposal.md` | **FIXED-FEE PS PROPOSAL** — Variant for when the fee is pinned *before* the scope is known (capacity conversion, investment attach, pre-agreed budget). Committed-hours model with build-time asserts, acceptance gates vs. billing milestones, Open Scope Items pattern for honest TBDs, and the scope-expansion ladder. **Read this instead of `ps-engagement-proposal.md`** when a budget number precedes the scope. |
 | `references/html-slide-design.md` | **PRIMARY** — CSS design tokens, official brand rules (typography, colors, logo, footer), 12 full HTML slide templates |
 | `references/html-to-pptx-conversion.md` | **Image mode** — Playwright conversion script, image-only PPTX rules, file naming |
 | `references/html-to-editable-pptx.md` | **Editable mode** — python-pptx builder patterns for all 12 slide types, CSS→pptx mapping |
@@ -385,6 +388,6 @@ In both modes:
 | `references/patterns-enterprise.md` | 37 advanced visual patterns (useful as CSS design inspiration for HTML slides) |
 | `references/slide-patterns.md` | Additional slide pattern catalog |
 | `references/content-standards.md` | Writing quality rules, narrative structure, slide content standards |
-| `references/verification.md` | Post-generation checklist |
+| `references/verification.md` | Post-generation checklist — plus **Section 23b**, the rendered-table-height false negative every table-heavy deck must be checked against |
 | `references/icons.md` | Snowflake icon catalog for architecture slides |
 | `references/google-slides-upload.md` | Upload .pptx to Google Slides via Drive API |

@@ -9,8 +9,14 @@ Use this reference whenever the user asks for a **PS engagement proposal deck**.
 standard slide order, content expectations, and conditional slots. Always build using the
 `snowflake-pptx-collateral-v4` editable PPTX approach (official Snowflake template + python-pptx).
 
-**Reference implementation:** `/tmp/build_workday_finops_proposal.py`
+**Reference implementation:** `~/Documents/CrowdStrike Matillion Migration/build_proposal.py`
+(canonical helper library + slide bodies; the original `/tmp/build_workday_finops_proposal.py` is gone)
 **Reference output:** `~/Google Drive/My Drive/Accounts/Workday/Workday_FinOps_Transformation_Proposal_May2026.pptx`
+
+> **Fixed-fee engagements:** if the fee is pinned before the scope is known (capacity conversion,
+> investment attach, pre-agreed budget), use `fixed-fee-engagement-proposal.md` instead. It covers
+> the committed-hours model, acceptance gates vs. billing milestones, and the Open Scope Items
+> pattern for shipping a proposal with honest unknowns.
 
 ---
 
@@ -262,7 +268,10 @@ EDGE_L, EDGE_T, EDGE_W, EDGE_H = Inches(0), Inches(0.375), Inches(0.042), Inches
 # [paste helpers here]
 
 # ── Template loading ──────────────────────────────────────────────────────────
-TEMPLATE = os.path.expanduser("~/.cortex/skills/900-999_utilities/945-render-pptx/snowflake_template.pptx")
+# ── Template loading ──────────────────────────────────────────────────────────
+# The template ships with this skill — resolve it relative to the skill directory.
+TEMPLATE = os.path.expanduser(
+    "~/.snowflake/cortex/github-skills/skills/snowflake-pptx-collateral-v4/snowflake_template.pptx")
 prs = Presentation(TEMPLATE)
 prs.slide_width = SLIDE_W; prs.slide_height = SLIDE_H
 
