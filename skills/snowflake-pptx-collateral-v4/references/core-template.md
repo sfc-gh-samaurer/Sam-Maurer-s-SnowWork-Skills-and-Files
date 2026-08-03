@@ -5,15 +5,17 @@ description: Template loading, slide dimensions, layout map, decorative zones, a
 
 ## 2. Template Loading
 
-The template file is `snowflake_template.pptx`. Search for it in this order:
+The template file is `snowflake_template.pptx` and **ships inside this skill directory**. Search for
+it in this order:
 
-1. `templates/snowflake_template.pptx` (project root)
-2. `~/.cortex/skills/900-999_utilities/945-render-pptx/snowflake_template.pptx`
+1. `templates/snowflake_template.pptx` (project root, if the project vendors its own copy)
+2. Alongside this skill — any of the skill install locations below
+3. `~/.cortex/skills/900-999_utilities/945-render-pptx/snowflake_template.pptx` (legacy)
 
 After loading, **remove ALL 71 sample slides** before adding your own:
 
 ```python
-import os
+import os, glob
 from pptx import Presentation
 from pptx.util import Inches, Pt, Emu
 from pptx.dml.color import RGBColor
@@ -21,12 +23,17 @@ from pptx.enum.text import PP_ALIGN, MSO_ANCHOR, MSO_AUTO_SIZE
 from pptx.enum.shapes import MSO_SHAPE
 
 # --- Locate template ---
+# The template lives in the skill dir; skills install to several roots, so glob them.
 TEMPLATE_SEARCH = [
     os.path.join(os.getcwd(), "templates", "snowflake_template.pptx"),
-    os.path.expanduser("~/.cortex/skills/900-999_utilities/945-render-pptx/snowflake_template.pptx"),
+] + sorted(glob.glob(os.path.expanduser(
+    "~/.snowflake/cortex/**/snowflake-pptx-collateral-v4/snowflake_template.pptx"),
+    recursive=True)) + [
+    os.path.expanduser(
+        "~/.cortex/skills/900-999_utilities/945-render-pptx/snowflake_template.pptx"),
 ]
 TEMPLATE = next((p for p in TEMPLATE_SEARCH if os.path.isfile(p)), None)
-assert TEMPLATE, "snowflake_template.pptx not found"
+assert TEMPLATE, f"snowflake_template.pptx not found; searched:\n" + "\n".join(TEMPLATE_SEARCH)
 
 prs = Presentation(TEMPLATE)
 

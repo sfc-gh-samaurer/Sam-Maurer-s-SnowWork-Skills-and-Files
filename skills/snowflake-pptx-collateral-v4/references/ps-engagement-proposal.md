@@ -269,9 +269,9 @@ EDGE_L, EDGE_T, EDGE_W, EDGE_H = Inches(0), Inches(0.375), Inches(0.042), Inches
 
 # ── Template loading ──────────────────────────────────────────────────────────
 # ── Template loading ──────────────────────────────────────────────────────────
-# The template ships with this skill — resolve it relative to the skill directory.
-TEMPLATE = os.path.expanduser(
-    "~/.snowflake/cortex/github-skills/skills/snowflake-pptx-collateral-v4/snowflake_template.pptx")
+# The template ships inside this skill. Use the TEMPLATE_SEARCH resolver from
+# core-template.md Section 2 — do NOT hardcode a path, since skills install to
+# several roots (~/.snowflake/cortex/skills, .../github-skills, project templates/).
 prs = Presentation(TEMPLATE)
 prs.slide_width = SLIDE_W; prs.slide_height = SLIDE_H
 
