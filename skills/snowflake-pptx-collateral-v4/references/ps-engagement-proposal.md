@@ -9,9 +9,21 @@ Use this reference whenever the user asks for a **PS engagement proposal deck**.
 standard slide order, content expectations, and conditional slots. Always build using the
 `snowflake-pptx-collateral-v4` editable PPTX approach (official Snowflake template + python-pptx).
 
-**Reference implementation:** `~/Documents/CrowdStrike Matillion Migration/build_proposal.py`
-(canonical helper library + slide bodies; the original `/tmp/build_workday_finops_proposal.py` is gone)
-**Reference output:** `~/Google Drive/My Drive/Accounts/Workday/Workday_FinOps_Transformation_Proposal_May2026.pptx`
+**Helper library:** `assets/proposal_helpers.py` — bundled with this skill, engagement-agnostic.
+Import it rather than pasting a copy of the helpers into the engagement folder:
+
+```python
+import os, sys
+sys.path.insert(0, os.path.expanduser(
+    "~/.snowflake/cortex/github-skills/skills/snowflake-pptx-collateral-v4/assets"))
+from proposal_helpers import *
+prs, L = new_deck()
+```
+
+**Reference implementation:** `assets/build_fixed_fee_proposal.py` — a complete, runnable 27-slide
+proposal. Even for a bottom-up priced deck, start from that script's slide bodies and swap the
+fixed-fee-specific slides (17, 20) for a standard resource/rate table; the remaining 25 slides and
+all geometry are shared.
 
 > **Fixed-fee engagements:** if the fee is pinned before the scope is known (capacity conversion,
 > investment attach, pre-agreed budget), use `fixed-fee-engagement-proposal.md` instead. It covers

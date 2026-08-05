@@ -24,15 +24,49 @@ template + python-pptx); everything in `core-helpers.md`, `core-branding.md` and
 The tell: someone internally says *"we have roughly $X of capacity to burn"* before anyone has
 sized the work. That inverts the normal exercise and this variant exists for that inversion.
 
-**Reference implementation:**
-`/Users/samaurer/Documents/RingCentral Customer Master Replication/build_proposal.py` — 27 slides,
-10 workstreams, 8 acceptance gates, 4 billing milestones, $220,000 fixed.
+## Bundled builder — start here, do not write a deck from scratch
 
-> **Helper-library lineage.** That script's helper block (colour constants, `add_shape_text`,
-> `add_rect`, `add_textbox`, `add_card`, `add_kpi`, `simple_table`, `cell_bullets`, `set_bullet`,
-> `style_cell`, `set_table_borders`, `narrative_panel`, `content_chrome`) is cloned verbatim from
-> `~/Documents/CrowdStrike Matillion Migration/build_proposal.py`. Treat that block as the stable
-> base for a new deck — copy it unchanged and write only the slide bodies.
+The skill ships a complete, runnable implementation of this variant. Do not hand-roll the geometry.
+
+| File | What it is |
+|---|---|
+| `assets/build_fixed_fee_proposal.py` | The full 27-slide builder — 10 workstreams, 8 acceptance gates, 4 billing milestones, $220,000 fixed. Runs as-is with placeholder content. |
+| `assets/proposal_helpers.py` | Engagement-agnostic helper library + the post-save rendered-height check. Contains no engagement content. |
+
+**Workflow**
+
+1. Copy `assets/build_fixed_fee_proposal.py` into the engagement folder as `build_proposal.py`.
+2. Run it unchanged first. It should print `Slides: 27`, `Rendered heights OK`, and the price check.
+   That confirms the template resolved and the environment works before you touch content.
+3. Edit the **CONFIG** block (fee, duration, contingency, rates, customer, output path).
+4. Replace every list in the **CONTENT** block. Structure is the deliverable; the text is example
+   text and must not ship.
+5. Leave the **BUILD** and **ASSERTS** blocks alone. Geometry is tuned to the 10 × 5.625" canvas and
+   the asserts are what keep the fee consistent across six slides.
+
+The builder imports the helper library rather than copying it:
+
+```python
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))   # or the assets/ path
+from proposal_helpers import *
+```
+
+If you relocate the build script out of `assets/`, point `sys.path` at the skill's `assets/`
+directory instead — do not paste a second copy of the helpers into the engagement folder.
+
+> **What the helper library covers.** Colour constants, `set_bullet` / `clear_bullet`, `set_ph`,
+> `add_shape_text`, `add_rect`, `add_textbox`, `content_chrome`, `set_table_borders`, `style_cell`,
+> `cell_bullets`, `simple_table`, `add_kpi`, `add_card`, `narrative_panel`, `new_deck` / `save_deck`,
+> and `est_table_bottom` / `verify_rendered_heights`. `resolve_template()` globs the skill install
+> root, so the same script works from any machine.
+
+### Asserts the bundled builder already enforces
+
+Beyond the four documented in §1.3, the shipped script also checks that the fee does not land more
+than $1,000 under the presented number, that BM1 stays at or below 25%, and that the `Base Hrs`
+column on the scope slides agrees row-for-row with the effort table. That last one catches the most
+common editing mistake: rebalancing hours in `EFFORT` and forgetting the scope slides.
 
 ---
 
@@ -53,7 +87,7 @@ base hours per (workstream × role)
   → × role rate = fixed fee
 ```
 
-Worked example (RingCentral, $220K):
+Worked example ($220K — the values shipped in `assets/build_fixed_fee_proposal.py`):
 
 | Role | Base | +Contingency | Committed | Rate | Extended |
 |---|---|---|---|---|---|
@@ -288,7 +322,9 @@ knowledge-transfer sessions as filler.
 
 ## 7. Checklist (fixed-fee specific — run alongside `verification.md`)
 
-- [ ] Role column totals match the documented invariant; all four asserts pass
+- [ ] Built from `assets/build_fixed_fee_proposal.py`, not hand-rolled; helpers imported not copied
+- [ ] No placeholder text from the shipped example survives anywhere in the deck
+- [ ] Role column totals match the documented invariant; all asserts pass
 - [ ] Committed hours × rates equals the stated fee (within rounding *down* to the presented number)
 - [ ] Billing milestones sum exactly to the fee **and** to committed hours
 - [ ] No billing milestone exceeds ~25% at BM1; largest BM is at or near the end

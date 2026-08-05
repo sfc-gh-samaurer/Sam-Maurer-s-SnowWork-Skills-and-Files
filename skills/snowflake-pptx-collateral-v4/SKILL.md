@@ -55,6 +55,8 @@ Both modes use the same HTML/CSS design system as the visual source of truth. Im
 
 14. **`verify_slide()` cannot catch table overflow — run the rendered-height check too** — `slide.shapes.add_table(..., height)` treats `height` as a *starting* total that PowerPoint expands at render time to fit content. `verify_slide()` measures the **declared** height, so a 14-row table declared at `Inches(0.30)` reports a bottom edge of 1.48" and passes cleanly while rendering ~3.2" tall. This affects **every** table this skill produces, including `simple_table()`. After saving, run `verify_rendered_heights(output_path)` from `verification.md` Section 23b, which estimates wrapped line counts per cell. Also do not attempt a PDF export to eyeball it: LibreOffice is absent and PowerPoint AppleScript automation fails with `Parameter error (-50)` on managed laptops. See `verification.md` → "Rendered Table Height — Known False Negative."
 
+15. **Never hand-roll a PS engagement proposal deck** — the skill ships a complete, runnable 27-slide builder at `assets/build_fixed_fee_proposal.py` plus the shared helper library at `assets/proposal_helpers.py`. Copy the builder into the engagement folder, run it unchanged to confirm the template resolves and the environment works, then edit only its **CONFIG** and **CONTENT** blocks. Leave the **BUILD** geometry (tuned to the 10 × 5.625" canvas) and the **ASSERTS** (which keep the fee consistent across six slides) alone. Import `proposal_helpers` — never paste a second copy of the helpers into an engagement folder, or bug fixes to the library stop reaching your deck. See `fixed-fee-engagement-proposal.md` for a pinned fee, `ps-engagement-proposal.md` for bottom-up pricing.
+
 ### Dark-Background Constant (Editable Mode — Copy Into Every Script)
 
 ```python
@@ -185,6 +187,13 @@ In editable mode, the HTML slides serve as the visual specification. Write a Pyt
 4. Install dependency: `pip install python-pptx`
 5. Run the script and confirm the `.pptx` was created
 6. **Offer** to adjust any slide and regenerate
+
+> **For a PS engagement proposal, do not start from a blank script.** Copy
+> `assets/build_fixed_fee_proposal.py` into the engagement folder, run it unchanged to confirm the
+> template resolves, then edit only its CONFIG and CONTENT blocks. It already implements all 27
+> slides, the tuned geometry, and the pricing asserts. See
+> `references/fixed-fee-engagement-proposal.md` (pinned fee) or `references/ps-engagement-proposal.md`
+> (bottom-up pricing).
 
 **⚠ Re-read the current HTML before an editable rebuild.** If the HTML slides changed since the
 last build (edits, new/removed slides, reordering), **read every current `slides/*.html` file first**
@@ -373,6 +382,15 @@ In both modes:
 ---
 
 # Reference Files
+
+## Bundled runnable assets
+
+| File | Purpose |
+|------|---------|
+| `assets/build_fixed_fee_proposal.py` | **START HERE for a PS proposal deck.** Complete, runnable 27-slide fixed-fee proposal builder with placeholder content. Copy into the engagement folder, run it unchanged to confirm the environment, then replace the CONFIG and CONTENT blocks. Leave the BUILD geometry and ASSERTS alone. Also the best starting point for a bottom-up priced proposal — 25 of the 27 slides are shared. |
+| `assets/proposal_helpers.py` | Engagement-agnostic helper library imported by the builder: brand constants, `set_bullet`/`clear_bullet`, `set_ph`, `add_shape_text`, `add_rect`, `add_textbox`, `content_chrome`, `simple_table`, `style_cell`, `cell_bullets`, `add_kpi`, `add_card`, `narrative_panel`, `new_deck`/`save_deck`, `resolve_template`, and `est_table_bottom`/`verify_rendered_heights`. Import it — never paste a copy into an engagement folder. |
+
+## Guidance references
 
 | File | Purpose |
 |------|---------|
