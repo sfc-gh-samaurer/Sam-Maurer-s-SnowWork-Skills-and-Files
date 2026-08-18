@@ -1,0 +1,9 @@
+[project]
+name = "es-brief-creator"
+version = "0.1.0"
+description = "Build one-slide ES Brief PPTX decks from a proposal or a description"
+requires-python = ">=3.9"
+dependencies = [
+    "python-pptx>=0.6.23",
+    "pypdf>=4.0.0",
+]
