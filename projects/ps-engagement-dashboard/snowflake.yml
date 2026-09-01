@@ -1,0 +1,13 @@
+definition_version: 2
+entities:
+  ps_engagement_dashboard:
+    type: streamlit
+    identifier:
+      name: PS_ENGAGEMENT_DASHBOARD
+      database: PST
+      schema: PS_APPS_DEV
+    query_warehouse: PST_STEAMLIT_APPS
+    main_file: streamlit_app.py
+    artifacts:
+      - streamlit_app.py
+      - environment.yml

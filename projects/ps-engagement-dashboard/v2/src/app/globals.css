@@ -1,0 +1,67 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cl-primary: #006686;
+  --cl-accent: #29b5e8;
+  --cl-surface: #f9f9ff;
+  --cl-card: #ffffff;
+  --cl-text: #141b2b;
+  --cl-muted: #5a6578;
+  --cl-border: #e2e8f0;
+}
+
+body {
+  font-family: "Inter", system-ui, sans-serif;
+  background-color: var(--cl-surface);
+  color: var(--cl-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tremor overrides for Crystalline Lab */
+.tremor-Card-root {
+  background: var(--cl-card);
+  border: 1px solid var(--cl-border);
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04),
+    0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
+}
+
+.tremor-Card-root:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06),
+    0 2px 4px -2px rgba(0, 0, 0, 0.04);
+}
+
+.tremor-Metric-root {
+  font-family: "Manrope", system-ui, sans-serif;
+  font-weight: 800;
+  color: var(--cl-text);
+}
+
+.tremor-Tab-root[data-state="active"] {
+  color: var(--cl-primary);
+  border-color: var(--cl-primary);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--cl-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--cl-muted);
+}
